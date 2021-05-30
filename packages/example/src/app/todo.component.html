@@ -1,0 +1,29 @@
+<label>
+  <input 
+    type="checkbox" 
+    [disabled]="resetOnSave" 
+    [ngModel]="done" 
+    (ngModelChange)="toggleDone($event)"
+  />
+</label>
+&nbsp;
+<div class="text" contenteditable data-placeholder="Buy milk tomorrow morning..." (keydown.enter)="
+    editText(textContent.textContent.trim());
+    $event.preventDefault();
+  " #textContent>{{text}}</div>
+
+<style>
+  :host {
+    display: flex;
+    margin: 0.5rem;
+  }
+
+  .text {
+    cursor: text
+  }
+
+  .text:empty:before {
+    content: attr(data-placeholder);
+    opacity: 0.6
+  }
+</style>
