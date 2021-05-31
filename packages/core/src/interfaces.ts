@@ -16,13 +16,13 @@ export interface Context {
 }
 
 export interface ViewFactory {
-    <T extends {}, U extends {}>(
-        state: (props: T) => U,
-    ): new () => T & AsyncState<U>
-    <T extends {}, U extends {}>(
-        props: Type<T>,
-        state: (props: T) => U,
-    ): new () => T & AsyncState<U>
+    <T extends {}>(
+        state: () => T,
+    ): new () => AsyncState<T>
+    <T extends Type<any>, U extends {}>(
+        props: T,
+        state: (props: InstanceType<T>) => U,
+    ): new (...args: T extends new (...args: infer R) => any ? R : void) => InstanceType<T> & AsyncState<U>
 }
 
 export type CheckPhase = 0 | 1 | 2;
