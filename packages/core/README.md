@@ -122,11 +122,6 @@ const PROVIDER = {
 
 ### Core
 
-#### Inject
-
-Equivalent to `Injector.get(ProviderToken)`. Only works inside the context of a `View` or `Factory`.
-Throws if called outside of a valid context.
-
 #### Factory
 
 Creates a context-aware factory function, or `InjectionToken` if a name argument is passed.
@@ -145,20 +140,17 @@ only trigger view updates when the returned observable state emits a new value.
 These APIs only work inside the context of a `View` or `Factory`. Calling them at the wrong time
 will cause an "out of context" error to be thrown.
 
+#### Inject
+
+Equivalent to `Injector.get(ProviderToken)`. Only works inside the context of a `View` or `Factory`.
+Throws if called outside of a valid context.
+
 #### Subscribe
 
 Registers an effect in the current context. If `Subscribe` is called inside a `View` constructor,
 the subscription is deferred until the view has mounted. If it is called inside a `Factory` or
 nested in another `Subscribe`, the subscription is invoked immediately after the containing
 function has executed.
-
-#### Value
-
-Alias for `BehaviourSubject`
-
-#### Emitter
-
-Alias for `EventEmitter`
 
 #### DoCheck
 
@@ -174,22 +166,18 @@ and emits this value if it has changed since it was last checked. The optional o
 only receives values that were emitted by calling `next` and ignores values that are emitted by
 the getter. The getter function should be kept simple to prevent performance issues.
 
+#### ContentQuery
+
+Creates a `Value` that receives a `QueryList`. It waits for  the query list to become available,
+then subscribes to its changes. The getter function is checked during the `ngAfterContentChecked`
+lifecycle hook.
+
 #### ViewCheck
 
 Creates a `CheckSubject` that calls the provided `getter` during the `ngAfterViewChecked` lifecycle hook
 and emits this value if it has changed since it was last checked. The optional observer argument
 only receives values that were emitted by calling `next` and ignores values that are emitted by
 the getter. The getter function should be kept simple to prevent performance issues.
-
----
-
-### Utils
-
-#### ContentQuery
-
-Creates a `Value` that receives a `QueryList`. It waits for  the query list to become available,
-then subscribes to its changes. The getter function is checked during the `ngAfterContentChecked`
-lifecycle hook.
 
 #### ViewQuery
 
@@ -206,6 +194,18 @@ otherwise it will `Subscribe` to the observer and return the subscription.
 
 Works like the `HostBinding` decorator, it will `Subscribe` to an `Observable` and
 use the `Renderer` to apply changes to the property, attribute, class or style that was selected.
+
+---
+
+### Utils
+
+#### Value
+
+Alias for `BehaviourSubject`
+
+#### Emitter
+
+Alias for `EventEmitter`
 
 #### get
 
