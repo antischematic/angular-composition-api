@@ -1,38 +1,29 @@
 import {
     ChangeDetectorRef,
-    Directive,
     ErrorHandler,
     EventEmitter,
+    inject,
     InjectFlags,
     InjectionToken,
     Injector,
     INJECTOR,
     isDevMode,
     NgModuleRef,
-    ProviderToken,
     ɵɵdirectiveInject as directiveInject
 } from '@angular/core';
-import { inject } from '@angular/core';
-import {
-    isObservable,
-    Notification,
-    Observable,
-    PartialObserver,
-    Subscription,
-    TeardownLogic,
-} from 'rxjs';
-import { AsyncState, CheckPhase, Context, ViewFactory } from './interfaces';
+import {isObservable, Notification, Observable, PartialObserver, Subscription, TeardownLogic,} from 'rxjs';
+import {AsyncState, CheckPhase, Context, ViewFactory} from './interfaces';
 
 let currentContext: any;
 const contextMap = new WeakMap<{}, Context>();
 
-function beginContext(value: any) {
+export function beginContext(value: any) {
     const previousContext = currentContext;
     currentContext = value;
     return previousContext;
 }
 
-function endContext(previous: any) {
+export function endContext(previous: any) {
     currentContext = previous;
 }
 
@@ -287,12 +278,4 @@ export function Factory<T>(name: any, fn: () => T = name): unknown {
     return new InjectionToken(name, {
         factory
     })
-}
-
-export function Inject<T>(token: ProviderToken<T>, notFoundValue?: T, flags?: InjectFlags): T {
-    const { injector } = getContext();
-    const previous = beginContext(void 0);
-    const value = injector.get(token, notFoundValue, flags);
-    endContext(previous);
-    return value
 }

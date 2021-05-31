@@ -1,15 +1,6 @@
-import {
-  Component,
-  Directive,
-  ElementRef,
-  Input,
-  NgModule,
-  Output,
-  Renderer2,
-  ViewChild
-} from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { DoCheck, Emitter, set, Subscribe, Inject, View } from '@mmuscat/angular-composition-api';
+import {Component, Directive, ElementRef, Input, NgModule, Output, Renderer2, ViewChild} from '@angular/core';
+import {FormsModule} from '@angular/forms';
+import {DoCheck, Emitter, Inject, set, Subscribe, View} from '@mmuscat/angular-composition-api';
 
 export interface Todo {
   text: string;

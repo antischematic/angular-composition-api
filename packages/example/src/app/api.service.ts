@@ -1,10 +1,9 @@
-import { HttpClient } from '@angular/common/http';
-import { InjectionToken } from '@angular/core';
-import { timer } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { Emitter, Subscribe } from '@mmuscat/angular-composition-api';
-import { Inject, Factory } from '@mmuscat/angular-composition-api';
-import { Todo } from './todo.component';
+import {HttpClient} from '@angular/common/http';
+import {InjectionToken} from '@angular/core';
+import {timer} from 'rxjs';
+import {map} from 'rxjs/operators';
+import {Emitter, Factory, Inject, Subscribe} from '@mmuscat/angular-composition-api';
+import {Todo} from './todo.component';
 
 let database = [
   {

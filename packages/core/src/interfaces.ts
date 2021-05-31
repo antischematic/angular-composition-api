@@ -1,5 +1,5 @@
-import { ErrorHandler, EventEmitter, Injector, Type } from '@angular/core';
-import { Notification, Observable, PartialObserver, Subscription } from 'rxjs';
+import {ErrorHandler, EventEmitter, Injector, Type} from '@angular/core';
+import {Notification, Observable, PartialObserver, Subscription} from 'rxjs';
 
 export interface Check {
     check(): void;

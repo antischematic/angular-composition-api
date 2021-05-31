@@ -1,17 +1,8 @@
-import { CommonModule } from '@angular/common';
-import { Component, Directive, Input, NgModule } from '@angular/core';
-import {
-  DoCheck,
-  emit,
-  Emitter,
-  replay,
-  set,
-  Subscribe,
-  Value
-} from '@mmuscat/angular-composition-api';
-import { View, Inject } from '@mmuscat/angular-composition-api';
-import { CreateTodo, LoadTodosById } from './api.service';
-import { Todo, TodoModule } from './todo.component';
+import {CommonModule} from '@angular/common';
+import {Component, Directive, Input, NgModule} from '@angular/core';
+import {DoCheck, emit, Emitter, Inject, replay, set, Subscribe, Value, View} from '@mmuscat/angular-composition-api';
+import {CreateTodo, LoadTodosById} from './api.service';
+import {Todo, TodoModule} from './todo.component';
 
 @Directive()
 class Props {

@@ -1,7 +1,6 @@
 import {Observable, PartialObserver, Subscription, TeardownLogic} from "rxjs";
 import {ElementRef, Renderer2} from "@angular/core";
-import {Inject} from "./core";
-import {Subscribe} from "./common";
+import {Inject, Subscribe} from "./common";
 
 export function HostListener<T>(eventName: string): Observable<T>
 export function HostListener<T>(eventName: string, observer: PartialObserver<T> | (() => TeardownLogic)): Subscription

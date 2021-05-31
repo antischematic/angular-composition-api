@@ -152,14 +152,6 @@ the subscription is deferred until the view has mounted. If it is called inside 
 nested in another `Subscribe`, the subscription is invoked immediately after the containing
 function has executed.
 
-#### Value
-
-Alias for `BehaviourSubject`
-
-#### Emitter
-
-Alias for `EventEmitter`
-
 #### DoCheck
 
 Creates a `CheckSubject` that calls the provided `getter` during the `ngDoCheck` lifecycle hook
@@ -181,10 +173,6 @@ and emits this value if it has changed since it was last checked. The optional o
 only receives values that were emitted by calling `next` and ignores values that are emitted by
 the getter. The getter function should be kept simple to prevent performance issues.
 
----
-
-### Utils
-
 #### ContentQuery
 
 Creates a `Value` that receives a `QueryList`. It waits for  the query list to become available,
@@ -200,12 +188,24 @@ lifecycle hook.
 #### HostListener
 
 Works like the `HostListener` decorator, returns an `Emitter` if an observer wasn't provided,
-otherwise it will `Subscribe` to the observer and return the subscription. 
+otherwise it will `Subscribe` to the observer and return the subscription.
 
 #### HostBinding
 
 Works like the `HostBinding` decorator, it will `Subscribe` to an `Observable` and
 use the `Renderer` to apply changes to the property, attribute, class or style that was selected.
+
+---
+
+### Utils
+
+#### Value
+
+Alias for `BehaviourSubject`
+
+#### Emitter
+
+Alias for `EventEmitter`
 
 #### get
 
