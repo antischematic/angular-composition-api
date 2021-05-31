@@ -201,7 +201,7 @@ use the `Renderer` to apply changes to the property, attribute, class or style t
 
 #### Value
 
-Alias for `BehaviourSubject`
+Alias for `BehaviorSubject`
 
 #### Emitter
 

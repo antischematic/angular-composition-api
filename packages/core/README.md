@@ -143,7 +143,7 @@ will cause an "out of context" error to be thrown.
 #### Inject
 
 Equivalent to `Injector.get(ProviderToken)`. Only works inside the context of a `View` or `Factory`.
-Throws if called outside of a valid context.
+Throws if called outside a valid context.
 
 #### Subscribe
 
@@ -201,7 +201,7 @@ use the `Renderer` to apply changes to the property, attribute, class or style t
 
 #### Value
 
-Alias for `BehaviourSubject`
+Alias for `BehaviorSubject`
 
 #### Emitter
 
