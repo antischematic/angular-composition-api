@@ -90,10 +90,12 @@ function loadTodosByUserId() {
     return [value, emitter]
 }
 
-// 2. Create an injection token.
-export const LoadTodosByUserId = Factory("LoadTodosByUserId", loadTodosByUserId)
+// 2. Create an injectable service.
+export const LoadTodosByUserId = Service(loadTodosByUserId, {
+    providedIn: "root" // defaults to null
+})
 
-// 3. Use in component
+// 3. Inject in view.
 function State(props: Props) {
     const userId = DoCheck(() => props.userId)
     const [todos, loadTodosByUserId] = Inject(LoadTodosByUserId)
@@ -105,16 +107,18 @@ function State(props: Props) {
     }
 }
 
-// 4. Override provider
+// 4. Provide non-singleton service.
 
-function overrideLoadTodosById() {
-    const http = Inject(HttpClient)
-    // Implementation
-}
+@Component({
+    providers: [LoadTodosByUserId]
+})
+export class Todos extends View(State, Props) {}
 
-const PROVIDER = {
+// 5. Override provider
+
+const CustomProvider = {
     provide: LoadTodosByUserId,
-    useFactory: Factory(overrideLoadTodosById)
+    useClass: Service(factory)
 }
 ```
 
@@ -122,10 +126,11 @@ const PROVIDER = {
 
 ### Core
 
-#### Factory
+#### Service
 
-Creates a context-aware factory function, or `InjectionToken` if a name argument is passed.
-This token is provided in the root scope.
+Creates a context-aware, tree-shakable service class from the provided factory function. If the
+`providedIn` option is set to null, or omitted, you must provide the service in a `NgModule`,
+`Directive` or `Component`. Start or retrieve the service with `Inject`.
 
 #### View
 
@@ -137,18 +142,18 @@ only trigger view updates when the returned observable state emits a new value.
 
 ### Common
 
-These APIs only work inside the context of a `View` or `Factory`. Calling them at the wrong time
+These APIs only work inside the context of a `View` or `Service`. Calling them at the wrong time
 will cause an "out of context" error to be thrown.
 
 #### Inject
 
-Equivalent to `Injector.get(ProviderToken)`. Only works inside the context of a `View` or `Factory`.
+Equivalent to `Injector.get(ProviderToken)`. Only works inside the context of a `View` or `Service`.
 Throws if called outside a valid context.
 
 #### Subscribe
 
 Registers an effect in the current context. If `Subscribe` is called inside a `View` constructor,
-the subscription is deferred until the view has mounted. If it is called inside a `Factory` or
+the subscription is deferred until the view has mounted. If it is called inside a `Service` or
 nested in another `Subscribe`, the subscription is invoked immediately after the containing
 function has executed.
 

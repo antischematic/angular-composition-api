@@ -47,13 +47,14 @@ function State(props: Props) {
 
 @Component({
   selector: 'app-todo-list',
-  templateUrl: './todo-list.component.html'
+  templateUrl: './todo-list.component.html',
+  providers: [CreateTodo]
 })
 export class TodoListComponent extends View(Props, State) {}
 
 @NgModule({
   imports: [CommonModule, TodoModule],
   declarations: [TodoListComponent],
-  exports: [TodoListComponent]
+  exports: [TodoListComponent],
 })
 export class TodoListModule {}

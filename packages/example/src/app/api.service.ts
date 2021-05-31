@@ -1,8 +1,7 @@
 import {HttpClient} from '@angular/common/http';
-import {InjectionToken} from '@angular/core';
 import {timer} from 'rxjs';
 import {map} from 'rxjs/operators';
-import {Emitter, Factory, Inject, Subscribe} from '@mmuscat/angular-composition-api';
+import {Emitter, Service, Inject, Subscribe} from '@mmuscat/angular-composition-api';
 import {Todo} from './todo.component';
 
 let database = [
@@ -32,9 +31,7 @@ function loadTodosById() {
   };
 }
 
-export const LoadTodosById = new InjectionToken('LoadTodosById', {
-  factory: Factory(loadTodosById)
-});
+export const LoadTodosById = Service(loadTodosById, { providedIn: "root" });
 
 interface Request<T> {
   type: 'request';
@@ -69,4 +66,4 @@ function createTodo() {
   return resource;
 }
 
-export const CreateTodo = Factory('CreateTodo', createTodo);
+export const CreateTodo = Service(createTodo);

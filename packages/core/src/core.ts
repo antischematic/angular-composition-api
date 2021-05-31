@@ -3,12 +3,13 @@ import {
     ErrorHandler,
     EventEmitter,
     inject,
+    Injectable,
     InjectFlags,
-    InjectionToken,
     Injector,
     INJECTOR,
     isDevMode,
     NgModuleRef,
+    Type,
     ɵɵdirectiveInject as directiveInject
 } from '@angular/core';
 import {isObservable, Notification, Observable, PartialObserver, Subscription, TeardownLogic,} from 'rxjs';
@@ -266,16 +267,15 @@ function decorate(Props: any, fn?: any, provider = false) {
 
 export const View: ViewFactory = createView;
 
-export function Factory<T>(fn: () => T): () => T
-export function Factory<T>(name: string, fn: () => T): InjectionToken<T>
-export function Factory<T>(name: any, fn: () => T = name): unknown {
-    const factory = function () {
-        return createService(fn)
+type ProvidedIn = Type<any> | 'root' | 'platform' | 'any' | null
+
+export function Service<T>(factory: () => T, options?: { providedIn: ProvidedIn }): Type<T> {
+    @Injectable({ providedIn: options?.providedIn ?? null  })
+    class Class {
+        static overriddenName = factory.name
+        constructor() {
+            return createService(factory)
+        }
     }
-    if (typeof name === "function") {
-        return factory
-    }
-    return new InjectionToken(name, {
-        factory
-    })
+    return Class as any
 }
