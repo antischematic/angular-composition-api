@@ -115,6 +115,8 @@ Catches errors that occur during change detection and notifies the nearest
 - Server side rendering
 - Errors thrown in the error boundary itself 
 
+Each error boundary can only have one `catchError`.
+
 ### Fallback
 
 **selector:** `[fallback]`
@@ -127,11 +129,30 @@ If used on a template, embeds the view when an error is caught by the error boun
 and destroys it when the error state resets. The `$implicit` value is set to the
 error that was thrown.
 
+Each error boundary can only have one `fallback`.
+
 **examples:**
+
+With DOM element
+
 ```html
 <error-boundary>
     <div fallback>An error has occured</div>
+</error-boundary>
+```
+
+With `ng-template`
+
+```html
+<error-boundary>
     <ng-template fallback let-error>An error has occured: {{ error.message }}</ng-template>
+</error-boundary>
+```
+
+With component
+
+```html
+<error-boundary
     <my-custom-error *fallback="let error" [error]="error"></my-custom-error>
 </error-boundary>
 ```
