@@ -1,17 +1,31 @@
 import {
   AfterContentInit,
+  ApplicationRef,
   ChangeDetectorRef,
   ContentChild,
+  ContentChildren,
   Directive,
-  DoCheck, ElementRef,
-  ErrorHandler, EventEmitter, Inject,
+  DoCheck,
+  ElementRef,
+  ErrorHandler,
+  EventEmitter,
+  Inject,
+  Injectable,
+  Injector,
   NgModule,
-  OnDestroy, OnInit, Optional, Output, PLATFORM_ID, Renderer2,
+  NgZone,
+  OnDestroy,
+  OnInit,
+  Optional,
+  Output,
+  PLATFORM_ID,
+  QueryList,
+  Renderer2,
   TemplateRef,
   ViewContainerRef,
-  ViewRef
-} from '@angular/core';
-import {isPlatformBrowser} from "@angular/common";
+  ViewRef,
+} from "@angular/core"
+import { isPlatformBrowser } from "@angular/common"
 
 export abstract class Fallback {
   abstract handleError(error: any): void
@@ -39,10 +53,12 @@ export class ErrorBoundaryEvent {
 
 @Directive({
   selector: "[fallback]",
-  providers: [{
-    provide: Fallback,
-    useExisting: DefaultFallback
-  }]
+  providers: [
+    {
+      provide: Fallback,
+      useExisting: DefaultFallback,
+    },
+  ],
 })
 export class DefaultFallback implements Fallback, OnInit, OnDestroy {
   view?: ViewRef
@@ -51,7 +67,9 @@ export class DefaultFallback implements Fallback, OnInit, OnDestroy {
   handleError(error: any) {
     this.substitute(this.elementRef.nativeElement, this.comment, false)
     if (this.templateRef) {
-      this.view = this.viewContainerRef.createEmbeddedView(this.templateRef, {$implicit: error})
+      this.view = this.viewContainerRef.createEmbeddedView(this.templateRef, {
+        $implicit: error,
+      })
     }
   }
 
@@ -76,10 +94,10 @@ export class DefaultFallback implements Fallback, OnInit, OnDestroy {
   }
 
   constructor(
-      private viewContainerRef: ViewContainerRef,
-      private elementRef: ElementRef,
-      private renderer: Renderer2,
-      @Optional() private templateRef: TemplateRef<any> | null
+    private viewContainerRef: ViewContainerRef,
+    private elementRef: ElementRef,
+    private renderer: Renderer2,
+    @Optional() private templateRef: TemplateRef<any> | null,
   ) {
     this.comment = renderer.createComment("Fallback")
   }
@@ -87,15 +105,20 @@ export class DefaultFallback implements Fallback, OnInit, OnDestroy {
 
 @Directive({
   selector: "[catchError]",
-  providers: [{
-    provide: CatchError,
-    useExisting: DefaultCatchError
-  }, {
-    provide: ErrorHandler,
-    useExisting: DefaultCatchError
-  }]
+  providers: [
+    {
+      provide: CatchError,
+      useExisting: DefaultCatchError,
+    },
+    {
+      provide: ErrorHandler,
+      useExisting: DefaultCatchError,
+    },
+  ],
 })
-export class DefaultCatchError implements CatchError, DoCheck, AfterContentInit, OnDestroy {
+export class DefaultCatchError
+  implements CatchError, DoCheck, AfterContentInit, OnDestroy
+{
   view?: ViewRef
 
   handleError(error: unknown) {
@@ -115,6 +138,7 @@ export class DefaultCatchError implements CatchError, DoCheck, AfterContentInit,
         this.view = this.templateRef.createEmbeddedView({})
         this.viewContainerRef.clear()
         this.viewContainerRef.insert(this.view)
+        this.view.detectChanges()
         this.view.detach()
       } else if (this.view) {
         this.viewContainerRef.insert(this.view)
@@ -152,22 +176,30 @@ export class DefaultCatchError implements CatchError, DoCheck, AfterContentInit,
     this.destroy()
   }
 
-  constructor(private boundary: ErrorBoundary, private templateRef: TemplateRef<any>, private viewContainerRef: ViewContainerRef) {
+  constructor(
+    private boundary: ErrorBoundary,
+    private templateRef: TemplateRef<any>,
+    private viewContainerRef: ViewContainerRef,
+  ) {
     this.handleError = this.handleError.bind(this)
   }
 }
 
 @Directive({
   selector: "error-boundary, [errorBoundary]",
-  exportAs: "errorBoundary"
+  exportAs: "errorBoundary",
 })
 export class ErrorBoundary {
   readonly platformBrowser: boolean
 
   event: ErrorBoundaryEvent | null
 
-  @ContentChild(Fallback)
-  fallback?: Fallback
+  get fallback() {
+    return this.fallbackQuery?.first
+  }
+
+  @ContentChildren(Fallback, { descendants: false })
+  fallbackQuery?: QueryList<Fallback>
 
   @ContentChild(CatchError, { static: true })
   catchError?: CatchError
@@ -186,14 +218,19 @@ export class ErrorBoundary {
 
   handleError(error: any) {
     if (this.event) {
-      throw error
+      this.rootErrorHandler.handleError(error)
+      return
     }
     try {
       if (this.fallback && this.platformBrowser) {
-        console.error(error)
-        this.fallback.handleError(error)
-        this.event = new ErrorBoundaryEvent(this, error)
-        this.error.emit(this.event)
+        if (!this.event) {
+          this.event = new ErrorBoundaryEvent(this, error)
+          this.fallback.handleError(this.event)
+          this.error.emit(this.event)
+        }
+        if (!this.rootErrorHandler.timeout) {
+          this.rootErrorHandler.handleError(error)
+        }
       } else {
         this.errorHandler.handleError(error)
       }
@@ -202,23 +239,61 @@ export class ErrorBoundary {
     }
   }
 
-  constructor(private errorHandler: ErrorHandler, @Inject(PLATFORM_ID) platformId: Object) {
+  constructor(
+    private errorHandler: ErrorHandler,
+    private rootErrorHandler: ErrorBoundaryHandler,
+    @Inject(PLATFORM_ID) platformId: Object,
+  ) {
     this.error = new EventEmitter()
     this.platformBrowser = isPlatformBrowser(platformId)
     this.event = null
   }
 }
 
+@Injectable()
+export class ErrorBoundaryHandler implements ErrorHandler {
+  timeout
+  errors = new Set()
+  handleError(error) {
+    this.errors.add(error)
+    if (this.timeout) return
+    const errors = [...this.errors]
+    const stacks = new Set(errors.map(() => error?.stack))
+    // dedupe repeated errors due to recursion
+    const displayErrors = [...this.errors].filter((err: any, i, arr) => {
+      if (err?.stack) {
+        if (stacks.has(err.stack)) {
+          stacks.delete(err.stack)
+          return true
+        }
+        return false
+      }
+      return true
+    })
+    this.errors.clear()
+    for (const error of displayErrors) {
+      console.error(error)
+    }
+    const appRef = this.injector.get(ApplicationRef)
+    this.zone.runOutsideAngular(() => {
+      this.timeout = setTimeout(() => {
+        this.timeout = null
+      })
+    })
+    appRef.tick()
+  }
+  constructor(private injector: Injector, private zone: NgZone) {}
+}
+
 @NgModule({
-  declarations: [
-    ErrorBoundary,
-    DefaultFallback,
-    DefaultCatchError
+  declarations: [ErrorBoundary, DefaultFallback, DefaultCatchError],
+  exports: [ErrorBoundary, DefaultFallback, DefaultCatchError],
+  providers: [
+    ErrorBoundaryHandler,
+    {
+      provide: ErrorHandler,
+      useExisting: ErrorBoundaryHandler,
+    },
   ],
-  exports: [
-    ErrorBoundary,
-    DefaultFallback,
-    DefaultCatchError,
-  ]
 })
-export class BoundaryModule { }
+export class BoundaryModule {}
