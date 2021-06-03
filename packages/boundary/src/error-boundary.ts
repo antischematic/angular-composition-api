@@ -20,7 +20,21 @@ export abstract class Fallback {
 
 export abstract class CatchError {
   abstract handleError(error: any): void
-  abstract reset(): void
+  abstract reset(options?: { create: boolean }): void
+}
+
+export class ErrorBoundaryEvent {
+  error: any
+  closed: boolean
+  reset(options?: { create: boolean }) {
+    if (this.closed) return
+    this.closed = true
+    this.boundary.reset(options)
+  }
+  constructor(private boundary: ErrorBoundary, error: any) {
+    this.closed = false
+    this.error = error
+  }
 }
 
 @Directive({
@@ -85,16 +99,26 @@ export class DefaultCatchError implements CatchError, DoCheck, AfterContentInit,
   view?: ViewRef
 
   handleError(error: unknown) {
-    this.destroy()
+    if (this.view) {
+      const index = this.viewContainerRef.indexOf(this.view)
+      if (index > -1) {
+        this.viewContainerRef.detach(this.viewContainerRef.indexOf(this.view))
+      }
+    }
     this.boundary.handleError(error)
   }
 
-  reset() {
+  reset(options?: { create: boolean }) {
     try {
-      this.view = this.templateRef.createEmbeddedView({})
-      this.viewContainerRef.clear()
-      this.viewContainerRef.insert(this.view)
-      this.view.detach()
+      if (options?.create) {
+        this.destroy()
+        this.view = this.templateRef.createEmbeddedView({})
+        this.viewContainerRef.clear()
+        this.viewContainerRef.insert(this.view)
+        this.view.detach()
+      } else if (this.view) {
+        this.viewContainerRef.insert(this.view)
+      }
     } catch (error) {
       this.handleError(error)
     }
@@ -121,7 +145,7 @@ export class DefaultCatchError implements CatchError, DoCheck, AfterContentInit,
   }
 
   ngAfterContentInit() {
-    this.reset()
+    this.reset({ create: true })
   }
 
   ngOnDestroy() {
@@ -130,20 +154,6 @@ export class DefaultCatchError implements CatchError, DoCheck, AfterContentInit,
 
   constructor(private boundary: ErrorBoundary, private templateRef: TemplateRef<any>, private viewContainerRef: ViewContainerRef) {
     this.handleError = this.handleError.bind(this)
-  }
-}
-
-export class ErrorBoundaryEvent {
-  error: any
-  closed: boolean
-  reset() {
-    if (this.closed) return
-    this.closed = true
-    this.boundary.reset()
-  }
-  constructor(private boundary: ErrorBoundary, error: any) {
-    this.closed = false
-    this.error = error
   }
 }
 
@@ -165,12 +175,12 @@ export class ErrorBoundary {
   @Output()
   error: EventEmitter<ErrorBoundaryEvent>
 
-  reset() {
+  reset(options?: { create: boolean }) {
     if (this.event) {
       this.event.closed = true
       this.event = null
       this.fallback?.reset()
-      this.catchError?.reset()
+      this.catchError?.reset(options)
     }
   }
 

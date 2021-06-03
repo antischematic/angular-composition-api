@@ -65,26 +65,28 @@ class AsyncComponent {
 
 **selector:** `error-boundary`, `[errorBoundary]`
 
-Defines a boundary for `catchError`. Renders `fallback` content and destroys
+Defines a boundary for `catchError`. Renders `fallback` content and detaches
 the embedded view when an error is caught.
 
 **exportAs:** `errorBoundary`
 
-**method:** `reset`
+**method:** `reset(options?: { create: boolean })`
 
-Resets the error state, removes `fallback` content and creates a new
-embedded view.
+Resets the error state, removes `fallback` content. If `{ create: true }` is set, 
+destroys the embedded view and creates a new one. Othwerise the existing view is
+reinserted.
 
 **output:** `error`
 
 Emits an `ErrorBoundaryEvent` when an error is caught. Calls to `reset` will
-dismiss the error state.
+dismiss the error state. Call `reset` with `{ create: true }` to re-create the
+embedded view.
 
 ```ts
 interface ErrorBoundaryEvent {
     error: unknown
     closed: boolean
-    reset()
+    reset(options?: { create: boolean })
 }
 ```
 
@@ -94,7 +96,7 @@ interface ErrorBoundaryEvent {
     <maybe-throws *catchError></maybe-throws>
     <div fallback>
         <p>Uh oh... Something happened.</p>
-        <button (click)="boundary.reset()">
+        <button (click)="boundary.reset({ create: true })">
             Start again
         </button>
     </div>
