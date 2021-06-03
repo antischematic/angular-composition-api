@@ -14,6 +14,10 @@
     "paths": {
       "@mmuscat/angular-composition-api": [
         "./dist/angular-composition-api"
+      ],
+      "boundary": [
+        "dist/boundary/boundary",
+        "dist/boundary"
       ]
     },
     "experimentalDecorators": true,
