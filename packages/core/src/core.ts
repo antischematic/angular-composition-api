@@ -65,13 +65,10 @@ function createView<T extends {}, U extends {}>(
     return Props;
 }
 
-function createService(factory: any) {
-    const context = Object.create(null)
-    const module: any = inject(ChangeDetectorRef, InjectFlags.Optional | InjectFlags.Self) ?? inject(NgModuleRef)
+function createService(context: {}, factory: any) {
     createContext(context, inject(INJECTOR), inject(ErrorHandler))
     const value = runInContext(context, factory)
     runInContext(context, subscribe)
-    module.onDestroy(() => runInContext(context, unsubscribe))
     return value
 }
 
@@ -273,8 +270,11 @@ export function Service<T>(factory: () => T, options?: { providedIn: ProvidedIn 
     @Injectable({ providedIn: options?.providedIn ?? null  })
     class Class {
         static overriddenName = factory.name
+        ngOnDestroy() {
+            runInContext(this, unsubscribe)
+        }
         constructor() {
-            return createService(factory)
+            return createService(this, factory)
         }
     }
     return Class as any
