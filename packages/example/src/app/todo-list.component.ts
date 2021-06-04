@@ -1,5 +1,5 @@
 import {CommonModule} from '@angular/common';
-import {Component, Directive, Input, NgModule} from '@angular/core';
+import {Component, Directive, ErrorHandler, Input, NgModule} from '@angular/core';
 import {DoCheck, emit, Emitter, Inject, replay, set, Subscribe, Value, View} from '@mmuscat/angular-composition-api';
 import {CreateTodo, LoadTodosById} from './api.service';
 import {Todo, TodoModule} from './todo.component';
@@ -16,6 +16,7 @@ function State(props: Props) {
   const todoChange = Emitter<Todo>();
   const todos = Value<Todo[]>([]);
   const creating = Value<Todo | void>(void 0);
+  const error = Inject(ErrorHandler)
 
   Subscribe(userId, value => {
     Subscribe(loadTodosById(value), set(todos));
@@ -24,7 +25,7 @@ function State(props: Props) {
   Subscribe(todoChange, value => {
     console.log('todo changed!', value);
   });
-  
+
   Subscribe(createTodo, message => {
     if (message.type === 'request') {
       set(creating, message.value);
@@ -37,11 +38,16 @@ function State(props: Props) {
 
   Subscribe(todos, emit(creating));
 
+  function explode() {
+    error.handleError(new Error("Boom!"))
+  }
+
   return {
     todos,
     todoChange,
     createTodo,
-    creating
+    creating,
+    explode
   };
 }
 

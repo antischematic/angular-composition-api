@@ -9,4 +9,6 @@
     <app-todo *ngFor="let todo of todos" [text]="todo.text" [done]="todo.done" (saveTodo)="todoChange($event)"></app-todo>
     <app-todo *ngIf="creating" [resetOnSave]="true" [text]="creating.text"></app-todo>
   </div>
+
+  <button (click)="explode()">Explode</button>
 </ng-template>

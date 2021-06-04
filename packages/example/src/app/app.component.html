@@ -1,1 +1,9 @@
-<app-todo-list userId="stupidawesome"></app-todo-list>
+<error-boundary #boundary="errorBoundary">
+    <app-todo-list userId="stupidawesome" *catchError></app-todo-list>
+    <div fallback>
+        <p>Something exploded!</p>
+        <button (click)="boundary.reset({ create: true })">
+            Start again
+        </button>
+    </div>
+</error-boundary>

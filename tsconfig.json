@@ -15,9 +15,8 @@
       "@mmuscat/angular-composition-api": [
         "./dist/angular-composition-api"
       ],
-      "boundary": [
-        "dist/boundary/boundary",
-        "dist/boundary"
+      "@mmuscat/angular-error-boundary": [
+        "./dist/boundary"
       ]
     },
     "experimentalDecorators": true,
