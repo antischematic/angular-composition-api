@@ -1,7 +1,7 @@
 import {HttpClient} from '@angular/common/http';
 import {timer} from 'rxjs';
 import {map} from 'rxjs/operators';
-import {Emitter, Service, Inject, Subscribe} from '@mmuscat/angular-composition-api';
+import {Emitter, Inject, Service, Subscribe} from '@mmuscat/angular-composition-api';
 import {Todo} from './todo.component';
 
 let database = [

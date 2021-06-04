@@ -4,11 +4,9 @@ import {
     EventEmitter,
     inject,
     Injectable,
-    InjectFlags,
     Injector,
     INJECTOR,
     isDevMode,
-    NgModuleRef,
     Type,
     ɵɵdirectiveInject as directiveInject
 } from '@angular/core';
