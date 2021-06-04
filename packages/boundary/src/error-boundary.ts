@@ -1,7 +1,6 @@
 import {
   AfterContentInit,
   ApplicationRef,
-  ChangeDetectorRef,
   ContentChild,
   ContentChildren,
   Directive,
@@ -25,7 +24,7 @@ import {
   ViewContainerRef,
   ViewRef,
 } from "@angular/core"
-import { isPlatformBrowser } from "@angular/common"
+import {isPlatformBrowser} from "@angular/common"
 
 export abstract class Fallback {
   abstract handleError(error: any): void
@@ -94,10 +93,10 @@ export class DefaultFallback implements Fallback, OnInit, OnDestroy {
   }
 
   constructor(
-    private viewContainerRef: ViewContainerRef,
-    private elementRef: ElementRef,
-    private renderer: Renderer2,
-    @Optional() private templateRef: TemplateRef<any> | null,
+      private viewContainerRef: ViewContainerRef,
+      private elementRef: ElementRef,
+      private renderer: Renderer2,
+      @Optional() private templateRef: TemplateRef<any> | null,
   ) {
     this.comment = renderer.createComment("Fallback")
   }
@@ -117,7 +116,7 @@ export class DefaultFallback implements Fallback, OnInit, OnDestroy {
   ],
 })
 export class DefaultCatchError
-  implements CatchError, DoCheck, AfterContentInit, OnDestroy
+    implements CatchError, DoCheck, AfterContentInit, OnDestroy
 {
   view?: ViewRef
 
@@ -177,9 +176,9 @@ export class DefaultCatchError
   }
 
   constructor(
-    private boundary: ErrorBoundary,
-    private templateRef: TemplateRef<any>,
-    private viewContainerRef: ViewContainerRef,
+      private boundary: ErrorBoundary,
+      private templateRef: TemplateRef<any>,
+      private viewContainerRef: ViewContainerRef,
   ) {
     this.handleError = this.handleError.bind(this)
   }
@@ -198,11 +197,15 @@ export class ErrorBoundary {
     return this.fallbackQuery?.first
   }
 
+  get catchError() {
+    return this.catchErrorQuery?.first
+  }
+
   @ContentChildren(Fallback, { descendants: false })
   fallbackQuery?: QueryList<Fallback>
 
-  @ContentChild(CatchError, { static: true })
-  catchError?: CatchError
+  @ContentChildren(CatchError, { descendants: false })
+  catchErrorQuery?: QueryList<CatchError>
 
   @Output()
   error: EventEmitter<ErrorBoundaryEvent>
@@ -240,9 +243,9 @@ export class ErrorBoundary {
   }
 
   constructor(
-    private errorHandler: ErrorHandler,
-    private rootErrorHandler: ErrorBoundaryHandler,
-    @Inject(PLATFORM_ID) platformId: Object,
+      private errorHandler: ErrorHandler,
+      private rootErrorHandler: BoundaryHandler,
+      @Inject(PLATFORM_ID) platformId: Object,
   ) {
     this.error = new EventEmitter()
     this.platformBrowser = isPlatformBrowser(platformId)
@@ -250,11 +253,11 @@ export class ErrorBoundary {
   }
 }
 
-@Injectable()
-export class ErrorBoundaryHandler implements ErrorHandler {
-  timeout
+@Injectable({ providedIn: "root" })
+export class BoundaryHandler implements ErrorHandler {
+  timeout?: number
   errors = new Set()
-  handleError(error) {
+  handleError(error: any) {
     this.errors.add(error)
     if (this.timeout) return
     const errors = [...this.errors]
@@ -277,7 +280,7 @@ export class ErrorBoundaryHandler implements ErrorHandler {
     const appRef = this.injector.get(ApplicationRef)
     this.zone.runOutsideAngular(() => {
       this.timeout = setTimeout(() => {
-        this.timeout = null
+        this.timeout = void 0
       })
     })
     appRef.tick()
@@ -288,12 +291,5 @@ export class ErrorBoundaryHandler implements ErrorHandler {
 @NgModule({
   declarations: [ErrorBoundary, DefaultFallback, DefaultCatchError],
   exports: [ErrorBoundary, DefaultFallback, DefaultCatchError],
-  providers: [
-    ErrorBoundaryHandler,
-    {
-      provide: ErrorHandler,
-      useExisting: ErrorBoundaryHandler,
-    },
-  ],
 })
 export class BoundaryModule {}

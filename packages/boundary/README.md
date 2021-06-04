@@ -16,18 +16,35 @@ Install via Yarn
 yarn add @mmuscat/angular-error-boundary
 ```
 
-Add `BoundaryModule` to your `NgModule` imports.
+Override the default `ErrorHandler` service in the root module.
 
+**app.module.ts**
+```ts
+@NgModule({
+    providers: [{
+        provide: ErrorHandler,
+        useExisting: BoundaryHandler,
+    }],
+    ...
+})
+export class AppModule {}
+```
+
+Add `BoundaryModule` to a `NgModule` to enable error boundaries.
+
+**my.module.ts**
 ```ts
 @NgModule({
     imports: [BoundaryModule],
+    declarations: [MyComponent],
     ...
 })
 export class MyModule {}
 ```
 
-## Example
+Your can now use error boundaries in your components.
 
+**my.component.html**
 ```html
 <error-boundary>
     <my-widget *catchError></my-widget>
@@ -36,6 +53,8 @@ export class MyModule {}
     </div>
 </error-boundary>
 ```
+
+## Example
 
 [View demo on Stackblitz](https://stackblitz.com/edit/angular-error-boundary?file=src%2Fapp%2Fapp.component.html)
 
@@ -117,7 +136,7 @@ Catches errors that occur during change detection and notifies the nearest
 - Server side rendering
 - Errors thrown in the error boundary itself 
 
-Each error boundary can only have one `catchError`.
+Each error boundary can only have one `catchError` as a direct descendant.
 
 ### Fallback
 
@@ -128,10 +147,10 @@ error boundary, then reattaches it. The element is detached again when the error
 state resets.
 
 If used on a template, embeds the view when an error is caught by the error boundary
-and destroys it when the error state resets. The `$implicit` value is set to the
-error that was thrown.
+and destroys it when the error state resets. The value of `$implicit` will be the current
+`ErrorBoundaryEvent`.
 
-Each error boundary can only have one `fallback`.
+Each error boundary can only have one `fallback` as a direct descendant.
 
 **examples:**
 
@@ -139,7 +158,7 @@ With DOM element
 
 ```html
 <error-boundary>
-    <div fallback>An error has occured</div>
+    <div fallback>An error has occurred</div>
 </error-boundary>
 ```
 
@@ -147,14 +166,14 @@ With `ng-template`
 
 ```html
 <error-boundary>
-    <ng-template fallback let-error>An error has occured: {{ error.message }}</ng-template>
+    <ng-template fallback let-error>An error has occurred: {{ error.message }}</ng-template>
 </error-boundary>
 ```
 
 With component
 
 ```html
-<error-boundary
+<error-boundary>
     <my-custom-error *fallback="let error" [error]="error"></my-custom-error>
 </error-boundary>
 ```
