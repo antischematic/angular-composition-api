@@ -174,6 +174,37 @@
           }
         }
       }
+    },
+    "cloak": {
+      "projectType": "library",
+      "root": "packages/cloak",
+      "sourceRoot": "packages/cloak/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "packages/cloak/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "packages/cloak/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "packages/cloak/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "packages/cloak/src/test.ts",
+            "tsConfig": "packages/cloak/tsconfig.spec.json",
+            "karmaConfig": "packages/cloak/karma.conf.js"
+          }
+        }
+      }
     }
   },
   "defaultProject": "core"
