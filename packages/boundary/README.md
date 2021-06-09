@@ -43,6 +43,15 @@ Add `BoundaryModule` to a `NgModule` to enable error boundaries.
 export class MyModule {}
 ```
 
+Add global styles for `ng-cloak` to hide content when fallback is shown.
+
+**styles.css**
+```css
+.ng-cloak {
+    display: none !important;
+}
+```
+
 Your can now use error boundaries in your components.
 
 **my.component.html**
