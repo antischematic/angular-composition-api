@@ -3,6 +3,7 @@ import {InjectFlags, ProviderToken, QueryList} from '@angular/core';
 import {addCheck, addEffect, addTeardown, beginContext, endContext, getContext} from './core';
 import {CheckPhase} from './interfaces';
 import {CheckSubject, Value} from "./utils";
+import {CloakBoundary} from "@mmuscat/angular-error-boundary";
 
 export function Check<T>(
     getter: () => T,
@@ -43,7 +44,7 @@ export function Subscribe<T>(
 export function Subscribe<T>(
     source: Observable<T> | (() => TeardownLogic),
     observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
-) {
+): Subscription {
     const subscription = new Subscription();
     const effect = new Observable<T>(subscriber => {
         subscription.add(subscriber);
@@ -58,6 +59,14 @@ export function Subscribe<T>(
     addEffect(effect, observer);
     addTeardown(subscription);
     return subscription;
+}
+
+export function Suspend<T>(
+    source: Observable<T>,
+    observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
+): Subscription {
+    const boundary = Inject(CloakBoundary)
+    return Subscribe(boundary.cloak(source), observer)
 }
 
 export function Query<T extends QueryList<any>>(

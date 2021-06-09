@@ -1,11 +1,11 @@
 {
   "name": "@mmuscat/angular-error-boundary",
-  "description": "A lightweight (2kb) implementation of Error Boundaries for Angular.",
+  "description": "A lightweight (3kb) implementation of Error Boundaries for Angular. With a bit of Suspense.",
   "license": "MIT",
   "homepage": "https://github.com/mmuscat/angular-composition-api/tree/master/packages/boundary",
   "repository": "https://github.com/mmuscat/angular-composition-api/tree/master/packages/boundary",
-  "keywords": ["Angular", "Error Handling", "Error Boundary", "Directive"],
-  "version": "0.0.3",
+  "keywords": ["Angular", "Error Handling", "Error Boundary", "Suspense"],
+  "version": "0.0.4",
   "peerDependencies": {
     "@angular/common": "^12.0.0",
     "@angular/core": "^12.0.0"

@@ -4,7 +4,7 @@ A lightweight (3kb) library for writing functional Angular applications.
 
 ## Quick Start
 
-> ⚠ This library is experimental. It relies on private Angular APIs and compiler workarounds 
+> ⚠ This library is experimental. It relies on private Angular APIs and compiler workarounds
 >  that may break in future versions. Use at your own risk.
 
 Install with NPM
@@ -129,7 +129,7 @@ const CustomProvider = {
 #### Service
 
 Creates a context-aware, tree-shakable service class from the provided factory function. If the
-`providedIn` option is set to null, or omitted, you must provide the service in a `NgModule`, 
+`providedIn` option is set to null, or omitted, you must provide the service in a `NgModule`,
 `Directive` or `Component`. Start or retrieve the service with `Inject`.
 
 #### View
@@ -156,6 +156,11 @@ Registers an effect in the current context. If `Subscribe` is called inside a `V
 the subscription is deferred until the view has mounted. If it is called inside a `Service` or
 nested in another `Subscribe`, the subscription is invoked immediately after the containing
 function has executed.
+
+#### Suspend
+
+Similar to `Subscribe`, but hides the current `CloakBoundary` tree until the observable
+`source` has emitted a value, thrown an error, or completed.
 
 #### DoCheck
 
@@ -218,7 +223,7 @@ Convenience method for getting the current value of a `Value`.
 
 #### set
 
-Immediately emit a value to a `Value` or `Emitter`, or return a curried function that emits the 
+Immediately emit a value to a `Value` or `Emitter`, or return a curried function that emits the
 value passed to it.
 
 #### emit

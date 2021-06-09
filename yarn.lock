@@ -1258,13 +1258,6 @@
     merge-source-map "^1.1.0"
     schema-utils "^2.7.0"
 
-"@mmuscat/angular-composition-api@^0.0.2":
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/@mmuscat/angular-composition-api/-/angular-composition-api-0.0.2.tgz#d485da67e1baa5421b0f461993a2aa4d590bfa57"
-  integrity sha512-BVWh5J+zdNe5EU1CPP5Ud8j4NdM6Aj4Axqz7wpnA7xDLI3i7aPTmFgIaqGBLIc9csaR5SIyaV+8HprjRvFIYVw==
-  dependencies:
-    tslib "^2.1.0"
-
 "@ngtools/webpack@12.0.2":
   version "12.0.2"
   resolved "https://registry.yarnpkg.com/@ngtools/webpack/-/webpack-12.0.2.tgz#61163756b970812c9b6c203f93c943a1ac8a2018"

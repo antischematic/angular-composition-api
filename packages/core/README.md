@@ -157,6 +157,11 @@ the subscription is deferred until the view has mounted. If it is called inside 
 nested in another `Subscribe`, the subscription is invoked immediately after the containing
 function has executed.
 
+#### Suspend
+
+Similar to `Subscribe`, but hides the current `CloakBoundary` tree until the observable
+`source` has emitted a value, thrown an error, or completed.
+
 #### DoCheck
 
 Creates a `CheckSubject` that calls the provided `getter` during the `ngDoCheck` lifecycle hook

@@ -1,14 +1,9 @@
-<div *ngIf="!todos.length else content">
-  Loading...
+Add new todo
+<app-todo [resetOnSave]="true" (saveTodo)="createTodo({ type: 'request', value: $event })"></app-todo>
+<hr>
+<div>
+  <app-todo *ngFor="let todo of todos" [text]="todo.text" [done]="todo.done" (saveTodo)="todoChange($event)"></app-todo>
+  <app-todo *ngIf="creating" [resetOnSave]="true" [text]="creating.text"></app-todo>
 </div>
-<ng-template #content>
-  Add new todo
-  <app-todo [resetOnSave]="true" (saveTodo)="createTodo({ type: 'request', value: $event })"></app-todo>
-  <hr>
-  <div>
-    <app-todo *ngFor="let todo of todos" [text]="todo.text" [done]="todo.done" (saveTodo)="todoChange($event)"></app-todo>
-    <app-todo *ngIf="creating" [resetOnSave]="true" [text]="creating.text"></app-todo>
-  </div>
 
-  <button (click)="explode()">Explode</button>
-</ng-template>
+<button (click)="explode()">Explode</button>

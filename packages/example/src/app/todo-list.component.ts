@@ -1,6 +1,6 @@
 import {CommonModule} from '@angular/common';
 import {Component, Directive, ErrorHandler, Input, NgModule} from '@angular/core';
-import {DoCheck, emit, Emitter, Inject, replay, set, Subscribe, Value, View} from '@mmuscat/angular-composition-api';
+import {DoCheck, emit, Emitter, Inject, replay, set, Subscribe, Value, View, Suspend} from '@mmuscat/angular-composition-api';
 import {CreateTodo, LoadTodosById} from './api.service';
 import {Todo, TodoModule} from './todo.component';
 
@@ -19,7 +19,7 @@ function State(props: Props) {
   const error = Inject(ErrorHandler)
 
   Subscribe(userId, value => {
-    Subscribe(loadTodosById(value), set(todos));
+    Suspend(loadTodosById(value), set(todos));
   });
 
   Subscribe(todoChange, value => {

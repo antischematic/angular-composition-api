@@ -18,10 +18,6 @@
       "@mmuscat/angular-error-boundary": [
         "./dist/boundary"
       ],
-      "cloak": [
-        "dist/cloak/cloak",
-        "dist/cloak"
-      ]
     },
     "experimentalDecorators": true,
     "moduleResolution": "node",

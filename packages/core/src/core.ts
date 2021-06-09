@@ -106,11 +106,10 @@ class Scheduler {
         this.timeout = setTimeout(this.detectChanges, 0, this.ref)
     }
     subscribe() {
+        this.ref.detach()
         this.detectChanges()
     }
-    constructor(private ref: ChangeDetectorRef) {
-        ref.detach()
-    }
+    constructor(private ref: ChangeDetectorRef) {}
 }
 
 function setup(stateFactory: any, injector: Injector) {
@@ -120,8 +119,6 @@ function setup(stateFactory: any, injector: Injector) {
     const scheduler = new Scheduler(injector.get(ChangeDetectorRef));
 
     createContext(context, injector, error, [new Set(), new Set(), new Set()]);
-
-    addEffect(scheduler as any)
 
     for (const [key, value] of Object.entries(stateFactory(props))) {
         if (value instanceof EventEmitter) {
@@ -143,6 +140,8 @@ function setup(stateFactory: any, injector: Injector) {
             );
         }
     }
+
+    addEffect(scheduler as any)
 }
 
 function check(key: CheckPhase) {
@@ -155,7 +154,7 @@ function check(key: CheckPhase) {
 function subscribe() {
     const { effects } = getContext();
     if (effects.size === 0) return;
-    const list = new Map(effects);
+    const list = Array.from(effects);
     effects.clear();
     for (const [source, observers] of list) {
         for (const observer of observers) {
