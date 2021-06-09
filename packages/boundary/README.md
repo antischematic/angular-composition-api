@@ -218,7 +218,7 @@ Each cloak boundary can only have one `fallback` as a direct descendant.
 ```html
 <error-boundary>
     <ng-cloak *catchError>
-        <my-custom-error fallback></my-custom-error>
+        <my-brand></my-brand>
     </ng-cloak>
 </error-boundary>
 ```
