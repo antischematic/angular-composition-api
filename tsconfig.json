@@ -17,7 +17,7 @@
       ],
       "@mmuscat/angular-error-boundary": [
         "./dist/boundary"
-      ]
+      ],
     },
     "experimentalDecorators": true,
     "moduleResolution": "node",

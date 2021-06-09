@@ -1,6 +1,7 @@
 # Angular Error Boundary
 
-A lightweight (2kb) implementation of [Error Boundaries](https://reactjs.org/docs/error-boundaries.html) for Angular.
+A lightweight (4kb) implementation of [Error Boundaries](https://reactjs.org/docs/error-boundaries.html) for Angular,
+with a bit of [Suspense](https://reactjs.org/docs/concurrent-mode-suspense.html).
 
 ## Quick Start
 
@@ -82,30 +83,27 @@ class AsyncComponent {
 
 ### ErrorBoundary
 
-**selector:** `error-boundary`, `[errorBoundary]`
+**selector:** `error-boundary`
 
-Defines a boundary for `catchError`. Renders `fallback` content and detaches
-the embedded view when an error is caught.
+Defines a boundary for `catchError`. Renders `fallback` content when an error occurs,
+otherwise renders the embedded view.
 
 **exportAs:** `errorBoundary`
 
-**method:** `reset(options?: { create: boolean })`
+**method:** `reset()`
 
-Resets the error state, removes `fallback` content. If `{ create: true }` is set, 
-destroys the embedded view and creates a new one. Othwerise the existing view is
-reinserted.
+Resets the error state, hides `fallback` content and re-creates the embedded view.
 
 **output:** `error`
 
 Emits an `ErrorBoundaryEvent` when an error is caught. Calls to `reset` will
-dismiss the error state. Call `reset` with `{ create: true }` to re-create the
-embedded view.
+dismiss the error state and re-create the embedded view
 
 ```ts
 interface ErrorBoundaryEvent {
-    error: unknown
     closed: boolean
-    reset(options?: { create: boolean })
+    error: unknown
+    reset(): void
 }
 ```
 
@@ -126,7 +124,7 @@ interface ErrorBoundaryEvent {
 
 **selector:** `[catchError]`
 
-Catches errors that occur during change detection and notifies the nearest
+Catches and funnels errors that occur during change detection to the nearest
 `ErrorBoundary`. Does *not* catch errors for:
 
 - Component/Directive constructors
@@ -142,13 +140,12 @@ Each error boundary can only have one `catchError` as a direct descendant.
 
 **selector:** `[fallback]`
 
-If used on a DOM element, detaches the element until an error is caught by the
-error boundary, then reattaches it. The element is detached again when the error
+If used on a DOM element, hides the element until an error is caught by the
+error boundary, then shows it. The element is hidden again when the error
 state resets.
 
 If used on a template, embeds the view when an error is caught by the error boundary
-and destroys it when the error state resets. The value of `$implicit` will be the current
-`ErrorBoundaryEvent`.
+and destroys it when the error state resets.
 
 Each error boundary can only have one `fallback` as a direct descendant.
 
@@ -157,6 +154,11 @@ Each error boundary can only have one `fallback` as a direct descendant.
 With DOM element
 
 ```html
+<error-boundary [fallback]="domElement"></error-boundary>
+<div #domElement>An error has occurred</div>
+
+<!-- or -->
+
 <error-boundary>
     <div fallback>An error has occurred</div>
 </error-boundary>
@@ -165,15 +167,112 @@ With DOM element
 With `ng-template`
 
 ```html
+<error-boundary [fallback]="templateRef"></error-boundary>
+<ng-template #templateRef></ng-template>
+
+<!-- or -->
+
 <error-boundary>
-    <ng-template fallback let-error>An error has occurred: {{ error.message }}</ng-template>
+    <ng-template fallback>An error has occurred.</ng-template>
 </error-boundary>
 ```
 
 With component
 
 ```html
+<error-boundary [fallback]="MyCustomError"></error-boundary>
+
+<!-- or -->
+
 <error-boundary>
-    <my-custom-error *fallback="let error" [error]="error"></my-custom-error>
+    <my-custom-error fallback></my-custom-error>
 </error-boundary>
+```
+
+### NgCloak
+
+**selector:** `ng-cloak`
+
+---
+
+**What's the difference between NgCloak and Suspense?**
+
+- We wrap observables in a `CloakBoundary` instead of throwing them.
+- Components templates are always rendered, giving child components a chance to load data before the
+parent has finished resolving.
+- Components are hidden with the `ng-cloak` class instead of unmounting them, unless an
+  error occurs.
+---
+
+Hides components and displays a `fallback` until all components have resolved
+"cloaked" data sources. Cloaked data sources are observables that has been wrapped by
+ `CloakBoundary`. Any component in the `ng-cloak` tree can mark data as cloaked, which
+will hide the entire tree from display until all cloaked data has resolved. The lead time
+and trailing time for showing/hiding content can be configured with the `NG_CLOAK_CONFIG`
+provider.
+
+Each cloak boundary can only have one `fallback` as a direct descendant.
+
+**examples:**
+
+```html
+<error-boundary>
+    <ng-cloak *catchError>
+        <my-custom-error fallback></my-custom-error>
+    </ng-cloak>
+</error-boundary>
+```
+
+### CloakBoundary
+
+An injectable service with a single method: **cloak**
+
+```ts
+interface CloakBoundary {
+ cloak<T>(source: Observable<T>): Observable<T>
+}
+```
+
+**method:** `cloak`
+
+Returns a "cloaked" observable that is bound to the `CloakBoundary`. Subscribing to a
+cloaked observable triggers the cloak boundary, hiding content until the observable
+completes, errors, or emits a value. Multiple cloaked observables can be subscribed to
+in this way, hiding content until all observables have emitted, errored or completed.
+
+**examples:**
+
+In this example, the component is cloaked/hidden for 2 seconds, then is displayed.
+
+```ts
+@Component({
+    template: `
+        <p>{{ values | async | json }}</p>
+    `
+})
+class MyComponent {
+    values
+    constructor(boundary: CloakBoundary) {
+        this.values = boundary.cloak(timer(2000)).pipe(
+            map(() => [1, 2, 3])
+        )
+    }
+}
+```
+
+### NG_CLOAK_CONFIG
+
+Provide this value to configure the `leading` and `trailing` delay when a
+`CloakBoundary` state transition occurs.
+
+```ts
+export interface CloakConfig {
+    leading: number
+    trailing: number
+}
+
+DEFAULT_CLOAK_CONFIG = {
+    leading: 0,
+    trailing: 1000
+}
 ```
