@@ -1,6 +1,6 @@
 # Angular Error Boundary
 
-A lightweight (4kb) implementation of [Error Boundaries](https://reactjs.org/docs/error-boundaries.html) for Angular,
+A lightweight (3kb) implementation of [Error Boundaries](https://reactjs.org/docs/error-boundaries.html) for Angular,
 with a bit of [Suspense](https://reactjs.org/docs/concurrent-mode-suspense.html).
 
 ## Quick Start
