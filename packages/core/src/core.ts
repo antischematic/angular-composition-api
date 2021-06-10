@@ -120,7 +120,9 @@ function setup(stateFactory: any, injector: Injector) {
 
     createContext(context, injector, error, [new Set(), new Set(), new Set()]);
 
-    for (const [key, value] of Object.entries(stateFactory(props))) {
+    const state = stateFactory(props)
+
+    for (const [key, value] of Object.entries(state)) {
         if (value instanceof EventEmitter) {
             context[key] = function (event: any) {
                 value.emit(event)
@@ -132,7 +134,7 @@ function setup(stateFactory: any, injector: Injector) {
                 addCheck(2, binding);
             }
         } else {
-            context[key] = value;
+            Object.defineProperty(context, key, Object.getOwnPropertyDescriptor(state, key)!)
         }
         if (isDevMode() && !context.hasOwnProperty(key)) {
             throw new Error(
