@@ -4,9 +4,11 @@ import {
     EventEmitter,
     inject,
     Injectable,
+    InjectFlags,
     Injector,
     INJECTOR,
     isDevMode,
+    NgModuleRef,
     Type,
     ɵɵdirectiveInject as directiveInject
 } from '@angular/core';
@@ -26,12 +28,18 @@ export function endContext(previous: any) {
     currentContext = previous;
 }
 
+export class CallContextError extends Error {
+    constructor() {
+        super('Call out of context');
+    }
+}
+
 export function getContext() {
     const context = contextMap.get(currentContext);
     if (context) {
         return context;
     }
-    throw new Error('Call out of context');
+    throw new CallContextError();
 }
 
 function runInContext<T extends (...args: any[]) => any>(
@@ -50,7 +58,7 @@ function createContext(context: {}, injector: Injector, error: ErrorHandler, add
         injector,
         error,
         subscription: new Subscription(),
-        effects: new Map(),
+        effects: new Set(),
         ...additionalContext
     });
 }
@@ -146,27 +154,25 @@ function setup(stateFactory: any, injector: Injector) {
     addEffect(scheduler as any)
 }
 
-function check(key: CheckPhase) {
+export function check(key: CheckPhase) {
     const checks = getContext()[key];
     for (const subject of checks) {
         subject.check();
     }
 }
 
-function subscribe() {
-    const { effects } = getContext();
+export function subscribe() {
+    const { effects, error } = getContext();
     if (effects.size === 0) return;
     const list = Array.from(effects);
     effects.clear();
-    for (const [source, observers] of list) {
-        for (const observer of observers) {
-            source.subscribe(observer);
-        }
+    for (const effect of list) {
+        addTeardown(effect.subscribe())
     }
     return true
 }
 
-function unsubscribe() {
+export function unsubscribe() {
     if (!contextMap.has(currentContext)) return
     getContext().subscription.unsubscribe();
 }
@@ -180,43 +186,61 @@ export function addTeardown(teardown: TeardownLogic) {
 }
 
 export function addEffect<T>(
-    source: Observable<T>,
-    observer?: PartialObserver<T> | ((value: T) => void)
+    source: Observable<T> | (() => TeardownLogic),
+    observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
 ) {
     const { effects, injector, error } = getContext();
-    const effect = new EffectObserver<T>(observer, error, injector);
-    if (effects.has(source)) {
-        effects.get(source)!.add(effect);
-    } else {
-        effects.set(source, new Set([effect]));
-    }
+    const effectObserver = new EffectObserver<T>(source, observer, error, injector);
+    effects.add(effectObserver);
+    return effectObserver
 }
 
 function next(injector: Injector, errorHandler: ErrorHandler, notification: Notification<any>, observer: any) {
-    unsubscribe()
+    notification.accept(unsubscribe)
     createContext(currentContext, injector, errorHandler)
     try {
         addTeardown(notification.accept(observer as any))
     } catch (error) {
         errorHandler.handleError(error)
     }
-    subscribe()
+    notification.accept(subscribe)
 }
 
 class EffectObserver<T> {
+    closed
     next(value: T | Notification<T>) {
+        if (this.closed) return
         if (value instanceof Notification) {
             return this.call(value);
         }
         this.call(Notification.createNext(value));
     }
     error(error: unknown) {
+        if (this.closed) return
         this.call(Notification.createError(error));
     }
     complete() {
+        if (this.closed) return
         this.call(Notification.createComplete());
     }
-    call(notification: Notification<T>) {
+    subscribe() {
+        const { source } = this
+        if (typeof source === "function") {
+            try {
+                runInContext(this, addTeardown, source())
+            } catch (e) {
+                this.errorHandler.handleError(e)
+            }
+        } else {
+            return source.subscribe(this);
+        }
+    }
+    unsubscribe() {
+        if (this.closed) return
+        this.closed = true
+        runInContext(this, unsubscribe)
+    }
+    private call(notification: Notification<T>) {
         const { observer, injector, errorHandler } = this;
         const isError = notification.kind === 'E';
         let errorHandled = !isError;
@@ -227,16 +251,15 @@ class EffectObserver<T> {
             errorHandler.handleError(notification.error);
         }
     }
-    unsubscribe() {
-        runInContext(this, unsubscribe)
-    }
     constructor(
+        private source: any,
         private observer: any,
         private errorHandler: ErrorHandler,
         private injector: Injector,
     ) {
-        createContext(this, injector, errorHandler)
+        this.closed = false
         addTeardown(this)
+        createContext(this, injector, errorHandler)
     }
 }
 
@@ -263,7 +286,7 @@ function decorate(Props: any, fn?: any, provider = false) {
 
 export const View: ViewFactory = createView;
 
-type ProvidedIn = Type<any> | 'root' | 'platform' | 'any' | null
+export type ProvidedIn = Type<any> | 'root' | 'platform' | 'any' | null
 
 export function Service<T>(factory: () => T, options?: { providedIn: ProvidedIn }): Type<T> {
     @Injectable({ providedIn: options?.providedIn ?? null  })
@@ -273,6 +296,7 @@ export function Service<T>(factory: () => T, options?: { providedIn: ProvidedIn 
             runInContext(this, unsubscribe)
         }
         constructor() {
+            inject(NgModuleRef, InjectFlags.Self | InjectFlags.Optional)?.onDestroy(() => this.ngOnDestroy())
             return createService(this, factory)
         }
     }

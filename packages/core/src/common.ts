@@ -45,20 +45,7 @@ export function Subscribe<T>(
     source: Observable<T> | (() => TeardownLogic),
     observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
 ): Subscription {
-    const subscription = new Subscription();
-    const effect = new Observable<T>(subscriber => {
-        subscription.add(subscriber);
-        if (typeof source === 'function') {
-            return source();
-        } else {
-            return source
-                .subscribe(subscriber)
-                .add(() => subscription.remove(subscriber));
-        }
-    });
-    addEffect(effect, observer);
-    addTeardown(subscription);
-    return subscription;
+    return addEffect(source, observer);
 }
 
 export function Suspend<T>(
