@@ -3,7 +3,7 @@ import {
     addEffect,
     addTeardown,
     CallContextError,
-    check,
+    check, EffectObserver,
     Inject,
     Service,
     Subscribe,
@@ -349,8 +349,10 @@ describe("Subscribe", () => {
     it ("should not emit when destroyed", () => {
         const spy = createSpy()
         function factory() {
-            const observer = addEffect(() => spy)
+            const observer = new EffectObserver(() => spy, undefined, {} as any, {} as any)
             Subscribe(() => {
+                observer.subscribe()
+                observer.unsubscribe()
                 observer.unsubscribe()
                 observer.next(void 0)
                 observer.error(new Error())
@@ -513,6 +515,13 @@ describe("Subscribe", () => {
         const createView = defineView(Test)
         createView().destroy()
         expect(spy).toHaveBeenCalled()
+    })
+
+    it("should subscribe when used out of context", () => {
+        const spy = createSpy()
+        Subscribe(spy)
+        Subscribe(of(1), spy)
+        expect(spy).toHaveBeenCalledTimes(2)
     })
 })
 

@@ -1,6 +1,8 @@
-import {BehaviorSubject, Notification, PartialObserver, Subscription, SubscriptionLike} from 'rxjs';
+import {BehaviorSubject, merge, Notification, PartialObserver, Subscription} from 'rxjs';
 import {QueryList as NgQueryList} from '@angular/core';
 import {checkPhase, CheckPhase, CheckSubject} from './interfaces';
+import {AnonymousSubject} from "rxjs/internal-compatibility";
+import {addTeardown, Subscribe} from "./core";
 
 export class QueryListObserver {
     next(value: NgQueryList<any>) {
@@ -36,10 +38,20 @@ export class QueryListSubject<T> extends NgQueryList<T> implements CheckSubject<
 }
 
 export class ValueSubject<T> extends BehaviorSubject<T> implements CheckSubject<T> {
+    private upstreamSubscription?: Subscription
     readonly [checkPhase]: CheckPhase
+
+    unsubscribe() {
+        this.upstreamSubscription?.unsubscribe()
+        super.unsubscribe();
+    }
+
     constructor(value: T, check: CheckPhase = 0) {
         super(value);
         this[checkPhase] = check
+        if (value instanceof BehaviorSubject) {
+            this.upstreamSubscription = Subscribe(value, this)
+        }
     }
 }
 
@@ -61,7 +73,13 @@ export function QueryList(check?: boolean, emitDistinctChangesOnly?: boolean): Q
 }
 
 export function Value<T>(): ValueSubject<T | undefined>
+export function Value<T>(value: T[]): ValueSubject<T[]>
+export function Value<T extends {}>(value: WeakSet<T>): ValueSubject<WeakSet<T>>
+export function Value<T>(value: Set<T>): ValueSubject<Set<T>>
+export function Value<T extends {}, U>(value: WeakMap<T, U>): ValueSubject<WeakMap<T, U>>
+export function Value<T, U>(value: Map<T, U>): ValueSubject<Map<T, U>>
+export function Value<T>(value: ValueSubject<T>): ValueSubject<T>
 export function Value<T>(value: T): ValueSubject<T>
-export function Value(value: unknown = void 0): ValueSubject<unknown> {
+export function Value(value: unknown = void 0): ValueSubject<any> {
     return new ValueSubject(value)
 }

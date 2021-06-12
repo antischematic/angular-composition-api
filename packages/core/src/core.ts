@@ -205,11 +205,11 @@ export function addTeardown(teardown: TeardownLogic) {
 export function addEffect<T>(
     source: Subscribable<T> | (() => TeardownLogic),
     observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
-) {
+): Subscription {
     const { effects, injector, error } = getContext();
     const effectObserver = new EffectObserver<T>(source, observer, error, injector);
     effects.add(effectObserver);
-    return effectObserver
+    return new Subscription().add(effectObserver)
 }
 
 function next(injector: Injector, errorHandler: ErrorHandler, notification: Notification<any>, observer: any) {
@@ -223,7 +223,7 @@ function next(injector: Injector, errorHandler: ErrorHandler, notification: Noti
     notification.accept(subscribe)
 }
 
-class EffectObserver<T> {
+export class EffectObserver<T> {
     closed
     next(value: T | Notification<T>) {
         if (this.closed) return
@@ -331,10 +331,17 @@ export function Subscribe<T>(observer: () => TeardownLogic): Subscription;
 export function Subscribe<T>(
     source: Observable<T>,
     observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
-): SubscriptionLike;
+): Subscription;
 export function Subscribe<T>(
     source: Observable<T> | (() => TeardownLogic),
     observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
-): SubscriptionLike {
+): Subscription {
+    if (!currentContext) {
+        if (typeof source === "function") {
+            return new Subscription().add(source())
+        } else {
+            return source.subscribe(observer as any)
+        }
+    }
     return addEffect(source, observer);
 }
