@@ -7,12 +7,11 @@ import {
     InjectFlags,
     Injector,
     INJECTOR,
-    isDevMode,
-    NgModuleRef,
+    NgModuleRef, ProviderToken,
     Type,
     ɵɵdirectiveInject as directiveInject
 } from '@angular/core';
-import {isObservable, Notification, Observable, PartialObserver, Subscription, TeardownLogic,} from 'rxjs';
+import {Notification, PartialObserver, Subscribable, Subscription, TeardownLogic,} from 'rxjs';
 import {AsyncState, CheckPhase, Context, ViewFactory} from './interfaces';
 
 let currentContext: any;
@@ -120,34 +119,41 @@ class Scheduler {
     constructor(private ref: ChangeDetectorRef) {}
 }
 
+export const checkPhase = Symbol("checkPhase")
+
+function isCheckSubject(value: unknown): value is any {
+    return typeof value === "object" && value !== null && checkPhase in value
+}
+
 function setup(stateFactory: any, injector: Injector) {
-    const context = currentContext;
-    const props = Object.freeze(Object.create(context));
+    const context: { [key: string]: any } = currentContext;
+    const props = Object.create(context)
     const error = injector.get(ErrorHandler);
     const scheduler = new Scheduler(injector.get(ChangeDetectorRef));
 
     createContext(context, injector, error, [new Set(), new Set(), new Set()]);
 
-    const state = stateFactory(props)
+    for (const [key, value] of Object.entries(context)) {
+        if (typeof value === "object" && checkPhase in value) {
+            props[key] = value
+            const binding = new ContextBinding(context, key, error, value, scheduler);
+            addCheck(value[checkPhase], binding)
+        }
+    }
+
+    const state = stateFactory(Object.freeze(props))
 
     for (const [key, value] of Object.entries(state)) {
         if (value instanceof EventEmitter) {
             context[key] = function (event: any) {
                 value.emit(event)
             }
-        } else if (isObservable(value)) {
+        } else if (isCheckSubject(value)) {
             const binding = new ContextBinding(context, key, error, value, scheduler);
             addTeardown(value.subscribe(binding));
-            if ('next' in value && typeof value['next'] === 'function') {
-                addCheck(2, binding);
-            }
+            addCheck(value[checkPhase], binding);
         } else {
             Object.defineProperty(context, key, Object.getOwnPropertyDescriptor(state, key)!)
-        }
-        if (isDevMode() && !context.hasOwnProperty(key)) {
-            throw new Error(
-                `No value initialized for "${key}", source did not emit an initial value.`
-            );
         }
     }
 
@@ -162,7 +168,7 @@ export function check(key: CheckPhase) {
 }
 
 export function subscribe() {
-    const { effects, error } = getContext();
+    const { effects } = getContext();
     if (effects.size === 0) return;
     const list = Array.from(effects);
     effects.clear();
@@ -186,7 +192,7 @@ export function addTeardown(teardown: TeardownLogic) {
 }
 
 export function addEffect<T>(
-    source: Observable<T> | (() => TeardownLogic),
+    source: Subscribable<T> | (() => TeardownLogic),
     observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
 ) {
     const { effects, injector, error } = getContext();
@@ -225,14 +231,14 @@ class EffectObserver<T> {
     }
     subscribe() {
         const { source } = this
-        if (typeof source === "function") {
-            try {
+        try {
+            if (typeof source === "function") {
                 runInContext(this, addTeardown, source())
-            } catch (e) {
-                this.errorHandler.handleError(e)
+            } else {
+                return source.subscribe(this);
             }
-        } else {
-            return source.subscribe(this);
+        } catch (e) {
+            this.errorHandler.handleError(e)
         }
     }
     unsubscribe() {
@@ -244,9 +250,10 @@ class EffectObserver<T> {
         const { observer, injector, errorHandler } = this;
         const isError = notification.kind === 'E';
         let errorHandled = !isError;
-        if (!observer) return;
-        errorHandled = errorHandled || 'error' in observer;
-        runInContext(this, next, injector, errorHandler, notification, observer)
+        errorHandled = errorHandled || observer && 'error' in observer;
+        if (observer) {
+            runInContext(this, next, injector, errorHandler, notification, observer)
+        }
         if (!errorHandled) {
             errorHandler.handleError(notification.error);
         }
@@ -263,11 +270,8 @@ class EffectObserver<T> {
     }
 }
 
-const view = Symbol('view');
-
 function decorate(Props: any, fn?: any, provider = false) {
     return class extends (fn ? Props : Object) {
-        [view] = runInContext(this, setup, fn ?? Props, directiveInject(INJECTOR), provider);
         ngDoCheck() {
             runInContext(this, check, 0);
         }
@@ -276,10 +280,14 @@ function decorate(Props: any, fn?: any, provider = false) {
         }
         ngAfterViewChecked() {
             runInContext(this, check, 2);
-            this[view] = this[view] ?? runInContext(this, subscribe);
+            runInContext(this, subscribe);
         }
         ngOnDestroy() {
             runInContext(this, unsubscribe);
+        }
+        constructor(...args: any[]) {
+            super(...args);
+            runInContext(this, setup, fn ?? Props, directiveInject(INJECTOR), provider);
         }
     }
 }
@@ -301,4 +309,12 @@ export function Service<T>(factory: () => T, options?: { providedIn: ProvidedIn 
         }
     }
     return Class as any
+}
+
+export function Inject<T>(token: ProviderToken<T>, notFoundValue?: T, flags?: InjectFlags): T {
+    const { injector } = getContext();
+    const previous = beginContext(void 0);
+    const value = injector.get(token, notFoundValue, flags);
+    endContext(previous);
+    return value
 }

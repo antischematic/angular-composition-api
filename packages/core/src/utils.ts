@@ -1,4 +1,4 @@
-import {AsyncSubject, BehaviorSubject, ReplaySubject, SchedulerLike, Subject} from "rxjs";
+import {BehaviorSubject, Subject} from "rxjs";
 import {EventEmitter} from "@angular/core";
 
 export function get<T>(source: BehaviorSubject<T>): T {
@@ -26,7 +26,7 @@ export function set(
     if (valueOrSetter instanceof Function) {
         source.next(valueOrSetter(currentValue));
     } else if (valueOrSetter instanceof BehaviorSubject) {
-        source.next(currentValue);
+        source.next(valueOrSetter.value);
     } else {
         source.next(valueOrSetter);
     }
@@ -44,32 +44,4 @@ export function emit<T>(source: Subject<T | void>) {
 
 export function Emitter<T>(async?: boolean): EventEmitter<T> {
     return new EventEmitter<T>(async);
-}
-
-export function Value<T>(value: T) {
-    return new BehaviorSubject(value);
-}
-
-export function Async<T>(): AsyncSubject<T> {
-    return new AsyncSubject<T>();
-}
-
-export function Replay<T>(
-    bufferSize?: number,
-    windowTime?: number,
-    scheduler?: SchedulerLike
-): ReplaySubject<T> {
-    return new ReplaySubject<T>(bufferSize, windowTime, scheduler);
-}
-
-export class CheckSubject<T> extends BehaviorSubject<T> {
-    check() {
-        const value = this.getter();
-        if (value !== this.value) {
-            super.next(value);
-        }
-    }
-    constructor(public getter: () => T, public observer?: Subject<T>) {
-        super(getter());
-    }
 }

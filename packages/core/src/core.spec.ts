@@ -4,16 +4,18 @@ import {
     addTeardown,
     CallContextError,
     check,
+    checkPhase,
+    Inject,
     Service,
     subscribe,
     View
 } from "./core";
-import {Component, Type, EventEmitter, NgModuleRef, ErrorHandler} from "@angular/core";
+import {Component, ErrorHandler, EventEmitter, Injectable, InjectionToken, NgModuleRef, Type} from "@angular/core";
 import {ComponentFixture, TestBed} from "@angular/core/testing";
+import {BehaviorSubject, defer, merge, of, throwError} from "rxjs";
+import {materialize, mergeMap} from "rxjs/operators";
 import objectContaining = jasmine.objectContaining;
 import createSpy = jasmine.createSpy;
-import {BehaviorSubject, concat, defer, EMPTY, merge, Notification, of, throwError} from "rxjs";
-import {materialize, mergeMap, switchMap, tap} from "rxjs/operators";
 
 function defineView<T>(View: Type<T>): () => ComponentFixture<T> {
     TestBed.configureTestingModule({
@@ -79,9 +81,11 @@ describe("View", () => {
     })
 
     it("should unwrap marked subject", () => {
+        const subject = new BehaviorSubject(1337)
+        Object.defineProperty(subject, checkPhase, { value: 0 })
         function State() {
             return {
-                count: new BehaviorSubject(1337)
+                count: subject
             }
         }
         @Component({ template: ``})
@@ -107,6 +111,7 @@ describe("View", () => {
     })
     it("should create two-way binding with marked subject", () => {
         const value = new BehaviorSubject(0)
+        Object.defineProperty(value, checkPhase, { value: 0 })
         function State() {
             return {
                 value
@@ -261,13 +266,27 @@ describe("Context API", () => {
     it ("should not be destroyed more than once", () => {
         const spy = createSpy()
         function factory() {
-            const subcription = addEffect(() => spy)
-            subcription.unsubscribe()
-            subcription.unsubscribe()
+            const observer = addEffect(() => spy)
+            observer.unsubscribe()
+            observer.unsubscribe()
             return {}
         }
         const injectService = defineService(Service(factory, { providedIn: "root" }))
-        const module = TestBed.inject(NgModuleRef)
+        injectService()
+        expect(spy).toHaveBeenCalledTimes(1)
+    })
+    it ("should not emit when destroyed", () => {
+        const spy = createSpy()
+        function factory() {
+            const observer = addEffect(() => spy)
+            observer.unsubscribe()
+            observer.next(void 0)
+            observer.error(new Error())
+            observer.complete()
+
+            return {}
+        }
+        const injectService = defineService(Service(factory, { providedIn: "root" }))
         injectService()
         expect(spy).toHaveBeenCalledTimes(1)
     })
@@ -338,7 +357,18 @@ describe("Context API", () => {
             addEffect(error, {
                 next() {}
             })
-            addEffect(error, () => {})
+            addEffect(error)
+            addEffect(of(true), () => {
+                throw new Error()
+            })
+            addEffect(of(true), {
+                next() {
+                    throw new Error()
+                },
+                complete() {
+                    throw new Error()
+                }
+            })
             addEffect(() => {
                 throw new Error()
             })
@@ -355,6 +385,43 @@ describe("Context API", () => {
         const injectService = defineService(Service(factory, { providedIn: "root" }))
         injectService()
         expect(handledError).toHaveBeenCalledOnceWith(new Error())
-        expect(unhandledError).toHaveBeenCalledTimes(3)
+        expect(unhandledError).toHaveBeenCalledTimes(6)
+    })
+})
+
+describe("Inject", () => {
+    it("should inject provider token", () => {
+        @Injectable({ providedIn: "root" })
+        class Type {}
+        @Injectable({ providedIn: "root" })
+        abstract class AbstractType {}
+        const tokenValue = {}
+        const Token = new InjectionToken("Token", {
+            providedIn: "root",
+            factory() {
+                return tokenValue
+            }
+        })
+
+        function factory() {
+            expect(Inject(Type)).toBeInstanceOf(Type)
+            expect(Inject(AbstractType)).toBeInstanceOf(AbstractType)
+            expect(Inject(Token)).toBe(tokenValue)
+        }
+
+        const injectService = defineService(Service(factory, { providedIn: "root" }))
+
+        injectService()
+    })
+    it("should use fallback value", () => {
+        const Token = new InjectionToken("Token")
+
+        function factory() {
+            expect(Inject(Token, 10)).toBe(10)
+        }
+
+        const injectService = defineService(Service(factory, { providedIn: "root" }))
+
+        injectService()
     })
 })
