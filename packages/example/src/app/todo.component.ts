@@ -1,6 +1,6 @@
 import {Component, Directive, ElementRef, Input, NgModule, Output, Renderer2, ViewChild} from '@angular/core';
 import {FormsModule} from '@angular/forms';
-import {DoCheck, Emitter, Inject, set, Subscribe, View} from '@mmuscat/angular-composition-api';
+import {Emitter, Inject, set, Subscribe, Value, View} from '@mmuscat/angular-composition-api';
 
 export interface Todo {
   text: string;
@@ -9,7 +9,7 @@ export interface Todo {
 
 @Directive()
 export class Props {
-  @Input() text = '';
+  @Input() text = Value('');
   @Input() done = false;
   @Input() resetOnSave = false;
   @Output() saveTodo = Emitter<Todo>();
@@ -17,18 +17,17 @@ export class Props {
 }
 
 export function State(props: Props) {
-  const text = DoCheck(() => props.text);
   const renderer = Inject(Renderer2);
 
   function toggleDone(value: boolean) {
     props.saveTodo.emit({
-      text: props.text,
+      text: props.text.value,
       done: value
     });
   }
 
   function editText(value: string) {
-    if (!value || value === text.value) return;
+    if (!value || value === props.text.value) return;
     props.saveTodo.emit({
       text: value,
       done: props.done
@@ -36,7 +35,7 @@ export function State(props: Props) {
     if (props.resetOnSave) {
       reset()
     } else {
-      set(text, value);
+      set(props.text, value);
     }
   }
 
@@ -49,13 +48,12 @@ export function State(props: Props) {
   }
 
   function reset() {
-    setText(props.text)
+    setText(props.text.value)
   }
 
-  Subscribe(text, setText)
+  Subscribe(props.text, setText)
 
   return {
-    text,
     toggleDone,
     editText,
     reset

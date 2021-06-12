@@ -27,31 +27,28 @@ View [Todo List](https://stackblitz.com/edit/angular-composition-api) on Stackbl
 ```ts
 // 1. Create props interface. 
 // Add inputs, outputs and queries here.
+// Value, Query and QueryList are unwrapped in the template
 @Directive()
 class Props {
-    @Input() count = 0
-    @Output() countChange = Emitter<number>()
+    @Input() count = Value(0) // becomes `number`
 }
 
 // 2. Create a state function.
-function State(props: Props) {
-    // a. Use `DoCheck` hook to check inputs have changed.
-    // Optional observer will emit when `count.next()` is called
-    const count = DoCheck(() => props.count, props.countChange)
-    const increment = Emitter() // Alias for `new EventEmitter()`
-    // b. Subscribe to observables, cleanup is handled automatically.
+function State({ count }: Props) {
+    const increment = Emitter()
+    // a. Subscribe to observables, cleanup is handled automatically.
     Subscribe(count, (value) => {
         console.log(`Count changed: ${value}`)
     })
-    // c. Emit values to trigger state updates.
+    // b. Emit values to trigger state updates.
     Subscribe(increment, (amount) => {
-        set(count, count.value + amount)
+        set(count, get(count) + amount)
     })
-    // d. Return values are public. 
-    // Observables are automatically subscribed and unwrapped in the template.
+    // c. Return values are merged with props. 
+    // Values are automatically subscribed and unwrapped in the template.
     // Emitters are converted into plain functions.
     return {
-        count, // `BehaviorSubject<number>` becomes `number`
+        count, // `Value<number>` becomes `number`
         increment // `EventEmitter<number>` becomes `(value: number) => void`
     }
 }
@@ -62,7 +59,7 @@ function State(props: Props) {
     selector: "app-counter",
     template: `
         <p>{{ count }}</p>
-        <button (click)="increment(1)>Increment</button>
+        <button (click)="increment(1)">Increment</button>
     `
 })
 export class Counter extends View(Props, State) {}
@@ -96,8 +93,7 @@ export const LoadTodosByUserId = Service(loadTodosByUserId, {
 })
 
 // 3. Inject in view.
-function State(props: Props) {
-    const userId = DoCheck(() => props.userId)
+function State({ userId }: Props) {
     const [todos, loadTodosByUserId] = Inject(LoadTodosByUserId)
 
     Subscribe(userId, loadTodosByUserId)
@@ -107,14 +103,14 @@ function State(props: Props) {
     }
 }
 
-// 4. Provide non-singleton service.
+// 4. Provide local service if needed.
 
 @Component({
     providers: [LoadTodosByUserId]
 })
 export class Todos extends View(State, Props) {}
 
-// 5. Override provider
+// 5. Override provider if needed
 
 const CustomProvider = {
     provide: LoadTodosByUserId,
@@ -161,10 +157,6 @@ may cause a `CallContextError` to be thrown.
 
 Alias for `BehaviorSubject`. Optionally mirrors an upstream `BehaviorSubject` or `Value` if provided.
 
-#### Emitter
-
-Alias for `EventEmitter`
-
 #### Query
 
 Creates a `Value` that is checked during the `ngAfterContentChecked` lifecycle hook by default.
@@ -189,6 +181,10 @@ use the `Renderer` to apply changes to the property, attribute, class or style t
 
 ### Utils
 
+#### Emitter
+
+Alias for `EventEmitter`
+
 #### get
 
 Convenience method for getting the current value of a `Value`.
@@ -197,10 +193,6 @@ Convenience method for getting the current value of a `Value`.
 
 Immediately emit a value to a `Value` or `Emitter`, or return a curried function that emits the
 value passed to it.
-
-#### emit
-
-Returns a function that will emit `void` to the given `Value` or `Emitter` when called.
 
 ## Contributing
 
