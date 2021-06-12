@@ -1,11 +1,15 @@
-import {AsyncSubject, BehaviorSubject, ReplaySubject, SchedulerLike, Subject} from "rxjs";
+import {Subject} from "rxjs";
 import {EventEmitter} from "@angular/core";
 
-export function get<T>(source: BehaviorSubject<T>): T {
+export function get<T>(source: { value: T }): T {
     return source.value;
 }
 
-type ValueOrSetter<T> = T | BehaviorSubject<T> | ((value: any) => T);
+type ValueOrSetter<T> = T | { value: T } | ((value: T) => T);
+
+export function isObject(value: unknown): value is {} {
+    return typeof value === "object" && value !== null
+}
 
 export function set<T>(
     source: Subject<T>
@@ -16,60 +20,22 @@ export function set<T>(
 ): void;
 export function set(
     source: Subject<unknown>,
-    valueOrSetter?: ValueOrSetter<unknown>
-): void | ((valueOrSetter: ValueOrSetter<unknown>) => void) {
+    valueOrSetter?: ValueOrSetter<void>
+): void | ((valueOrSetter: ValueOrSetter<void>) => void) {
     const currentValue =
-        source instanceof BehaviorSubject ? source.value : void 0;
+        isObject(source) && "value" in source ? source["value"] : void 0;
     if (arguments.length === 1) {
         return set.bind(null, source);
     }
     if (valueOrSetter instanceof Function) {
         source.next(valueOrSetter(currentValue));
-    } else if (valueOrSetter instanceof BehaviorSubject) {
-        source.next(currentValue);
+    } else if (isObject(valueOrSetter) && "value" in valueOrSetter) {
+        source.next(valueOrSetter.value);
     } else {
         source.next(valueOrSetter);
     }
 }
 
-export function replay(source: any) {
-    set(source, get(source));
-}
-
-export function emit<T>(source: Subject<T | void>) {
-    return function () {
-        source.next(void 0)
-    }
-}
-
 export function Emitter<T>(async?: boolean): EventEmitter<T> {
     return new EventEmitter<T>(async);
-}
-
-export function Value<T>(value: T) {
-    return new BehaviorSubject(value);
-}
-
-export function Async<T>(): AsyncSubject<T> {
-    return new AsyncSubject<T>();
-}
-
-export function Replay<T>(
-    bufferSize?: number,
-    windowTime?: number,
-    scheduler?: SchedulerLike
-): ReplaySubject<T> {
-    return new ReplaySubject<T>(bufferSize, windowTime, scheduler);
-}
-
-export class CheckSubject<T> extends BehaviorSubject<T> {
-    check() {
-        const value = this.getter();
-        if (value !== this.value) {
-            super.next(value);
-        }
-    }
-    constructor(public getter: () => T, public observer?: Subject<T>) {
-        super(getter());
-    }
 }

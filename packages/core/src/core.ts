@@ -4,14 +4,24 @@ import {
     EventEmitter,
     inject,
     Injectable,
+    InjectFlags,
     Injector,
     INJECTOR,
-    isDevMode,
+    NgModuleRef, ProviderToken,
     Type,
     ɵɵdirectiveInject as directiveInject
 } from '@angular/core';
-import {isObservable, Notification, Observable, PartialObserver, Subscription, TeardownLogic,} from 'rxjs';
-import {AsyncState, CheckPhase, Context, ViewFactory} from './interfaces';
+import {
+    Notification,
+    Observable,
+    PartialObserver,
+    Subscribable,
+    Subscription,
+    SubscriptionLike,
+    TeardownLogic,
+} from 'rxjs';
+import {AsyncState, checkPhase, CheckPhase, CheckSubject, Context, ViewFactory} from './interfaces';
+import {isObject} from "./utils";
 
 let currentContext: any;
 const contextMap = new WeakMap<{}, Context>();
@@ -26,12 +36,18 @@ export function endContext(previous: any) {
     currentContext = previous;
 }
 
+export class CallContextError extends Error {
+    constructor() {
+        super('Call out of context');
+    }
+}
+
 export function getContext() {
     const context = contextMap.get(currentContext);
     if (context) {
         return context;
     }
-    throw new Error('Call out of context');
+    throw new CallContextError();
 }
 
 function runInContext<T extends (...args: any[]) => any>(
@@ -50,7 +66,7 @@ function createContext(context: {}, injector: Injector, error: ErrorHandler, add
         injector,
         error,
         subscription: new Subscription(),
-        effects: new Map(),
+        effects: new Set(),
         ...additionalContext
     });
 }
@@ -80,15 +96,13 @@ class ContextBinding<T = any> {
         const value = this.context[this.key];
         if (this.value !== value) {
             this.source.next((this.value = value));
+            return true
         }
-    }
-    error(error: unknown) {
-        this.errorHandler.handleError(error);
+        return false
     }
     constructor(
         private context: T,
         private key: keyof T,
-        private errorHandler: ErrorHandler,
         private source: any,
         private scheduler: Scheduler
     ) {
@@ -112,61 +126,70 @@ class Scheduler {
     constructor(private ref: ChangeDetectorRef) {}
 }
 
+function isCheckSubject(value: unknown): value is CheckSubject<any> {
+    return isObject(value) && checkPhase in value
+}
+
 function setup(stateFactory: any, injector: Injector) {
-    const context = currentContext;
-    const props = Object.freeze(Object.create(context));
+    const context: { [key: string]: any } = currentContext;
+    const props = Object.create(context)
     const error = injector.get(ErrorHandler);
     const scheduler = new Scheduler(injector.get(ChangeDetectorRef));
 
-    createContext(context, injector, error, [new Set(), new Set(), new Set()]);
+    createContext(context, injector, error, [new Set(), new Set(), new Set(), scheduler]);
 
-    const state = stateFactory(props)
+    for (const [key, value] of Object.entries(context)) {
+        if (typeof value === "object" && checkPhase in value) {
+            props[key] = value
+            context[key] = value.value
+            const binding = new ContextBinding(context, key, value, scheduler);
+            addCheck(value[checkPhase], binding)
+        }
+    }
+
+    const state = stateFactory(Object.freeze(props))
 
     for (const [key, value] of Object.entries(state)) {
         if (value instanceof EventEmitter) {
             context[key] = function (event: any) {
                 value.emit(event)
             }
-        } else if (isObservable(value)) {
-            const binding = new ContextBinding(context, key, error, value, scheduler);
+        } else if (isCheckSubject(value)) {
+            const binding = new ContextBinding(context, key, value, scheduler);
             addTeardown(value.subscribe(binding));
-            if ('next' in value && typeof value['next'] === 'function') {
-                addCheck(2, binding);
-            }
+            addCheck(value[checkPhase], binding);
         } else {
             Object.defineProperty(context, key, Object.getOwnPropertyDescriptor(state, key)!)
-        }
-        if (isDevMode() && !context.hasOwnProperty(key)) {
-            throw new Error(
-                `No value initialized for "${key}", source did not emit an initial value.`
-            );
         }
     }
 
     addEffect(scheduler as any)
 }
 
-function check(key: CheckPhase) {
-    const checks = getContext()[key];
-    for (const subject of checks) {
-        subject.check();
+export function check(key: CheckPhase) {
+    const context = getContext();
+    let detectChanges = false
+    for (const subject of context[key]) {
+        const dirty = subject.check();
+        detectChanges = detectChanges || dirty
+    }
+    if (detectChanges) {
+        context[3].detectChanges()
     }
 }
 
-function subscribe() {
+export function subscribe() {
     const { effects } = getContext();
     if (effects.size === 0) return;
     const list = Array.from(effects);
     effects.clear();
-    for (const [source, observers] of list) {
-        for (const observer of observers) {
-            source.subscribe(observer);
-        }
+    for (const effect of list) {
+        addTeardown(effect.subscribe())
     }
     return true
 }
 
-function unsubscribe() {
+export function unsubscribe() {
     if (!contextMap.has(currentContext)) return
     getContext().subscription.unsubscribe();
 }
@@ -180,71 +203,83 @@ export function addTeardown(teardown: TeardownLogic) {
 }
 
 export function addEffect<T>(
-    source: Observable<T>,
-    observer?: PartialObserver<T> | ((value: T) => void)
-) {
+    source: Subscribable<T> | (() => TeardownLogic),
+    observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
+): Subscription {
     const { effects, injector, error } = getContext();
-    const effect = new EffectObserver<T>(observer, error, injector);
-    if (effects.has(source)) {
-        effects.get(source)!.add(effect);
-    } else {
-        effects.set(source, new Set([effect]));
-    }
+    const effectObserver = new EffectObserver<T>(source, observer, error, injector);
+    effects.add(effectObserver);
+    return new Subscription().add(effectObserver)
 }
 
 function next(injector: Injector, errorHandler: ErrorHandler, notification: Notification<any>, observer: any) {
-    unsubscribe()
+    notification.accept(unsubscribe)
     createContext(currentContext, injector, errorHandler)
     try {
         addTeardown(notification.accept(observer as any))
     } catch (error) {
         errorHandler.handleError(error)
     }
-    subscribe()
+    notification.accept(subscribe)
 }
 
-class EffectObserver<T> {
+export class EffectObserver<T> {
+    closed
     next(value: T | Notification<T>) {
+        if (this.closed) return
         if (value instanceof Notification) {
             return this.call(value);
         }
         this.call(Notification.createNext(value));
     }
     error(error: unknown) {
+        if (this.closed) return
         this.call(Notification.createError(error));
     }
     complete() {
+        if (this.closed) return
         this.call(Notification.createComplete());
     }
-    call(notification: Notification<T>) {
+    subscribe() {
+        const { source } = this
+        if (typeof source === "function") {
+            const { injector, errorHandler } = this;
+            runInContext(this, next, injector, errorHandler, Notification.createNext(void 0), source)
+        } else {
+            return source.subscribe(this);
+        }
+    }
+    unsubscribe() {
+        if (this.closed) return
+        this.closed = true
+        runInContext(this, unsubscribe)
+    }
+    private call(notification: Notification<T>) {
         const { observer, injector, errorHandler } = this;
         const isError = notification.kind === 'E';
         let errorHandled = !isError;
-        if (!observer) return;
-        errorHandled = errorHandled || 'error' in observer;
-        runInContext(this, next, injector, errorHandler, notification, observer)
+        errorHandled = errorHandled || observer && 'error' in observer;
+        if (observer) {
+            runInContext(this, next, injector, errorHandler, notification, observer)
+        }
         if (!errorHandled) {
             errorHandler.handleError(notification.error);
         }
     }
-    unsubscribe() {
-        runInContext(this, unsubscribe)
-    }
     constructor(
+        private source: any,
         private observer: any,
         private errorHandler: ErrorHandler,
         private injector: Injector,
     ) {
-        createContext(this, injector, errorHandler)
+        this.closed = false
         addTeardown(this)
+        createContext(this, injector, errorHandler)
     }
 }
 
-const view = Symbol('view');
-
 function decorate(Props: any, fn?: any, provider = false) {
     return class extends (fn ? Props : Object) {
-        [view] = runInContext(this, setup, fn ?? Props, directiveInject(INJECTOR), provider);
         ngDoCheck() {
             runInContext(this, check, 0);
         }
@@ -253,17 +288,21 @@ function decorate(Props: any, fn?: any, provider = false) {
         }
         ngAfterViewChecked() {
             runInContext(this, check, 2);
-            this[view] = this[view] ?? runInContext(this, subscribe);
+            runInContext(this, subscribe);
         }
         ngOnDestroy() {
             runInContext(this, unsubscribe);
+        }
+        constructor(...args: any[]) {
+            super(...args);
+            runInContext(this, setup, fn ?? Props, directiveInject(INJECTOR), provider);
         }
     }
 }
 
 export const View: ViewFactory = createView;
 
-type ProvidedIn = Type<any> | 'root' | 'platform' | 'any' | null
+export type ProvidedIn = Type<any> | 'root' | 'platform' | 'any' | null
 
 export function Service<T>(factory: () => T, options?: { providedIn: ProvidedIn }): Type<T> {
     @Injectable({ providedIn: options?.providedIn ?? null  })
@@ -273,8 +312,36 @@ export function Service<T>(factory: () => T, options?: { providedIn: ProvidedIn 
             runInContext(this, unsubscribe)
         }
         constructor() {
+            inject(NgModuleRef, InjectFlags.Self | InjectFlags.Optional)?.onDestroy(() => this.ngOnDestroy())
             return createService(this, factory)
         }
     }
     return Class as any
+}
+
+export function Inject<T>(token: ProviderToken<T>, notFoundValue?: T, flags?: InjectFlags): T {
+    const { injector } = getContext();
+    const previous = beginContext(void 0);
+    const value = injector.get(token, notFoundValue, flags);
+    endContext(previous);
+    return value
+}
+
+export function Subscribe<T>(observer: () => TeardownLogic): Subscription;
+export function Subscribe<T>(
+    source: Observable<T>,
+    observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
+): Subscription;
+export function Subscribe<T>(
+    source: Observable<T> | (() => TeardownLogic),
+    observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
+): Subscription {
+    if (!currentContext) {
+        if (typeof source === "function") {
+            return new Subscription().add(source())
+        } else {
+            return source.subscribe(observer as any)
+        }
+    }
+    return addEffect(source, observer);
 }

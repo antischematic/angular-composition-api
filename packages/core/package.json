@@ -3,12 +3,11 @@
   "description": "A lightweight (3kb) library for writing functional Angular applications.",
   "license": "MIT",
   "homepage": "https://github.com/mmuscat/angular-composition-api",
-  "keywords": ["Angular", "RxJS", "Composition API", "Hooks", "Reactive", "Suspense"],
-  "version": "0.0.4",
+  "keywords": ["Angular", "RxJS", "Composition API", "Hooks", "Reactive"],
+  "version": "0.1200.0-next.0",
   "peerDependencies": {
     "@angular/common": "^12.0.0",
-    "@angular/core": "^12.0.0",
-    "@mmuscat/angular-error-boundary": "^0.0.4"
+    "@angular/core": "^12.0.0"
   },
   "dependencies": {
     "tslib": "^2.1.0"

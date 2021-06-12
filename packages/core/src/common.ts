@@ -1,108 +1,84 @@
-import {BehaviorSubject, Observable, PartialObserver, Subject, Subscription, TeardownLogic} from 'rxjs';
-import {InjectFlags, ProviderToken, QueryList} from '@angular/core';
-import {addCheck, addEffect, addTeardown, beginContext, endContext, getContext} from './core';
-import {CheckPhase} from './interfaces';
-import {CheckSubject, Value} from "./utils";
-import {CloakBoundary} from "@mmuscat/angular-error-boundary";
+import {BehaviorSubject, Notification, PartialObserver, Subscription} from 'rxjs';
+import {QueryList as NgQueryList} from '@angular/core';
+import {checkPhase, CheckPhase, CheckSubject} from './interfaces';
+import {Subscribe} from "./core";
 
-export function Check<T>(
-    getter: () => T,
-    observer?: Subject<T>,
-    phase: CheckPhase = 0
-): CheckSubject<T> {
-    const subject = new CheckSubject<T>(getter, observer);
-    addCheck(phase, subject);
-    return subject;
+export class QueryListObserver {
+    next(value: NgQueryList<any>) {
+        this.queryList.reset(value.toArray())
+        this.queryList.notifyOnChanges()
+    }
+    complete() {
+        this.queryList.destroy()
+    }
+    constructor(private queryList: QueryListSubject<any>) {}
 }
 
-export function DoCheck<T>(
-    getter: () => T,
-    observer?: Subject<T>
-): CheckSubject<T> {
-    return Check<T>(getter, observer, 0);
+export class QueryListSubject<T> extends NgQueryList<T> implements CheckSubject<QueryListSubject<T>> {
+    readonly [checkPhase]: CheckPhase
+    private subscription?: Subscription
+    next(value: NgQueryList<T>) {
+        const observer = new QueryListObserver(this)
+        observer.next(value)
+        this.subscription?.unsubscribe()
+        this.subscription = value.changes.subscribe(observer)
+    }
+
+    subscribe(observer: (value: NgQueryList<T>) => void): Subscription
+    subscribe(observer: PartialObserver<NgQueryList<T>>): Subscription
+    subscribe(observer: any): Subscription {
+        Notification.createNext(this).accept(observer)
+        return this.changes.subscribe(observer)
+    }
+    constructor(check: CheckPhase, emitDistinctChangesOnly?: boolean) {
+        super(emitDistinctChangesOnly);
+        this[checkPhase] = check
+    }
 }
 
-export function ContentCheck<T>(
-    getter: () => T,
-    observer?: Subject<T>
-): CheckSubject<T> {
-    return Check<T>(getter, observer, 1);
-}
+export class ValueSubject<T> extends BehaviorSubject<T> implements CheckSubject<T> {
+    private upstreamSubscription?: Subscription
+    readonly [checkPhase]: CheckPhase
 
-export function ViewCheck<T>(
-    getter: () => T,
-    observer?: Subject<T>
-): CheckSubject<T> {
-    return Check<T>(getter, observer, 2);
-}
+    unsubscribe() {
+        this.upstreamSubscription?.unsubscribe()
+        super.unsubscribe();
+    }
 
-export function Subscribe<T>(observer: () => TeardownLogic): Subscription;
-export function Subscribe<T>(
-    source: Observable<T>,
-    observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
-): Subscription;
-export function Subscribe<T>(
-    source: Observable<T> | (() => TeardownLogic),
-    observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
-): Subscription {
-    const subscription = new Subscription();
-    const effect = new Observable<T>(subscriber => {
-        subscription.add(subscriber);
-        if (typeof source === 'function') {
-            return source();
-        } else {
-            return source
-                .subscribe(subscriber)
-                .add(() => subscription.remove(subscriber));
+    constructor(value: T, check: CheckPhase = 0) {
+        super(value);
+        this[checkPhase] = check
+        if (value instanceof BehaviorSubject) {
+            this.upstreamSubscription = Subscribe(value, this)
         }
-    });
-    addEffect(effect, observer);
-    addTeardown(subscription);
-    return subscription;
+    }
 }
 
-export function Suspend<T>(
-    source: Observable<T>,
-    observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
-): Subscription {
-    const boundary = Inject(CloakBoundary)
-    return Subscribe(boundary.cloak(source), observer)
+function toCheckPhase(value?: boolean): CheckPhase {
+    return value === undefined ? 1 : value ? 0 : 2
 }
 
-export function Query<T extends QueryList<any>>(
-    getter: () => T | undefined,
-    phase: CheckPhase = 0
-): BehaviorSubject<T> {
-    const viewCheck = Check(getter, void 0, phase);
-    const subject = Value<T>(new QueryList() as T);
-
-    Subscribe(viewCheck, queryList => {
-        if (queryList) {
-            queryList.changes.subscribe(subject);
-            subject.next(queryList);
-        }
-    });
-
-    return subject;
+export function Query<T>(checkStatic: true): ValueSubject<T | undefined>
+export function Query<T>(checkContent?: undefined): ValueSubject<T | undefined>
+export function Query<T>(checkView: false): ValueSubject<T | undefined>
+export function Query<T>(check?: boolean): ValueSubject<any> {
+    return new ValueSubject(void 0, toCheckPhase(check))
 }
 
-export function ContentQuery<T extends QueryList<any>>(
-    getter: () => T | undefined
-): BehaviorSubject<T> {
-    return Query(getter, 1);
+export function QueryList<T>(checkContent?: undefined, emitDistinctChangesOnly?: boolean): QueryListSubject<T>
+export function QueryList<T>(checkView: false, emitDistinctChangesOnly?: boolean): QueryListSubject<T>
+export function QueryList(check?: boolean, emitDistinctChangesOnly?: boolean): QueryListSubject<unknown> {
+    return new QueryListSubject(toCheckPhase((check)), emitDistinctChangesOnly)
 }
 
-export function ViewQuery<T extends QueryList<any>>(
-    getter: () => T | undefined
-): BehaviorSubject<T> {
-    return Query(getter, 2);
+export function Value<T>(): ValueSubject<T | undefined>
+export function Value<T>(value: T[]): ValueSubject<T[]>
+export function Value<T extends {}>(value: WeakSet<T>): ValueSubject<WeakSet<T>>
+export function Value<T>(value: Set<T>): ValueSubject<Set<T>>
+export function Value<T extends {}, U>(value: WeakMap<T, U>): ValueSubject<WeakMap<T, U>>
+export function Value<T, U>(value: Map<T, U>): ValueSubject<Map<T, U>>
+export function Value<T>(value: ValueSubject<T>): ValueSubject<T>
+export function Value<T>(value: T): ValueSubject<T>
+export function Value(value: unknown = void 0): ValueSubject<any> {
+    return new ValueSubject(value)
 }
-
-export function Inject<T>(token: ProviderToken<T>, notFoundValue?: T, flags?: InjectFlags): T {
-    const { injector } = getContext();
-    const previous = beginContext(void 0);
-    const value = injector.get(token, notFoundValue, flags);
-    endContext(previous);
-    return value
-}
-

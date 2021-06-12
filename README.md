@@ -27,31 +27,28 @@ View [Todo List](https://stackblitz.com/edit/angular-composition-api) on Stackbl
 ```ts
 // 1. Create props interface. 
 // Add inputs, outputs and queries here.
+// Value, Query and QueryList are unwrapped in the template
 @Directive()
 class Props {
-    @Input() count = 0
-    @Output() countChange = Emitter<number>()
+    @Input() count = Value(0) // becomes `number`
 }
 
 // 2. Create a state function.
-function State(props: Props) {
-    // a. Use `DoCheck` hook to check inputs have changed.
-    // Optional observer will emit when `count.next()` is called
-    const count = DoCheck(() => props.count, props.countChange)
-    const increment = Emitter() // Alias for `new EventEmitter()`
-    // b. Subscribe to observables, cleanup is handled automatically.
+function State({ count }: Props) {
+    const increment = Emitter()
+    // a. Subscribe to observables, cleanup is handled automatically.
     Subscribe(count, (value) => {
         console.log(`Count changed: ${value}`)
     })
-    // c. Emit values to trigger state updates.
+    // b. Emit values to trigger state updates.
     Subscribe(increment, (amount) => {
-        set(count, count.value + amount)
+        set(count, get(count) + amount)
     })
-    // d. Return values are public. 
-    // Observables are automatically subscribed and unwrapped in the template.
+    // c. Return values are merged with props. 
+    // Values are automatically subscribed and unwrapped in the template.
     // Emitters are converted into plain functions.
     return {
-        count, // `BehaviorSubject<number>` becomes `number`
+        count, // `Value<number>` becomes `number`
         increment // `EventEmitter<number>` becomes `(value: number) => void`
     }
 }
@@ -62,7 +59,7 @@ function State(props: Props) {
     selector: "app-counter",
     template: `
         <p>{{ count }}</p>
-        <button (click)="increment(1)>Increment</button>
+        <button (click)="increment(1)">Increment</button>
     `
 })
 export class Counter extends View(Props, State) {}
@@ -96,8 +93,7 @@ export const LoadTodosByUserId = Service(loadTodosByUserId, {
 })
 
 // 3. Inject in view.
-function State(props: Props) {
-    const userId = DoCheck(() => props.userId)
+function State({ userId }: Props) {
     const [todos, loadTodosByUserId] = Inject(LoadTodosByUserId)
 
     Subscribe(userId, loadTodosByUserId)
@@ -107,14 +103,14 @@ function State(props: Props) {
     }
 }
 
-// 4. Provide non-singleton service.
+// 4. Provide local service if needed.
 
 @Component({
     providers: [LoadTodosByUserId]
 })
 export class Todos extends View(State, Props) {}
 
-// 5. Override provider
+// 5. Override provider if needed
 
 const CustomProvider = {
     provide: LoadTodosByUserId,
@@ -126,24 +122,17 @@ const CustomProvider = {
 
 ### Core
 
-#### Service
-
-Creates a context-aware, tree-shakable service class from the provided factory function. If the
-`providedIn` option is set to null, or omitted, you must provide the service in a `NgModule`,
-`Directive` or `Component`. Start or retrieve the service with `Inject`.
-
 #### View
 
 Creates a context-aware view class based on the provided Props and State. Props are optional.
 Components and directives that extend this class have their `ChangeDetectorRef` detached and will
 only trigger view updates when the returned observable state emits a new value.
 
----
+#### Service
 
-### Common
-
-These APIs only work inside the context of a `View` or `Service`. Calling them at the wrong time
-will cause an "out of context" error to be thrown.
+Creates a context-aware, tree-shakable service class from the provided factory function. If the
+`providedIn` option is set to null, or omitted, you must provide the service in a `NgModule`,
+`Directive` or `Component`. Start or retrieve the service with `Inject`.
 
 #### Inject
 
@@ -157,43 +146,26 @@ the subscription is deferred until the view has mounted. If it is called inside 
 nested in another `Subscribe`, the subscription is invoked immediately after the containing
 function has executed.
 
-#### Suspend
+---
 
-Similar to `Subscribe`, but hides the current `CloakBoundary` tree until the observable
-`source` has emitted a value, thrown an error, or completed.
+### Common
 
-#### DoCheck
+These APIs only work inside the context of a `View` or `Service`. Calling them at the wrong time
+may cause a `CallContextError` to be thrown.
 
-Creates a `CheckSubject` that calls the provided `getter` during the `ngDoCheck` lifecycle hook
-and emits this value if it has changed since it was last checked. The optional observer argument
-only receives values that were emitted by calling `next` and ignores values that are emitted by
-the getter. The getter function should be kept simple to prevent performance issues.
+#### Value
 
-#### ContentCheck
+Alias for `BehaviorSubject`. Optionally mirrors an upstream `BehaviorSubject` or `Value` if provided.
 
-Creates a `CheckSubject` that calls the provided `getter` during the `ngAfterContentChecked` lifecycle hook
-and emits this value if it has changed since it was last checked. The optional observer argument
-only receives values that were emitted by calling `next` and ignores values that are emitted by
-the getter. The getter function should be kept simple to prevent performance issues.
+#### Query
 
-#### ContentQuery
+Creates a `Value` that is checked during the `ngAfterContentChecked` lifecycle hook by default.
 
-Creates a `Value` that receives a `QueryList`. It waits for  the query list to become available,
-then subscribes to its changes. The getter function is checked during the `ngAfterContentChecked`
-lifecycle hook.
+#### QueryList
 
-#### ViewCheck
-
-Creates a `CheckSubject` that calls the provided `getter` during the `ngAfterViewChecked` lifecycle hook
-and emits this value if it has changed since it was last checked. The optional observer argument
-only receives values that were emitted by calling `next` and ignores values that are emitted by
-the getter. The getter function should be kept simple to prevent performance issues.
-
-#### ViewQuery
-
-Creates a `Value` that receives a `QueryList`. It waits for  the query list to become available,
-then subscribes to its changes. The getter function is checked during the `ngAfterViewChecked`
-lifecycle hook.
+Creates a `QueryListSubject` that can be accessed immediately. It waits for the underlying query list to become available,
+then subscribes to its changes. The value is checked during the `ngAfterContentChecked`
+lifecycle hook by default.
 
 #### HostListener
 
@@ -209,10 +181,6 @@ use the `Renderer` to apply changes to the property, attribute, class or style t
 
 ### Utils
 
-#### Value
-
-Alias for `BehaviorSubject`
-
 #### Emitter
 
 Alias for `EventEmitter`
@@ -225,10 +193,6 @@ Convenience method for getting the current value of a `Value`.
 
 Immediately emit a value to a `Value` or `Emitter`, or return a curried function that emits the
 value passed to it.
-
-#### emit
-
-Returns a function that will emit `void` to the given `Value` or `Emitter` when called.
 
 ## Contributing
 
