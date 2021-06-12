@@ -1,21 +1,23 @@
-import {QueryListSubject, ValueSubject} from "./common";
+import { QueryList as NgQueryList } from "@angular/core"
+import {Query, QueryList, Value, ValueSubject} from "./common";
 import createSpy = jasmine.createSpy;
-import {QueryList} from "@angular/core";
+import {checkPhase} from "./interfaces";
 
-describe("QueryListSubject", () => {
+describe("QueryList", () => {
     it("should notify observers when query list becomes available", () => {
         const spy = createSpy()
-        const subject = new QueryListSubject(0)
+        const subject = QueryList()
         subject.subscribe(spy)
-        const queryList = new QueryList()
+        const queryList = new NgQueryList()
         queryList.reset([1, 2, 3])
         subject.next(queryList)
-        expect(spy).toHaveBeenCalledOnceWith(subject)
+        expect(spy).toHaveBeenCalledWith(subject)
+        expect(spy).toHaveBeenCalledTimes(2)
     })
     it("should notify late subscribers", () => {
         const spy = createSpy()
-        const subject = new QueryListSubject(0)
-        const queryList = new QueryList()
+        const subject = QueryList()
+        const queryList = new NgQueryList()
         queryList.reset([1, 2, 3])
         subject.next(queryList)
         subject.subscribe(spy)
@@ -23,8 +25,8 @@ describe("QueryListSubject", () => {
 
     })
     it("should complete observers when query list is destroyed", () => {
-        const subject = new QueryListSubject(0)
-        const queryList = new QueryList()
+        const subject = QueryList()
+        const queryList = new NgQueryList()
         const spy = createSpy()
         subject.subscribe({
             next: () => {},
@@ -33,30 +35,67 @@ describe("QueryListSubject", () => {
         queryList.reset([1, 2, 3])
         subject.next(queryList)
         queryList.destroy()
-        expect(subject.observers.length).toBe(0)
         expect(spy).toHaveBeenCalledTimes(1)
+    })
+    it("should not send values to unsubscribed observers", () => {
+        const subject = QueryList()
+        const spy = createSpy()
+        subject.changes.subscribe(spy).unsubscribe()
+        subject.subscribe(spy).unsubscribe()
+        subject.notifyOnChanges()
+        subject.notifyOnChanges()
+        expect(spy).toHaveBeenCalledTimes(1)
+    })
+    it("should set checkPhase", () => {
+        // @ts-expect-error
+        const staticList = QueryList(true)
+        const contentList = QueryList()
+        const viewList = QueryList(false)
+        expect(staticList[checkPhase]).toBe(0)
+        expect(contentList[checkPhase]).toBe(1)
+        expect(viewList[checkPhase]).toBe(2)
+    })
+    it("should notify observers when receiving a new query list", () => {
+        const spy = createSpy()
+        const subject = QueryList()
+        const queryList = new NgQueryList()
+        const queryList2 = new NgQueryList()
+        const queryList3 = new NgQueryList()
+        subject.next(queryList)
+        subject.subscribe(spy)
+        subject.next(queryList2)
+        subject.next(queryList3)
+        expect(spy).toHaveBeenCalledWith(subject)
+        expect(spy).toHaveBeenCalledTimes(3)
     })
 })
 
-describe("ValueSubject", () => {
+describe("Query", () => {
     it("should create", () => {
-        expect(() => new ValueSubject(0)).not.toThrow()
-        expect(new ValueSubject(0).value).toBe(0)
+        expect(() => Query()).not.toThrow()
+        expect(Query().value).toBe(void 0)
+    })
+})
+
+describe("Value", () => {
+    it("should create", () => {
+        expect(() => Value(0)).not.toThrow()
+        expect(Value(0).value).toBe(0)
     })
     it("should throw when directly setting readonly value", () => {
         expect(() => {
             // @ts-expect-error
             // noinspection JSConstantReassignment
-            new ValueSubject(0).value = 10
+            Value(0).value = 10
         }).toThrow()
     })
     it("should set the value", () => {
-        const value = new ValueSubject(0)
+        const value = Value(0)
         value.next(10)
         expect(value.value).toBe(10)
     })
     it("should notify observers on subscribe", () => {
-        const value = new ValueSubject(0)
+        const value = Value(0)
         const spy = createSpy()
         value.subscribe(spy)
         value.next(10)
@@ -64,10 +103,16 @@ describe("ValueSubject", () => {
         expect(spy).toHaveBeenCalledWith(10)
     })
     it("should notify late subscribers with latest value", () => {
-        const value = new ValueSubject(0)
+        const value = Value(0)
         const spy = createSpy()
         value.next(10)
         value.subscribe(spy)
         expect(spy).toHaveBeenCalledOnceWith(10)
+    })
+    it("should accept void values", () => {
+        const value = Value<number>()
+        value.next(10)
+        value.next(void 0)
+        expect(value.value).toBe(void 0)
     })
 })

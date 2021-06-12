@@ -4,16 +4,28 @@ import {
     addTeardown,
     CallContextError,
     check,
-    checkPhase,
     Inject,
     Service,
+    Subscribe,
     subscribe,
     View
 } from "./core";
-import {Component, ErrorHandler, EventEmitter, Injectable, InjectionToken, NgModuleRef, Type} from "@angular/core";
+import {
+    Component,
+    Directive,
+    ErrorHandler,
+    EventEmitter,
+    Injectable,
+    InjectionToken,
+    Input,
+    NgModuleRef,
+    Type
+} from "@angular/core";
 import {ComponentFixture, TestBed} from "@angular/core/testing";
-import {BehaviorSubject, defer, merge, of, throwError} from "rxjs";
+import {defer, merge, of, throwError} from "rxjs";
 import {materialize, mergeMap} from "rxjs/operators";
+import {checkPhase} from "./interfaces";
+import {Value} from "./common";
 import objectContaining = jasmine.objectContaining;
 import createSpy = jasmine.createSpy;
 
@@ -80,8 +92,8 @@ describe("View", () => {
         expect(createView().componentInstance).toEqual(objectContaining({ count: 0, name: "bogus" }))
     })
 
-    it("should unwrap marked subject", () => {
-        const subject = new BehaviorSubject(1337)
+    it("should unwrap marked values", () => {
+        const subject = Value(1337)
         Object.defineProperty(subject, checkPhase, { value: 0 })
         function State() {
             return {
@@ -109,8 +121,8 @@ describe("View", () => {
         createView().componentInstance.increment()
         expect(spy).toHaveBeenCalledTimes(1)
     })
-    it("should create two-way binding with marked subject", () => {
-        const value = new BehaviorSubject(0)
+    it("should create two-way binding with marked values", () => {
+        const value = Value(0)
         Object.defineProperty(value, checkPhase, { value: 0 })
         function State() {
             return {
@@ -129,6 +141,52 @@ describe("View", () => {
         expect(value.value).toBe(0)
         view.detectChanges()
         expect(value.value).toBe(10)
+    })
+    it("should unwrap marked props", () => {
+        const subject = Value(1337)
+        Object.defineProperty(subject, checkPhase, { value: 0 })
+        @Directive()
+        class Props {
+            @Input() count = subject
+        }
+        function State(props: Props) {
+            expect(props.count.value).toBe(1337)
+            return {}
+        }
+        @Component({ template: ``})
+        class Test extends View(Props, State) {}
+        const createView = defineView(Test)
+        expect(createView().componentInstance.count).toBe(1337)
+    })
+    it("should forward changes to marked props", () => {
+        const subject = Value(1337)
+        const spy = createSpy()
+        Object.defineProperty(subject, checkPhase, { value: 0 })
+        @Directive()
+        class Props {
+            @Input() count = subject
+        }
+        function State(props: Props) {
+            Subscribe(props.count, spy)
+            return {}
+        }
+        @Component({ template: `{{ count }}`})
+        class Test extends View(Props, State) {}
+        const createView = defineView(Test)
+        const view = createView()
+        expect(spy).toHaveBeenCalledTimes(0)
+        expect(view.componentInstance.count).toBe(1337)
+        view.detectChanges()
+        expect(spy).toHaveBeenCalledWith(1337)
+        expect(spy).toHaveBeenCalledTimes(1)
+        view.componentInstance.count = 10
+        expect(view.debugElement.nativeElement.textContent).toEqual(`1337`)
+        expect(subject.value).toBe(1337)
+        view.detectChanges()
+        expect(view.debugElement.nativeElement.textContent).toEqual(`10`)
+        expect(subject.value).toBe(10)
+        expect(spy).toHaveBeenCalledWith(10)
+        expect(spy).toHaveBeenCalledTimes(2)
     })
 })
 
@@ -175,15 +233,23 @@ describe("Context API", () => {
     })
     it("should be checked during change detection", () => {
         const spy = createSpy()
+
         function State() {
-            const subject = (value: number) => ({ check() { spy(value) } })
+            const subject = (value: number) => ({
+                check() {
+                    spy(value)
+                }
+            })
             addCheck(0, subject(0))
             addCheck(1, subject(1))
             addCheck(2, subject(2))
             return {}
         }
-        @Component({ template: ``})
-        class Test extends View(State) {}
+
+        @Component({template: ``})
+        class Test extends View(State) {
+        }
+
         const createView = defineView(Test)
         expect(spy).toHaveBeenCalledTimes(0)
         createView().detectChanges()
@@ -192,10 +258,13 @@ describe("Context API", () => {
             [0], [1], [2]
         ])
     })
+})
+
+describe("Subscribe", () => {
     it("should not run effects until view is mounted", () => {
         const spy = createSpy()
         function State() {
-            addEffect(spy)
+            Subscribe(spy)
             return {}
         }
         @Component({ template: ``})
@@ -208,7 +277,7 @@ describe("Context API", () => {
     it("should run effects immediately", () => {
         const spy = createSpy()
         function factory() {
-            addEffect(spy)
+            Subscribe(spy)
             return {}
         }
         const injectService = defineService(Service(factory, { providedIn: "root" }))
@@ -219,7 +288,7 @@ describe("Context API", () => {
         const spy = createSpy()
         function factory() {
             const deferred = defer(spy)
-            addEffect(deferred)
+            Subscribe(deferred)
             return {}
         }
         const injectService = defineService(Service(factory, { providedIn: "root" }))
@@ -229,7 +298,7 @@ describe("Context API", () => {
     it("should execute teardown when module is destroyed", () => {
         const spy = createSpy()
         function factory() {
-            addEffect(() => spy)
+            Subscribe(() => spy)
             return {}
         }
         const injectService = defineService(Service(factory, { providedIn: "root" }))
@@ -241,7 +310,7 @@ describe("Context API", () => {
     it("should execute teardown when view is destroyed", () => {
         const spy = createSpy()
         function State() {
-            addEffect(() => spy)
+            Subscribe(() => spy)
             return {}
         }
         @Component({ template: ``})
@@ -256,7 +325,7 @@ describe("Context API", () => {
     it("should execute teardown each time a value is emitted", () => {
         const spy = createSpy()
         function factory() {
-            addEffect(of(1, 2, 3), () => spy)
+            Subscribe(of(1, 2, 3), () => spy)
             return {}
         }
         const injectService = defineService(Service(factory, { providedIn: "root" }))
@@ -266,9 +335,11 @@ describe("Context API", () => {
     it ("should not be destroyed more than once", () => {
         const spy = createSpy()
         function factory() {
-            const observer = addEffect(() => spy)
-            observer.unsubscribe()
-            observer.unsubscribe()
+            const observer = Subscribe(() => spy)
+            Subscribe(() => {
+                observer.unsubscribe()
+                observer.unsubscribe()
+            })
             return {}
         }
         const injectService = defineService(Service(factory, { providedIn: "root" }))
@@ -279,11 +350,12 @@ describe("Context API", () => {
         const spy = createSpy()
         function factory() {
             const observer = addEffect(() => spy)
-            observer.unsubscribe()
-            observer.next(void 0)
-            observer.error(new Error())
-            observer.complete()
-
+            Subscribe(() => {
+                observer.unsubscribe()
+                observer.next(void 0)
+                observer.error(new Error())
+                observer.complete()
+            })
             return {}
         }
         const injectService = defineService(Service(factory, { providedIn: "root" }))
@@ -299,7 +371,7 @@ describe("Context API", () => {
                 mergeMap((value, index) => index ? throwError(value) : of(value)),
                 materialize()
             )
-            addEffect(source, {
+            Subscribe(source, {
                 next,
                 error,
                 complete
@@ -319,7 +391,7 @@ describe("Context API", () => {
             const source = throwError(new Error()).pipe(
                 materialize()
             )
-            addEffect(merge(source, source, source), {
+            Subscribe(merge(source, source, source), {
                 next() {},
                 error,
             })
@@ -335,7 +407,7 @@ describe("Context API", () => {
             const source = of(true).pipe(
                 materialize()
             )
-            addEffect(merge(source, source, source), {
+            Subscribe(merge(source, source, source), {
                 next() {},
                 complete,
             })
@@ -350,18 +422,18 @@ describe("Context API", () => {
         const handledError = createSpy("handledError")
         function factory() {
             const error = throwError(new Error())
-            addEffect(error, {
+            Subscribe(error, {
                 next() {},
                 error: handledError,
             })
-            addEffect(error, {
+            Subscribe(error, {
                 next() {}
             })
-            addEffect(error)
-            addEffect(of(true), () => {
+            Subscribe(error)
+            Subscribe(of(true), () => {
                 throw new Error()
             })
-            addEffect(of(true), {
+            Subscribe(of(true), {
                 next() {
                     throw new Error()
                 },
@@ -369,7 +441,7 @@ describe("Context API", () => {
                     throw new Error()
                 }
             })
-            addEffect(() => {
+            Subscribe(() => {
                 throw new Error()
             })
             return {}
@@ -386,6 +458,61 @@ describe("Context API", () => {
         injectService()
         expect(handledError).toHaveBeenCalledOnceWith(new Error())
         expect(unhandledError).toHaveBeenCalledTimes(6)
+    })
+    it("should support nested subscriptions", () => {
+        const spy = createSpy()
+        function factory() {
+            Subscribe(() => {
+                Subscribe(spy)
+            })
+            return {}
+        }
+        const injectService = defineService(Service(factory, { providedIn: "root" }))
+        injectService()
+        expect(spy).toHaveBeenCalledTimes(1)
+    })
+    it("should cleanup nested subscriptions each time the parent emits", () => {
+        const spy = createSpy()
+        function factory() {
+            Subscribe(of(1, 2, 3), () => {
+                Subscribe(() => spy)
+            })
+            return {}
+        }
+        const injectService = defineService(Service(factory, { providedIn: "root" }))
+        injectService()
+        expect(spy).toHaveBeenCalledTimes(2)
+    })
+    it("should cleanup nested subscriptions when the root is destroyed", () => {
+        const spy = createSpy()
+        function factory() {
+            Subscribe(() => {
+                Subscribe(() => spy)
+            })
+            return {}
+        }
+        const injectService = defineService(Service(factory, { providedIn: "root" }))
+        injectService()
+        TestBed.inject(NgModuleRef).destroy()
+        expect(spy).toHaveBeenCalledTimes(1)
+    })
+
+    it("should cleanup services when provided node injector is destroyed", () => {
+        const spy = createSpy()
+        function factory() {
+            Subscribe(() => spy)
+        }
+        const TestService = Service(factory, { providedIn: "root" })
+        defineService(TestService)
+        function State() {
+            Inject(TestService)
+            return {}
+        }
+        @Component({ template: ``, providers: [TestService] })
+        class Test extends View(State) {}
+        const createView = defineView(Test)
+        createView().destroy()
+        expect(spy).toHaveBeenCalled()
     })
 })
 
