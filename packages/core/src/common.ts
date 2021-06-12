@@ -1,8 +1,7 @@
-import {BehaviorSubject, merge, Notification, PartialObserver, Subscription} from 'rxjs';
+import {BehaviorSubject, Notification, PartialObserver, Subscription} from 'rxjs';
 import {QueryList as NgQueryList} from '@angular/core';
 import {checkPhase, CheckPhase, CheckSubject} from './interfaces';
-import {AnonymousSubject} from "rxjs/internal-compatibility";
-import {addTeardown, Subscribe} from "./core";
+import {Subscribe} from "./core";
 
 export class QueryListObserver {
     next(value: NgQueryList<any>) {

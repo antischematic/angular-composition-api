@@ -126,24 +126,17 @@ const CustomProvider = {
 
 ### Core
 
-#### Service
-
-Creates a context-aware, tree-shakable service class from the provided factory function. If the
-`providedIn` option is set to null, or omitted, you must provide the service in a `NgModule`,
-`Directive` or `Component`. Start or retrieve the service with `Inject`.
-
 #### View
 
 Creates a context-aware view class based on the provided Props and State. Props are optional.
 Components and directives that extend this class have their `ChangeDetectorRef` detached and will
 only trigger view updates when the returned observable state emits a new value.
 
----
+#### Service
 
-### Common
-
-These APIs only work inside the context of a `View` or `Service`. Calling them at the wrong time
-will cause an "out of context" error to be thrown.
+Creates a context-aware, tree-shakable service class from the provided factory function. If the
+`providedIn` option is set to null, or omitted, you must provide the service in a `NgModule`,
+`Directive` or `Component`. Start or retrieve the service with `Inject`.
 
 #### Inject
 
@@ -157,43 +150,30 @@ the subscription is deferred until the view has mounted. If it is called inside 
 nested in another `Subscribe`, the subscription is invoked immediately after the containing
 function has executed.
 
-#### Suspend
+---
 
-Similar to `Subscribe`, but hides the current `CloakBoundary` tree until the observable
-`source` has emitted a value, thrown an error, or completed.
+### Common
 
-#### DoCheck
+These APIs only work inside the context of a `View` or `Service`. Calling them at the wrong time
+may cause a `CallContextError` to be thrown.
 
-Creates a `CheckSubject` that calls the provided `getter` during the `ngDoCheck` lifecycle hook
-and emits this value if it has changed since it was last checked. The optional observer argument
-only receives values that were emitted by calling `next` and ignores values that are emitted by
-the getter. The getter function should be kept simple to prevent performance issues.
+#### Value
 
-#### ContentCheck
+Alias for `BehaviorSubject`. Optionally mirrors an upstream `BehaviorSubject` or `Value` if provided.
 
-Creates a `CheckSubject` that calls the provided `getter` during the `ngAfterContentChecked` lifecycle hook
-and emits this value if it has changed since it was last checked. The optional observer argument
-only receives values that were emitted by calling `next` and ignores values that are emitted by
-the getter. The getter function should be kept simple to prevent performance issues.
+#### Emitter
 
-#### ContentQuery
+Alias for `EventEmitter`
 
-Creates a `Value` that receives a `QueryList`. It waits for  the query list to become available,
-then subscribes to its changes. The getter function is checked during the `ngAfterContentChecked`
-lifecycle hook.
+#### Query
 
-#### ViewCheck
+Creates a `Value` that is checked during the `ngAfterContentChecked` lifecycle hook by default.
 
-Creates a `CheckSubject` that calls the provided `getter` during the `ngAfterViewChecked` lifecycle hook
-and emits this value if it has changed since it was last checked. The optional observer argument
-only receives values that were emitted by calling `next` and ignores values that are emitted by
-the getter. The getter function should be kept simple to prevent performance issues.
+#### QueryList
 
-#### ViewQuery
-
-Creates a `Value` that receives a `QueryList`. It waits for  the query list to become available,
-then subscribes to its changes. The getter function is checked during the `ngAfterViewChecked`
-lifecycle hook.
+Creates a `QueryListSubject` that can be accessed immediately. It waits for the underlying query list to become available,
+then subscribes to its changes. The value is checked during the `ngAfterContentChecked`
+lifecycle hook by default.
 
 #### HostListener
 
@@ -208,14 +188,6 @@ use the `Renderer` to apply changes to the property, attribute, class or style t
 ---
 
 ### Utils
-
-#### Value
-
-Alias for `BehaviorSubject`
-
-#### Emitter
-
-Alias for `EventEmitter`
 
 #### get
 
