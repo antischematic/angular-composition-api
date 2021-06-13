@@ -3,12 +3,14 @@ import {FormsModule} from '@angular/forms';
 import {Emitter, Inject, set, Subscribe, Value, View} from '@mmuscat/angular-composition-api';
 
 export interface Todo {
+  id?: number
   text: string;
   done: boolean;
 }
 
 @Directive()
 export class Props {
+  @Input() id?: number;
   @Input() text = Value('');
   @Input() done = false;
   @Input() resetOnSave = false;
@@ -21,6 +23,7 @@ export function State(props: Props) {
 
   function toggleDone(value: boolean) {
     props.saveTodo.emit({
+      id: props.id,
       text: props.text.value,
       done: value
     });
