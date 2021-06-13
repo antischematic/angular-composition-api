@@ -17,18 +17,13 @@ Install via Yarn
 yarn add @mmuscat/angular-error-boundary
 ```
 
-Override the default `ErrorHandler` service in the root module.
+Add global styles for `ng-cloak` to hide content when fallback is shown.
 
-**app.module.ts**
-```ts
-@NgModule({
-    providers: [{
-        provide: ErrorHandler,
-        useExisting: BoundaryHandler,
-    }],
-    ...
-})
-export class AppModule {}
+**styles.css**
+```css
+.ng-cloak {
+    display: none;
+}
 ```
 
 Add `BoundaryModule` to a `NgModule` to enable error boundaries.
@@ -41,15 +36,6 @@ Add `BoundaryModule` to a `NgModule` to enable error boundaries.
     ...
 })
 export class MyModule {}
-```
-
-Add global styles for `ng-cloak` to hide content when fallback is shown.
-
-**styles.css**
-```css
-.ng-cloak {
-    display: none !important;
-}
 ```
 
 Your can now use error boundaries in your components.
@@ -202,17 +188,6 @@ With component
 
 **selector:** `ng-cloak`
 
----
-
-**What's the difference between NgCloak and Suspense?**
-
-- We wrap observables in a `CloakBoundary` instead of throwing them.
-- Components templates are always rendered, giving child components a chance to load data before the
-parent has finished resolving.
-- Components are hidden with the `ng-cloak` class instead of unmounting them, unless an
-  error occurs.
----
-
 Hides components and displays a `fallback` until all components have resolved
 "cloaked" data sources. Cloaked data sources are observables that has been wrapped by
  `CloakBoundary`. Any component in the `ng-cloak` tree can mark data as cloaked, which
@@ -231,6 +206,17 @@ Each cloak boundary can only have one `fallback` as a direct descendant.
     </ng-cloak>
 </error-boundary>
 ```
+
+---
+
+**What's the difference between NgCloak and Suspense?**
+
+- We wrap observables in a `CloakBoundary` instead of throwing them.
+- Components templates are always rendered, giving child components a chance to load data before the
+  parent has finished resolving.
+- Components are hidden with the `ng-cloak` class instead of unmounting them, unless an
+  error occurs.
+---
 
 ### CloakBoundary
 
