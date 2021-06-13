@@ -112,18 +112,22 @@ class ContextBinding<T = any> {
 
 class Scheduler {
     timeout?: number
-    detectChanges(ref: ChangeDetectorRef = this.ref) {
-        ref.detectChanges()
+    detectChanges(ref: ChangeDetectorRef = this.ref, errorHandler: ErrorHandler = this.errorHandler) {
+        try {
+            ref.detectChanges()
+        } catch (error) {
+            errorHandler.handleError(error)
+        }
     }
     markForCheck() {
         clearTimeout(this.timeout)
-        this.timeout = setTimeout(this.detectChanges, 0, this.ref)
+        this.timeout = setTimeout(this.detectChanges, 0, this.ref, this.errorHandler)
     }
     subscribe() {
         this.ref.detach()
         this.detectChanges()
     }
-    constructor(private ref: ChangeDetectorRef) {}
+    constructor(private ref: ChangeDetectorRef, private errorHandler: ErrorHandler) {}
 }
 
 function isCheckSubject(value: unknown): value is CheckSubject<any> {
@@ -134,7 +138,7 @@ function setup(stateFactory: any, injector: Injector) {
     const context: { [key: string]: any } = currentContext;
     const props = Object.create(context)
     const error = injector.get(ErrorHandler);
-    const scheduler = new Scheduler(injector.get(ChangeDetectorRef));
+    const scheduler = new Scheduler(injector.get(ChangeDetectorRef), error);
 
     createContext(context, injector, error, [new Set(), new Set(), new Set(), scheduler]);
 

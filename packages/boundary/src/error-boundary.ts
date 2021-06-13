@@ -11,13 +11,13 @@ import {
   Injectable,
   Injector, Input,
   NgModule,
-  NgZone,
+  NgZone, OnChanges,
   OnDestroy,
   OnInit,
   Optional,
   Output,
   PLATFORM_ID,
-  QueryList, SkipSelf,
+  QueryList, SimpleChanges, SkipSelf,
   TemplateRef, Type,
   ViewContainerRef,
   ViewRef,
@@ -25,6 +25,7 @@ import {
 import {isPlatformBrowser} from "@angular/common"
 import {Renderer} from "./renderer";
 import {NgCloak} from "./cloak";
+import {EventManager} from "@angular/platform-browser";
 
 export class ErrorBoundaryEvent {
   error: any
@@ -46,14 +47,19 @@ export class ErrorBoundaryEvent {
     "[class.ng-cloak]": "true"
   }
 })
-export class Fallback {}
+export class Fallback {
+  ref: any
+  constructor(@Optional() @Inject(ElementRef) elementRef: ElementRef, @Optional() @Inject(TemplateRef) templateRef: TemplateRef<any>) {
+    this.ref = templateRef ?? elementRef.nativeElement
+  }
+}
 
 @Directive({
   selector: "[catchError]",
 })
 export class CatchError {
   view?: ViewRef
-  constructor(@Optional() private templateRef: TemplateRef<any>, private viewContainerRef: ViewContainerRef, private errorHandler: ErrorHandler, private changeDetectorRef: ChangeDetectorRef) {}
+  constructor(@Optional() private templateRef: TemplateRef<any>, private viewContainerRef: ViewContainerRef, private errorHandler: ErrorHandler) {}
 
   ngDoCheck() {
     try {
@@ -86,7 +92,7 @@ export class CatchError {
     }
   ]
 })
-export class ErrorBoundary implements AfterContentInit {
+export class ErrorBoundary implements OnChanges, AfterContentInit {
   readonly platformBrowser: boolean
 
   event: ErrorBoundaryEvent | null
@@ -98,8 +104,12 @@ export class ErrorBoundary implements AfterContentInit {
     return this.catchErrorQuery?.first
   }
 
-  @ContentChildren(Fallback, { descendants: false, read: ElementRef })
-  fallbackQuery?: QueryList<ElementRef>
+  get fallbackType() {
+    return this.fallback ?? this.fallbackQuery?.first?.ref
+  }
+
+  @ContentChildren(Fallback, { descendants: false })
+  fallbackQuery?: QueryList<Fallback>
 
   @ContentChildren(CatchError, { descendants: false })
   catchErrorQuery?: QueryList<CatchError>
@@ -111,7 +121,7 @@ export class ErrorBoundary implements AfterContentInit {
     if (this.event) {
       this.event.closed = true
       this.event = null
-      this.renderer.renderChildren()
+      this.renderer.renderContent(this.fallbackType)
       if (this.catchError) {
         this.catchError.render()
       }
@@ -119,39 +129,28 @@ export class ErrorBoundary implements AfterContentInit {
   }
 
   handleError(error: any) {
-    if (this.event) {
-      this.rootErrorHandler.handleError(error)
-      return
+    if (this.platformBrowser && !this.event) {
+        this.event = new ErrorBoundaryEvent(this, error)
+        this.renderer.renderFallback(this.fallbackType, true)
+        this.error.emit(this.event)
     }
-    try {
-      const fallback = this.fallback ?? this.fallbackQuery?.first.nativeElement
-      if (fallback && this.platformBrowser) {
-        if (!this.event) {
-          this.event = new ErrorBoundaryEvent(this, error)
-          this.renderer.render(fallback)
-          this.error.emit(this.event)
-        }
-        if (!this.rootErrorHandler.timeout) {
-          this.rootErrorHandler.handleError(error)
-        }
-      } else {
-        this.errorHandler.handleError(error)
-      }
-    } catch (error) {
-      this.errorHandler.handleError(error)
-    }
+    this.errorHandler.handleError(error)
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+      const { currentValue, previousValue } = changes.fallback
+      this.renderer.renderFallback(previousValue, false)
+      this.renderer.renderFallback(currentValue, !!this.event)
   }
 
   ngAfterContentInit() {
     if (this.catchError) {
       this.catchError.render()
     }
-    this.renderer.renderChildren()
   }
 
   constructor(
       @SkipSelf() private errorHandler: ErrorHandler,
-      private rootErrorHandler: BoundaryHandler,
       private renderer: Renderer,
       private changeDetectorRef: ChangeDetectorRef,
       @Inject(PLATFORM_ID) platformId: Object,
@@ -160,39 +159,4 @@ export class ErrorBoundary implements AfterContentInit {
     this.platformBrowser = isPlatformBrowser(platformId)
     this.event = null
   }
-}
-
-@Injectable({ providedIn: "root" })
-export class BoundaryHandler implements ErrorHandler {
-  timeout?: number
-  errors = new Set()
-  handleError(error: any) {
-    this.errors.add(error)
-    if (this.timeout) return
-    const errors = [...this.errors]
-    const stacks = new Set(errors.map(() => error?.stack))
-    // dedupe repeated errors due to recursion
-    const displayErrors = [...this.errors].filter((err: any, i, arr) => {
-      if (err?.stack) {
-        if (stacks.has(err.stack)) {
-          stacks.delete(err.stack)
-          return true
-        }
-        return false
-      }
-      return true
-    })
-    this.errors.clear()
-    for (const error of displayErrors) {
-      console.error(error)
-    }
-    const appRef = this.injector.get(ApplicationRef)
-    this.zone.runOutsideAngular(() => {
-      this.timeout = setTimeout(() => {
-        this.timeout = void 0
-      })
-    })
-    appRef.tick()
-  }
-  constructor(private injector: Injector, private zone: NgZone) {}
 }

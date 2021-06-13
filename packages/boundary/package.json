@@ -5,7 +5,7 @@
   "homepage": "https://github.com/mmuscat/angular-composition-api/tree/master/packages/boundary",
   "repository": "https://github.com/mmuscat/angular-composition-api/tree/master/packages/boundary",
   "keywords": ["Angular", "Error Handling", "Error Boundary", "Suspense"],
-  "version": "0.0.4",
+  "version": "0.1200.0",
   "peerDependencies": {
     "@angular/common": "^12.0.0",
     "@angular/core": "^12.0.0"

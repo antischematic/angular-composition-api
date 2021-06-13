@@ -1,54 +1,66 @@
 import {
-    ComponentFactoryResolver,
+    ComponentFactoryResolver, ComponentRef,
     ElementRef,
     Injectable,
     Renderer2,
     TemplateRef,
     Type,
-    ViewContainerRef
+    ViewContainerRef, ViewRef
 } from "@angular/core";
 
 @Injectable()
 export class Renderer {
-    remove: Function
-    render(type: Type<any> | Element | TemplateRef<any>) {
-        this.remove()
+    viewRef?: ViewRef | ComponentRef<any>
+    renderFallback(type: Type<any> | Element | TemplateRef<any>, render: boolean) {
         if (type instanceof Element) {
-            const nativeElement = this.elementRef.nativeElement
-            const parent = this.renderer.parentNode(nativeElement)
-            const nextSibling = this.renderer.nextSibling(nativeElement)
-            this.renderer.insertBefore(parent, type, nextSibling)
-            this.renderer.removeClass(type, "ng-cloak")
-            this.remove = () => {
-                this.renderer.appendChild(nativeElement, type)
-                this.renderer.addClass(type, "ng-cloak")
-            }
+            this.toggleElement(type, render)
         }
         else if (type instanceof TemplateRef) {
-            const viewRef = this.viewContainerRef.createEmbeddedView(type)
-            this.remove = () => viewRef.destroy()
+            this.toggleTemplate(type, render)
         }
         else if (typeof type === "function") {
+            this.toggleComponent(type, render)
+        }
+        this.renderer.addClass(this.elementRef.nativeElement, "ng-cloak")
+    }
+
+    toggleComponent(type: Type<any>, render: boolean) {
+        if (render) {
             const factory = this.componentFactoryResolver.resolveComponentFactory(type)
-            const viewRef = this.viewContainerRef.createComponent(factory)
-            this.remove = () => viewRef.destroy()
+            this.viewRef = this.viewContainerRef.createComponent(factory)
         } else {
-            throw new Error("Unsupported type")
+            this.viewRef?.destroy()
+            delete this.viewRef
         }
     }
 
-    renderChildren() {
+    toggleTemplate(type: TemplateRef<any>, render: boolean) {
+        if (render) {
+            this.viewContainerRef.createEmbeddedView(type)
+        } else {
+            this.viewRef?.destroy()
+            delete this.viewRef
+        }
+    }
+
+    toggleElement(type: Element, render: boolean) {
         const nativeElement = this.elementRef.nativeElement
-        this.remove()
+        const parent = this.renderer.parentNode(nativeElement)
+        const nextSibling = this.renderer.nextSibling(nativeElement)
+        if (render) {
+            this.renderer.insertBefore(parent, type, nextSibling)
+            this.renderer.removeClass(type, "ng-cloak")
+        } else {
+            this.renderer.appendChild(nativeElement, type)
+            this.renderer.addClass(type, "ng-cloak")
+        }
+    }
+
+    renderContent(type: Type<any> | Element | TemplateRef<any>) {
+        const nativeElement = this.elementRef.nativeElement
+        this.renderFallback(type, false)
         this.renderer.removeClass(nativeElement, "ng-cloak")
-        this.remove = () => this.renderer.addClass(nativeElement, "ng-cloak")
     }
 
-    ngOnDestroy() {
-        this.remove()
-    }
-
-    constructor(private componentFactoryResolver: ComponentFactoryResolver, private renderer: Renderer2, private viewContainerRef: ViewContainerRef, private elementRef: ElementRef) {
-        this.remove = () => {}
-    }
+    constructor(private componentFactoryResolver: ComponentFactoryResolver, private renderer: Renderer2, private viewContainerRef: ViewContainerRef, private elementRef: ElementRef) {}
 }

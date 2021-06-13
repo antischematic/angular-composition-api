@@ -7,7 +7,7 @@ import {
     InjectionToken,
     Input,
     OnDestroy, Optional,
-    QueryList,
+    QueryList, SimpleChanges,
     TemplateRef,
     Type,
     ViewContainerRef
@@ -96,11 +96,15 @@ export class NgCloak implements CloakBoundary, OnDestroy {
     cloaked: boolean
     queue: Subject<number>
 
+    get fallbackType() {
+        return this.fallback ?? this.fallbackQuery?.first?.ref
+    }
+
     @Input()
     fallback?: TemplateRef<void> | Element | Type<any>
 
-    @ContentChildren(Fallback, { descendants: false, read: ElementRef })
-    fallbackQuery?: QueryList<ElementRef>
+    @ContentChildren(Fallback, { descendants: false })
+    fallbackQuery?: QueryList<Fallback>
 
     cloak(source: Observable<any>) {
         return new CloakObservable(source, this.queue, this.errorHandler)
@@ -110,14 +114,10 @@ export class NgCloak implements CloakBoundary, OnDestroy {
         if (this.cloaked === cloak) return
         this.cloaked = cloak
 
-        const fallback = this.fallback ?? this.fallbackQuery?.first.nativeElement
-
         if (cloak) {
-            if (fallback) {
-                this.renderer.render(fallback)
-            }
+            this.renderer.renderFallback(this.fallbackType, true)
         } else {
-            this.renderer.renderChildren()
+            this.renderer.renderContent(this.fallbackType)
         }
     }
 
@@ -125,15 +125,23 @@ export class NgCloak implements CloakBoundary, OnDestroy {
         this.render(cloaked)
     }
 
+    ngOnChanges(changes: SimpleChanges) {
+        if (changes.fallback) {
+            const { currentValue, previousValue } = changes.fallback
+            this.renderer.renderFallback(previousValue, false)
+            this.renderer.renderFallback(currentValue, this.cloaked)
+        }
+    }
+
     ngOnDestroy() {
         this.queue.complete()
     }
 
-    constructor(private errorHandler: ErrorHandler, private viewContainerRef: ViewContainerRef, private renderer: Renderer, @Inject(NG_CLOAK_CONFIG) @Optional() @Host() config: CloakConfig) {
+    constructor(private errorHandler: ErrorHandler, private viewContainerRef: ViewContainerRef, private renderer: Renderer, @Inject(NG_CLOAK_CONFIG) @Optional() config: CloakConfig) {
         this.queue = new Subject()
         this.cloaked = false
 
-        this.renderer.renderChildren()
+        this.renderer.renderContent(this.fallbackType)
 
         config = config ?? DEFAULT_CLOAK_CONFIG
 
