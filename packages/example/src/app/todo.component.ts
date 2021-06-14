@@ -10,10 +10,10 @@ export interface Todo {
 
 @Directive()
 export class Props {
-    @Input() id?: number;
+    @Input() id = Value<number>()
     @Input() text = Value('');
-    @Input() done = false;
-    @Input() resetOnSave = false;
+    @Input() done = Value(false);
+    @Input() resetOnSave = Value(false);
     @Output() saveTodo = Emitter<Todo>();
     @ViewChild('textContent') textEditor!: ElementRef<HTMLDivElement>;
 
@@ -22,7 +22,7 @@ export class Props {
 
         function toggleDone(value: boolean) {
             props.saveTodo.emit({
-                id: props.id,
+                id: props.id.value,
                 text: props.text.value,
                 done: value
             });
@@ -32,7 +32,7 @@ export class Props {
             if (!value || value === props.text.value) return;
             props.saveTodo.emit({
                 text: value,
-                done: props.done
+                done: props.done.value
             });
             if (props.resetOnSave) {
                 reset()

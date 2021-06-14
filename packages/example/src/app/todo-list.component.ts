@@ -14,7 +14,7 @@ class Props {
         const todoChange = Emitter<Todo>();
         const todos = Value<Todo>([]);
         const setTodos = set(todos)
-        const creating = Value<Todo>();
+        const creating = Value<Todo | null>(null);
         const error = Inject(ErrorHandler)
 
         Subscribe(userId, value => {
@@ -41,7 +41,7 @@ class Props {
             }
         });
 
-        Subscribe(todos, () => creating.next());
+        Subscribe(todos, () => creating.next(null));
 
         function explode() {
             error.handleError(new Error("Boom!"))
@@ -54,13 +54,18 @@ class Props {
             })
         }
 
+        function id(value: any) {
+            return value.id
+        }
+
         return {
             todos,
             todoChange,
             createTodo,
             creating,
             toggleAll,
-            explode
+            explode,
+            id
         };
     }
 }

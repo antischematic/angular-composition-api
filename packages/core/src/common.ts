@@ -71,7 +71,7 @@ export function QueryList(check?: boolean, emitDistinctChangesOnly?: boolean): Q
     return new QueryListSubject(toCheckPhase((check)), emitDistinctChangesOnly)
 }
 
-export function Value<T>(): ValueSubject<T | void>
+export function Value<T>(): ValueSubject<T | undefined>
 export function Value<T>(value: T[]): ValueSubject<T[]>
 export function Value<T extends {}>(value: WeakSet<T>): ValueSubject<WeakSet<T>>
 export function Value<T>(value: Set<T>): ValueSubject<Set<T>>

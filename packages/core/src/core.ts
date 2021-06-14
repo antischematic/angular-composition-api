@@ -85,6 +85,7 @@ class ContextBinding<T = any> {
         const value = this.context[this.key];
         if (this.value !== value) {
             this.source.next((this.value = value));
+            this.scheduler.markForCheck();
             return true
         }
         return false
@@ -170,12 +171,10 @@ function setup(injector: Injector, stateFactory?: (props?: any) => {}) {
 
 export function check(key: CheckPhase) {
     const context = getContext();
-    let detectChanges = false
     for (const subject of context[key]) {
-        const dirty = subject.check();
-        detectChanges = detectChanges || dirty
+        subject.check();
     }
-    if (detectChanges) {
+    if (key === 2) {
         context[3].detectChanges()
     }
 }
