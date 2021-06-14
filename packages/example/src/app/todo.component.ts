@@ -1,6 +1,6 @@
 import {Component, Directive, ElementRef, Input, NgModule, Output, Renderer2, ViewChild} from '@angular/core';
 import {FormsModule} from '@angular/forms';
-import {Emitter, Inject, set, Subscribe, Value, State} from '@mmuscat/angular-composition-api';
+import {Emitter, Inject, set, Subscribe, Value, State, Query} from '@mmuscat/angular-composition-api';
 
 export interface Todo {
     id?: number
@@ -15,45 +15,47 @@ export class Props {
     @Input() done = Value(false);
     @Input() resetOnSave = Value(false);
     @Output() saveTodo = Emitter<Todo>();
-    @ViewChild('textContent') textEditor!: ElementRef<HTMLDivElement>;
+    @ViewChild('textContent') textEditor = Query<ElementRef<HTMLDivElement>>(false);
 
-    static create(props: Props) {
+    static create({ saveTodo, id, text, done, resetOnSave, textEditor }: Props) {
         const renderer = Inject(Renderer2);
 
         function toggleDone(value: boolean) {
-            props.saveTodo.emit({
-                id: props.id.value,
-                text: props.text.value,
+            saveTodo.emit({
+                id: id.value,
+                text: text.value,
                 done: value
             });
         }
 
         function editText(value: string) {
-            if (!value || value === props.text.value) return;
-            props.saveTodo.emit({
+            if (!value || value === text.value) return;
+            saveTodo.emit({
                 text: value,
-                done: props.done.value
+                done: done.value
             });
-            if (props.resetOnSave) {
+            if (resetOnSave.value) {
                 reset()
             } else {
-                set(props.text, value);
+                setText(value)
+                text.next(value);
             }
         }
 
         function setText(value: string) {
             renderer.setProperty(
-                props.textEditor.nativeElement,
+                textEditor.value?.nativeElement,
                 'textContent',
                 value
-            );
+            )
         }
 
         function reset() {
-            setText(props.text.value)
+            console.log('reset?')
+            text.next(text.value)
         }
 
-        Subscribe(props.text, setText)
+        Subscribe(text, setText)
 
         return {
             toggleDone,

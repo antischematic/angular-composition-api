@@ -72,20 +72,15 @@ function createService(context: {}, factory: any) {
 }
 
 class ContextBinding<T = any> {
-    value: T[keyof T];
     next(value: T[keyof T]) {
-        const { context, scheduler, emitter } = this
-        context[this.key] = this.value = value;
+        const { context, scheduler } = this
+        context[this.key] = value;
         scheduler.markForCheck();
-        if (emitter) {
-            emitter.next(value)
-        }
     }
     check() {
         const value = this.context[this.key];
-        if (this.value !== value) {
-            this.source.next((this.value = value));
-            this.scheduler.markForCheck();
+        if (this.source.value !== value) {
+            this.source.next(value)
             return true
         }
         return false
@@ -94,11 +89,8 @@ class ContextBinding<T = any> {
         private context: T,
         private key: keyof T,
         private source: any,
-        private scheduler: Scheduler,
-        private emitter?: EventEmitter<any>
-    ) {
-        this.value = context[key];
-    }
+        private scheduler: Scheduler
+    ) {}
 }
 
 class Scheduler {
@@ -107,6 +99,7 @@ class Scheduler {
         if (this.dirty) {
             this.dirty = false
             try {
+                ref.detach()
                 ref.detectChanges()
             } catch (error) {
                 errorHandler.handleError(error)
@@ -120,8 +113,7 @@ class Scheduler {
         }
     }
     constructor(private ref: ChangeDetectorRef, private errorHandler: ErrorHandler) {
-        this.dirty = true
-        this.ref.detach()
+        this.dirty = false
     }
 }
 
@@ -130,9 +122,7 @@ function isCheckSubject(value: unknown): value is CheckSubject<any> {
 }
 
 function createBinding(context: any, key: any, value: any, scheduler: any) {
-    const twoWayBinding = `${key}Change`
-    const emitter = context[twoWayBinding] instanceof EventEmitter ? context[twoWayBinding] : void 0
-    const binding = new ContextBinding(context, key, value, scheduler, emitter);
+    const binding = new ContextBinding(context, key, value, scheduler);
     addTeardown(value.subscribe(binding));
     addCheck(value[checkPhase], binding)
 }
