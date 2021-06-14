@@ -53,7 +53,7 @@ function createTodo() {
   Subscribe(resource, message => {
     if (message.type === 'request') {
       const entity = {
-        id: database.length,
+        id: database.length + 1,
         ...message.value
       };
       database = database.concat(entity);
