@@ -362,7 +362,7 @@ describe("Subscribe", () => {
     it ("should not emit when destroyed", () => {
         const spy = createSpy()
         function factory() {
-            const observer = new EffectObserver(() => spy, undefined, {} as any, {} as any)
+            const observer = new EffectObserver(() => spy, undefined, {} as any, {} as any, { markForCheck() {}, detectChanges() {}} as any)
             Subscribe(() => {
                 observer.subscribe()
                 observer.unsubscribe()

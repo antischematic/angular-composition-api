@@ -14,7 +14,7 @@ class Props {
         const todoChange = Emitter<Todo>();
         const todos = Value<Todo>([]);
         const setTodos = set(todos)
-        const creating = Value<Todo | void>(void 0);
+        const creating = Value<Todo>();
         const error = Inject(ErrorHandler)
 
         Subscribe(userId, value => {
@@ -24,11 +24,10 @@ class Props {
         Subscribe(todoChange, value => {
             console.log('todo changed!', value);
             setTodos((values) => {
-                const todo = values.find(todo => todo.id === value.id)
-                if (todo) {
-                    todo.done = value.done
-                }
-                return values
+                return values.map(todo => ({
+                    ...todo,
+                    done: todo.id === value.id ? value.done : todo.done
+                }))
             })
         });
 

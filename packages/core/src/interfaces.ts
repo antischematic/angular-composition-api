@@ -19,6 +19,7 @@ export interface Context {
 }
 
 export interface CheckSubject<T> {
+    value?: T
     readonly [checkPhase]: CheckPhase
     subscribe(observer: PartialObserver<T>): SubscriptionLike
     subscribe(observer: (value: T) => void): SubscriptionLike
