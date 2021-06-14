@@ -5,13 +5,16 @@ A lightweight (3kb) library for writing functional Angular applications.
 ## Quick Start
 
 > ⚠ This library is experimental. It relies on private Angular APIs and compiler workarounds
->  that may break in future versions. Use at your own risk.
+> that may break in future versions. Use at your own risk.
 
 Install with NPM
+
 ```bash
 npm install @mmuscat/angular-composition-api
 ```
+
 Install with Yarn
+
 ```bash
 yarn add @mmuscat/angular-composition-api
 ```
@@ -20,52 +23,46 @@ yarn add @mmuscat/angular-composition-api
 
 ### Application
 
-View [Todo List](https://stackblitz.com/edit/angular-composition-api) on Stackblitz
+State [Todo List](https://stackblitz.com/edit/angular-composition-api) on Stackblitz
 
 ### Component
 
 ```ts
 // 1. Create props interface. 
-// Add inputs, outputs and queries here.
-// Value, Query and QueryList are unwrapped in the template
 @Directive()
 class Props {
-    @Input() count = Value(0) // becomes `number`
-}
+    @Input() count = Value(0) // Value<number> becomes `number`
 
-// 2. Create a state function.
-function State({ count }: Props) {
-    const increment = Emitter()
-    // a. Subscribe to observables, cleanup is handled automatically.
-    Subscribe(count, (value) => {
-        console.log(`Count changed: ${value}`)
-    })
-    // b. Emit values to trigger state updates.
-    Subscribe(increment, (amount) => {
-        set(count, get(count) + amount)
-    })
-    // c. Return values are merged with props. 
-    // Values are automatically subscribed and unwrapped in the template.
-    // Emitters are converted into plain functions.
-    return {
-        count, // `Value<number>` becomes `number`
-        increment // `EventEmitter<number>` becomes `(value: number) => void`
+    // 2. Create a factory function.
+    static create(props: Props) {
+        const setCount = set(props.count)
+        const increment = Emitter()
+        const disabled = Value(false)
+        // b. Emit values to trigger state updates.
+        Subscribe(increment, () => {
+            if (disabled.value) return
+            setCount(count.value + 1)
+        })
+        // c. Return values are merged with props. 
+        return {
+            disabled, // `Value<boolean>` becomes `boolean`
+            increment // `EventEmitter<number>` becomes `(value: number) => void`
+        }
     }
 }
 
-// 3. Extend component class with View mixin.
-// Props are optional.
+// 3. Extend component class with State.
 @Component({
     selector: "app-counter",
     template: `
         <p>{{ count }}</p>
-        <button (click)="increment(1)">Increment</button>
+        <button (click)="increment()">Increment</button>
     `
 })
-export class Counter extends View(Props, State) {}
+export class Counter extends State(Props) {}
 ```
 
-###  Service
+### Service
 
 ```ts
 // 1. Create a factory function.
@@ -92,23 +89,24 @@ export const LoadTodosByUserId = Service(loadTodosByUserId, {
     providedIn: "root" // defaults to null
 })
 
-// 3. Inject in view.
-function State({ userId }: Props) {
-    const [todos, loadTodosByUserId] = Inject(LoadTodosByUserId)
+// 3. Inject service.
+class Props {
+    static create({userId}: Props) {
+        const [todos, loadTodosByUserId] = Inject(LoadTodosByUserId)
 
-    Subscribe(userId, loadTodosByUserId)
+        Subscribe(userId, loadTodosByUserId)
 
-    return {
-        todos
+        return {
+            todos
+        }
     }
 }
 
 // 4. Provide local service if needed.
-
 @Component({
     providers: [LoadTodosByUserId]
 })
-export class Todos extends View(State, Props) {}
+export class Todos extends State(Props) {}
 
 // 5. Override provider if needed
 
@@ -122,74 +120,74 @@ const CustomProvider = {
 
 ### Core
 
-#### View
+#### State
 
-Creates a context-aware view class based on the provided Props and State. Props are optional.
-Components and directives that extend this class have their `ChangeDetectorRef` detached and will
-only trigger view updates when the returned observable state emits a new value.
+Creates a context-aware state from the provided state factory. Components and directives that extend this class have
+their `ChangeDetectorRef` detached and will only trigger view updates when reactive state emits a new value.
 
 #### Service
 
-Creates a context-aware, tree-shakable service class from the provided factory function. If the
+Creates a context-aware, tree-shakable service from the provided factory function. If the
 `providedIn` option is set to null, or omitted, you must provide the service in a `NgModule`,
 `Directive` or `Component`. Start or retrieve the service with `Inject`.
 
 #### Inject
 
-Equivalent to `Injector.get(ProviderToken)`. Only works inside the context of a `View` or `Service`.
-Throws if called outside a valid context.
+Equivalent to `Injector.get(ProviderToken)`. Only works inside the context of a `State` or `Service`. Throws if called
+outside a valid context.
 
 #### Subscribe
 
-Registers an effect in the current context. If `Subscribe` is called inside a `View` constructor,
-the subscription is deferred until the view has mounted. If it is called inside a `Service` or
-nested in another `Subscribe`, the subscription is invoked immediately after the containing
-function has executed.
+Registers an effect in the current context. If `Subscribe` is called inside a `State`, the subscription is deferred
+until the view has mounted. If it is called inside a `Service` or nested in another `Subscribe`, the subscription is
+invoked immediately after the containing function has executed.
+
+If called outside a valid context, creates a subscription which needs to be handled manually.
 
 ---
 
 ### Common
 
-These APIs only work inside the context of a `View` or `Service`. Calling them at the wrong time
-may cause a `CallContextError` to be thrown.
+These APIs only work inside the context of a `State` or `Service`. Calling them at the wrong time may cause
+a `CallContextError` to be thrown.
 
 #### Value
 
-Alias for `BehaviorSubject`. Optionally mirrors an upstream `BehaviorSubject` or `Value` if provided.
+Creates a `BehaviorSubject`. Optionally mirror an upstream `BehaviorSubject` if provided. Values are synced with the
+view during the `ngDoCheck` lifecycle hook.
 
 #### Query
 
-Creates a `Value` that is checked during the `ngAfterContentChecked` lifecycle hook by default.
+Creates a `Value` that will receive a `ContentChild` or `StateChild`. Pass `false` when used with dynamic `StateChild` so
+that it syncs correctly. Pass `true` for static queries.
 
 #### QueryList
 
-Creates a `QueryListSubject` that can be accessed immediately. It waits for the underlying query list to become available,
-then subscribes to its changes. The value is checked during the `ngAfterContentChecked`
-lifecycle hook by default.
+Creates a `QueryListSubject` that will receive `ContentChildren` or `StateChildren`. Subscribes to the underlying query
+list when it becomes available. Pass `false` when used with `StateChildren` so that it syncs correctly.
+
+#### Emitter
+
+Creates an `EventEmitter`.
 
 #### HostListener
 
-Works like the `HostListener` decorator, returns an `Emitter` if an observer wasn't provided,
-otherwise it will `Subscribe` to the observer and return the subscription.
+Works like the `HostListener` decorator, returns an `Emitter` if an observer wasn't provided, otherwise it
+will `Subscribe` to the observer and return the subscription.
 
 #### HostBinding
 
-Works like the `HostBinding` decorator, it will `Subscribe` to an `Observable` and
-use the `Renderer` to apply changes to the property, attribute, class or style that was selected.
+Works like the `HostBinding` decorator, it will `Subscribe` to an `Observable` and use the `Renderer` to apply changes
+to the property, attribute, class or style that was selected.
 
 ---
 
 ### Utils
 
-#### Emitter
-
-Alias for `EventEmitter`
-
 #### get
 
-Convenience method for getting the current value of a `Value`.
+Get the current value of a `Value`.
 
 #### set
 
-Immediately emit a value to a `Value` or `Emitter`, or return a curried function that emits the
-value passed to it.
+Sets a `Value` or triggers an `Emitter`, otherwise returns a function that will emit values passed to it.

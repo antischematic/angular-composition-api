@@ -7,20 +7,13 @@ import {
     InjectFlags,
     Injector,
     INJECTOR,
-    NgModuleRef, ProviderToken,
+    NgModuleRef,
+    ProviderToken,
     Type,
     ɵɵdirectiveInject as directiveInject
 } from '@angular/core';
-import {
-    Notification,
-    Observable,
-    PartialObserver,
-    Subscribable,
-    Subscription,
-    SubscriptionLike,
-    TeardownLogic,
-} from 'rxjs';
-import {AsyncState, checkPhase, CheckPhase, CheckSubject, Context, ViewFactory} from './interfaces';
+import {Notification, Observable, PartialObserver, Subscribable, Subscription, TeardownLogic,} from 'rxjs';
+import {SyncState, checkPhase, CheckPhase, CheckSubject, Context, StateFactory} from './interfaces';
 import {isObject} from "./utils";
 
 let currentContext: any;
@@ -69,14 +62,6 @@ function createContext(context: {}, injector: Injector, error: ErrorHandler, add
         effects: new Set(),
         ...additionalContext
     });
-}
-
-function createView<T extends {}, U extends {}>(
-    Props?: any,
-    fn?: any,
-    _decorate = Props = decorate(Props, fn)
-): new () => T & AsyncState<U> {
-    return Props;
 }
 
 function createService(context: {}, factory: any) {
@@ -134,7 +119,7 @@ function isCheckSubject(value: unknown): value is CheckSubject<any> {
     return isObject(value) && checkPhase in value
 }
 
-function setup(stateFactory: any, injector: Injector) {
+function setup(injector: Injector, stateFactory?: (props?: any) => {}) {
     const context: { [key: string]: any } = currentContext;
     const props = Object.create(context)
     const error = injector.get(ErrorHandler);
@@ -151,19 +136,20 @@ function setup(stateFactory: any, injector: Injector) {
         }
     }
 
-    const state = stateFactory(Object.freeze(props))
-
-    for (const [key, value] of Object.entries(state)) {
-        if (value instanceof EventEmitter) {
-            context[key] = function (event: any) {
-                value.emit(event)
+    if (stateFactory) {
+        const state = stateFactory(Object.freeze(props))
+        for (const [key, value] of Object.entries(state)) {
+            if (value instanceof EventEmitter) {
+                context[key] = function (event: any) {
+                    value.emit(event)
+                }
+            } else if (isCheckSubject(value)) {
+                const binding = new ContextBinding(context, key, value, scheduler);
+                addTeardown(value.subscribe(binding));
+                addCheck(value[checkPhase], binding);
+            } else {
+                Object.defineProperty(context, key, Object.getOwnPropertyDescriptor(state, key)!)
             }
-        } else if (isCheckSubject(value)) {
-            const binding = new ContextBinding(context, key, value, scheduler);
-            addTeardown(value.subscribe(binding));
-            addCheck(value[checkPhase], binding);
-        } else {
-            Object.defineProperty(context, key, Object.getOwnPropertyDescriptor(state, key)!)
         }
     }
 
@@ -282,8 +268,8 @@ export class EffectObserver<T> {
     }
 }
 
-function decorate(Props: any, fn?: any, provider = false) {
-    return class extends (fn ? Props : Object) {
+function decorate(Props: any, fn?: any) {
+    return class extends Props {
         ngDoCheck() {
             runInContext(this, check, 0);
         }
@@ -299,12 +285,10 @@ function decorate(Props: any, fn?: any, provider = false) {
         }
         constructor(...args: any[]) {
             super(...args);
-            runInContext(this, setup, fn ?? Props, directiveInject(INJECTOR), provider);
+            runInContext(this, setup, directiveInject(INJECTOR), fn);
         }
     }
 }
-
-export const View: ViewFactory = createView;
 
 export type ProvidedIn = Type<any> | 'root' | 'platform' | 'any' | null
 
@@ -348,4 +332,18 @@ export function Subscribe<T>(
         }
     }
     return addEffect(source, observer);
+}
+
+export type State<T extends Type<any> | StateFactory<any, any>> = Type<
+    SyncState<InstanceType<T>> & (T extends StateFactory<any, any> ? SyncState<ReturnType<T["create"]>> : {})
+>
+export function State<T extends StateFactory<any, any>>(props: T): State<T>
+export function State<T extends Type<any>>(
+    props: T
+): State<T>
+export function State(
+    props: any,
+    _ = (props = decorate(props, props.create) as any)
+): State<any> {
+    return props as any;
 }

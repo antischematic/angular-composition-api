@@ -3,6 +3,7 @@ import {timer} from 'rxjs';
 import {map} from 'rxjs/operators';
 import {Emitter, Inject, Service, Subscribe} from '@mmuscat/angular-composition-api';
 import {Todo} from './todo.component';
+import {NgCloak} from "@mmuscat/angular-error-boundary";
 
 let database = [
   {
@@ -24,10 +25,11 @@ let database = [
 
 function loadTodosById() {
   const http = Inject(HttpClient);
+  const boundary = Inject(NgCloak)
   return function(userId: string) {
     console.log('Loading from fake server. userId:', userId);
     // http.get() for real application
-    return timer(1000).pipe(map(() => database));
+    return boundary.cloak(timer(1000)).pipe(map(() => database));
   };
 }
 

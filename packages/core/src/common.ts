@@ -24,8 +24,8 @@ export class QueryListSubject<T> extends NgQueryList<T> implements CheckSubject<
         this.subscription = value.changes.subscribe(observer)
     }
 
-    subscribe(observer: (value: NgQueryList<T>) => void): Subscription
-    subscribe(observer: PartialObserver<NgQueryList<T>>): Subscription
+    subscribe(observer: (value: QueryListSubject<T>) => void): Subscription
+    subscribe(observer: PartialObserver<QueryListSubject<T>>): Subscription
     subscribe(observer: any): Subscription {
         Notification.createNext(this).accept(observer)
         return this.changes.subscribe(observer)

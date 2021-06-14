@@ -8,7 +8,7 @@ import {
     Service,
     Subscribe,
     subscribe,
-    View
+    State
 } from "./core";
 import {
     Component,
@@ -53,11 +53,9 @@ function defineService<T>(Service: Type<T>, options?: { configureTestingModule?:
 
 describe("View", () => {
     it("should create", () => {
-        function State() {
-            return {}
-        }
+        class Props {}
         @Component({ template: ``})
-        class Test extends View(State) {}
+        class Test extends State(Props) {}
         const createView = defineView(Test)
         expect(createView).not.toThrow()
     })
@@ -65,13 +63,14 @@ describe("View", () => {
     it("should pass props", () => {
         class Props {
             count = 0
+            static create = create
         }
-        function State(props: Props) {
+        function create(props: Props) {
             expect(props).toEqual(objectContaining({ count: 0 }))
             return {}
         }
         @Component({ template: ``})
-        class Test extends View(Props, State) {}
+        class Test extends State(Props) {}
         const createView = defineView(Test)
         createView()
     })
@@ -79,15 +78,16 @@ describe("View", () => {
     it("should merge state and props", () => {
         class Props {
             count = 0
+            static create = create
         }
-        function State() {
+        function create() {
             const name = "bogus"
             return {
                 name
             }
         }
         @Component({ template: ``})
-        class Test extends View(Props, State) {}
+        class Test extends State(Props) {}
         const createView = defineView(Test)
         expect(createView().componentInstance).toEqual(objectContaining({ count: 0, name: "bogus" }))
     })
@@ -95,28 +95,32 @@ describe("View", () => {
     it("should unwrap marked values", () => {
         const subject = Value(1337)
         Object.defineProperty(subject, checkPhase, { value: 0 })
-        function State() {
-            return {
-                count: subject
+        class Props {
+            static create() {
+                return {
+                    count: subject
+                }
             }
         }
         @Component({ template: ``})
-        class Test extends View(State) {}
+        class Test extends State(Props) {}
         const createView = defineView(Test)
         expect(createView().componentInstance.count).toBe(1337)
     })
 
     it("should unwrap marked emitters", () => {
         const spy = createSpy()
-        function State() {
-            const increment =  new EventEmitter<void>()
-            addTeardown(increment.subscribe(spy))
-            return {
-                increment
+        class Props {
+            static create() {
+                const increment =  new EventEmitter<void>()
+                addTeardown(increment.subscribe(spy))
+                return {
+                    increment
+                }
             }
         }
         @Component({ template: ``})
-        class Test extends View(State) {}
+        class Test extends State(Props) {}
         const createView = defineView(Test)
         createView().componentInstance.increment()
         expect(spy).toHaveBeenCalledTimes(1)
@@ -124,13 +128,15 @@ describe("View", () => {
     it("should create two-way binding with marked values", () => {
         const value = Value(0)
         Object.defineProperty(value, checkPhase, { value: 0 })
-        function State() {
-            return {
-                value
+        class Props {
+            static create() {
+                return {
+                    value
+                }
             }
         }
         @Component({ template: `{{ value }}`})
-        class Test extends View(State) {}
+        class Test extends State(Props) {}
         const createView = defineView(Test)
         const view =  createView()
         const instance = view.componentInstance
@@ -148,13 +154,14 @@ describe("View", () => {
         @Directive()
         class Props {
             @Input() count = subject
+            static create = create
         }
-        function State(props: Props) {
+        function create(props: Props) {
             expect(props.count.value).toBe(1337)
             return {}
         }
         @Component({ template: ``})
-        class Test extends View(Props, State) {}
+        class Test extends State(Props) {}
         const createView = defineView(Test)
         expect(createView().componentInstance.count).toBe(1337)
     })
@@ -165,13 +172,14 @@ describe("View", () => {
         @Directive()
         class Props {
             @Input() count = subject
+            static create = create
         }
-        function State(props: Props) {
+        function create(props: Props) {
             Subscribe(props.count, spy)
             return {}
         }
         @Component({ template: `{{ count }}`})
-        class Test extends View(Props, State) {}
+        class Test extends State(Props) {}
         const createView = defineView(Test)
         const view = createView()
         expect(spy).toHaveBeenCalledTimes(0)
@@ -233,21 +241,22 @@ describe("Context API", () => {
     })
     it("should be checked during change detection", () => {
         const spy = createSpy()
-
-        function State() {
-            const subject = (value: number) => ({
-                check() {
-                    spy(value)
-                }
-            })
-            addCheck(0, subject(0))
-            addCheck(1, subject(1))
-            addCheck(2, subject(2))
-            return {}
+        class Props {
+            static create() {
+                const subject = (value: number) => ({
+                    check() {
+                        spy(value)
+                    }
+                })
+                addCheck(0, subject(0))
+                addCheck(1, subject(1))
+                addCheck(2, subject(2))
+                return {}
+            }
         }
 
         @Component({template: ``})
-        class Test extends View(State) {
+        class Test extends State(Props) {
         }
 
         const createView = defineView(Test)
@@ -263,12 +272,14 @@ describe("Context API", () => {
 describe("Subscribe", () => {
     it("should not run effects until view is mounted", () => {
         const spy = createSpy()
-        function State() {
-            Subscribe(spy)
-            return {}
+        class Props {
+            static create() {
+                Subscribe(spy)
+                return {}
+            }
         }
         @Component({ template: ``})
-        class Test extends View(State) {}
+        class Test extends State(Props) {}
         const createView = defineView(Test)
         expect(spy).toHaveBeenCalledTimes(0)
         createView().detectChanges()
@@ -309,12 +320,14 @@ describe("Subscribe", () => {
     })
     it("should execute teardown when view is destroyed", () => {
         const spy = createSpy()
-        function State() {
-            Subscribe(() => spy)
-            return {}
+        class Props {
+            static create() {
+                Subscribe(() => spy)
+                return {}
+            }
         }
         @Component({ template: ``})
-        class Test extends View(State) {}
+        class Test extends State(Props) {}
         const createView = defineView(Test)
         const view = createView()
         view.detectChanges()
@@ -506,12 +519,14 @@ describe("Subscribe", () => {
         }
         const TestService = Service(factory, { providedIn: "root" })
         defineService(TestService)
-        function State() {
-            Inject(TestService)
-            return {}
+        class Props {
+            static create() {
+                Inject(TestService)
+                return {}
+            }
         }
         @Component({ template: ``, providers: [TestService] })
-        class Test extends View(State) {}
+        class Test extends State(Props) {}
         const createView = defineView(Test)
         createView().destroy()
         expect(spy).toHaveBeenCalled()
