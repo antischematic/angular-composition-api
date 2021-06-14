@@ -1,6 +1,6 @@
 import {CommonModule} from '@angular/common';
 import {Component, Directive, ErrorHandler, Input, NgModule} from '@angular/core';
-import {Emitter, Inject, set, Subscribe, Value, State} from '@mmuscat/angular-composition-api';
+import {Emitter, Inject, set, State, Subscribe, Value} from '@mmuscat/angular-composition-api';
 import {CreateTodo, LoadTodosById} from './api.service';
 import {Todo, TodoModule} from './todo.component';
 

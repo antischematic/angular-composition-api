@@ -1,31 +1,27 @@
 import {
   AfterContentInit,
-  ApplicationRef, ChangeDetectorRef,
+  ChangeDetectorRef,
   ContentChildren,
   Directive,
-  DoCheck,
   ElementRef,
   ErrorHandler,
   EventEmitter,
   Inject,
-  Injectable,
-  Injector, Input,
-  NgModule,
-  NgZone, OnChanges,
-  OnDestroy,
-  OnInit,
+  Input,
+  OnChanges,
   Optional,
   Output,
   PLATFORM_ID,
-  QueryList, SimpleChanges, SkipSelf,
-  TemplateRef, Type,
+  QueryList,
+  SimpleChanges,
+  SkipSelf,
+  TemplateRef,
+  Type,
   ViewContainerRef,
   ViewRef,
 } from "@angular/core"
 import {isPlatformBrowser} from "@angular/common"
 import {Renderer} from "./renderer";
-import {NgCloak} from "./cloak";
-import {EventManager} from "@angular/platform-browser";
 
 export class ErrorBoundaryEvent {
   error: any

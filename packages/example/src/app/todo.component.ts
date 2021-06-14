@@ -1,6 +1,6 @@
 import {Component, Directive, ElementRef, Input, NgModule, Output, Renderer2, ViewChild} from '@angular/core';
 import {FormsModule} from '@angular/forms';
-import {Emitter, Inject, set, Subscribe, Value, State, Query} from '@mmuscat/angular-composition-api';
+import {Emitter, Inject, Query, State, Subscribe, Value} from '@mmuscat/angular-composition-api';
 
 export interface Todo {
     id?: number

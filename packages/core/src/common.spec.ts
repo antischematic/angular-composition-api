@@ -1,7 +1,7 @@
-import { QueryList as NgQueryList } from "@angular/core"
-import {Query, QueryList, Value, ValueSubject} from "./common";
-import createSpy = jasmine.createSpy;
+import {QueryList as NgQueryList} from "@angular/core"
+import {Query, QueryList, Value} from "./common";
 import {checkPhase} from "./interfaces";
+import createSpy = jasmine.createSpy;
 
 describe("QueryList", () => {
     it("should notify observers when query list becomes available", () => {

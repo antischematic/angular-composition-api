@@ -13,7 +13,7 @@ import {
     ɵɵdirectiveInject as directiveInject
 } from '@angular/core';
 import {Notification, Observable, PartialObserver, Subscribable, Subscription, TeardownLogic,} from 'rxjs';
-import {SyncState, checkPhase, CheckPhase, CheckSubject, Context, StateFactory} from './interfaces';
+import {checkPhase, CheckPhase, CheckSubject, Context, StateFactory, SyncState} from './interfaces';
 import {isObject} from "./utils";
 
 let currentContext: any;

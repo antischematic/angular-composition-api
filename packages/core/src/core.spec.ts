@@ -3,12 +3,13 @@ import {
     addEffect,
     addTeardown,
     CallContextError,
-    check, EffectObserver,
+    check,
+    EffectObserver,
     Inject,
     Service,
+    State,
     Subscribe,
-    subscribe,
-    State
+    subscribe
 } from "./core";
 import {
     Component,

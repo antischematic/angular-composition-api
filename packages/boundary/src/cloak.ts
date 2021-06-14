@@ -1,28 +1,19 @@
 import {
     ContentChildren,
     Directive,
-    ElementRef,
-    ErrorHandler, Host,
+    ErrorHandler,
     Inject,
     InjectionToken,
     Input,
-    OnDestroy, Optional,
-    QueryList, SimpleChanges,
+    OnDestroy,
+    Optional,
+    QueryList,
+    SimpleChanges,
     TemplateRef,
     Type,
     ViewContainerRef
 } from '@angular/core';
-import {
-    asapScheduler,
-    asyncScheduler,
-    concat,
-    forkJoin,
-    Observable,
-    partition,
-    queueScheduler,
-    Subject,
-    timer
-} from "rxjs";
+import {asapScheduler, asyncScheduler, concat, forkJoin, Observable, partition, Subject, timer} from "rxjs";
 import {distinctUntilChanged, map, scan, share, switchMap, take, takeUntil} from "rxjs/operators";
 import {Fallback} from "./error-boundary";
 import {Renderer} from "./renderer";

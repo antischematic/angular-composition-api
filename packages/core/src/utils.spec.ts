@@ -1,6 +1,5 @@
 import {Value} from "./common";
 import {Emitter, get, set} from "./utils";
-import {Subject} from "rxjs";
 import createSpy = jasmine.createSpy;
 
 describe("set", () => {
