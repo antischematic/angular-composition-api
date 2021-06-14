@@ -34,8 +34,8 @@ class Props {
     @Input() count = Value(0) // Value<number> becomes `number`
 
     // 2. Create a factory function.
-    static create(props: Props) {
-        const setCount = set(props.count)
+    static create({ count }: Props) {
+        const setCount = set(count)
         const increment = Emitter()
         const disabled = Value(false)
         // b. Emit values to trigger state updates.
