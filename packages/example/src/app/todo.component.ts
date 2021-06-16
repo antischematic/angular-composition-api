@@ -98,22 +98,10 @@ export class Props {
     templateUrl: './todo.component.html'
 })
 export class TodoComponent extends State(Props) {}
-@Directive()
-export class HelloProps {
-    @Input() names!: ValueSubject<string>
-}
-
-
-@Component({
-    selector: 'hello',
-    template: `<h1>Hello {{names}}!</h1>`,
-    styles: [`h1 { font-family: Lato; }`]
-})
-export class HelloComponent extends State(HelloProps) {}
 
 @NgModule({
     imports: [FormsModule],
-    declarations: [TodoComponent, HelloComponent],
-    exports: [TodoComponent, HelloComponent]
+    declarations: [TodoComponent],
+    exports: [TodoComponent]
 })
 export class TodoModule {}

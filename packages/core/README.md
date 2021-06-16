@@ -109,7 +109,7 @@ VSCode should work fine with the latest updates.
 
 ### Application
 
-State [Todo List](https://stackblitz.com/edit/angular-composition-api) on Stackblitz
+View [Todo List](https://stackblitz.com/edit/angular-composition-api) on Stackblitz
 
 ### Component
 
