@@ -7,7 +7,6 @@ import {
     EffectObserver,
     Inject,
     Service,
-    State,
     Subscribe,
     subscribe
 } from "./core";
@@ -21,15 +20,26 @@ import {
     Input,
     NgModuleRef,
     Type,
-    ɵivyEnabled
 } from "@angular/core";
 import {ComponentFixture, TestBed} from "@angular/core/testing";
 import {defer, merge, of, throwError} from "rxjs";
 import {materialize, mergeMap} from "rxjs/operators";
-import {checkPhase} from "./interfaces";
+import {checkPhase, CheckSubject} from "./interfaces";
 import {Value} from "./common";
 import objectContaining = jasmine.objectContaining;
 import createSpy = jasmine.createSpy;
+
+import {decorate} from "./core";
+
+export function State<T, U>(base: Type<T> & { create?: (base: T) => U}, _ = base = decorate(base)): State<T, U> {
+    return base as any
+}
+
+type State<T, U> = Type<{
+    [key in keyof T]: T[key] extends CheckSubject<infer R> ? R : T[key]
+} & {
+    [key in keyof U]: U[key] extends CheckSubject<infer R> ? R : U[key] extends EventEmitter<infer R> ? (value: R) => void : U[key]
+}>
 
 function defineView<T>(View: Type<T>): () => ComponentFixture<T> {
     TestBed.configureTestingModule({

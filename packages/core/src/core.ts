@@ -54,11 +54,12 @@ function runInContext<T extends (...args: any[]) => any>(
     return value;
 }
 
-function createContext(context: {}, injector: Injector, error: ErrorHandler, additionalContext?: any) {
+function createContext(context: {}, injector: Injector, error: ErrorHandler, scheduler?: Scheduler, additionalContext?: any) {
     contextMap.set(context, {
         injector,
         error,
         subscription: new Subscription(),
+        scheduler: scheduler!,
         effects: new Set(),
         ...additionalContext
     });
@@ -75,16 +76,16 @@ class ContextBinding<T = any> {
     next(value: T[keyof T]) {
         const { context, scheduler } = this
         if (value !== context[this.key]) {
+            context[this.key] = value;
             this.emitter?.next(value)
+            scheduler.markForCheck();
         }
-        context[this.key] = value;
-        scheduler.markForCheck();
     }
     check() {
         const value = this.context[this.key];
         if (this.source.value !== value) {
-            this.scheduler.markForCheck();
             this.source.next(value)
+            this.scheduler.markForCheck();
         }
     }
     constructor(
@@ -121,9 +122,6 @@ class Scheduler {
     }
     markForCheck() {
         this.dirty = true
-        if (!currentContext) {
-            this.detectChanges()
-        }
     }
     constructor(private ref: ChangeDetectorRef, private errorHandler: ErrorHandler, detach: Boolean | null) {
         this.dirty = false
@@ -139,8 +137,8 @@ function createBinding(context: any, key: any, value: any, scheduler: any) {
     const twoWayBinding = context[`${key}Change`]
     const emitter = twoWayBinding instanceof EventEmitter ? twoWayBinding : void 0
     const binding = new ContextBinding(context, key, value, scheduler, emitter);
-    addTeardown(value.subscribe(binding));
     addCheck(value[checkPhase], binding)
+    addEffect(value, binding);
 }
 
 function setup(injector: Injector, stateFactory?: (props?: any) => {}) {
@@ -149,7 +147,7 @@ function setup(injector: Injector, stateFactory?: (props?: any) => {}) {
     const error = injector.get(ErrorHandler);
     const scheduler = new Scheduler(injector.get(ChangeDetectorRef), error, directiveInject(Detach, InjectFlags.Self | InjectFlags.Optional));
 
-    createContext(context, injector, error, [new Set(), new Set(), new Set(), scheduler]);
+    createContext(context, injector, error, scheduler, [new Set(), new Set(), new Set()]);
 
     for (const [key, value] of Object.entries(context)) {
         if (typeof value === "object" && isCheckSubject(value)) {
@@ -167,6 +165,7 @@ function setup(injector: Injector, stateFactory?: (props?: any) => {}) {
                     value.emit(event)
                 }
             } else if (isCheckSubject(value)) {
+                context[key] = value.value
                 createBinding(context, key, value, scheduler)
             } else {
                 Object.defineProperty(context, key, Object.getOwnPropertyDescriptor(state, key)!)
@@ -174,14 +173,14 @@ function setup(injector: Injector, stateFactory?: (props?: any) => {}) {
         }
     }
 }
-
+const empty = [] as any[]
 export function check(key: CheckPhase) {
     const context = getContext();
-    for (const subject of context[key]) {
+    for (const subject of context[key] ?? empty) {
         subject.check();
     }
     if (key === 2) {
-        context[3].detectChanges()
+        context.scheduler.detectChanges()
     }
 }
 
@@ -213,21 +212,22 @@ export function addEffect<T>(
     source: Subscribable<T> | (() => TeardownLogic),
     observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
 ): Subscription {
-    const { effects, injector, error, 3: scheduler } = getContext();
+    const { effects, injector, error, scheduler } = getContext();
     const effectObserver = new EffectObserver<T>(source, observer, error, injector, scheduler);
     effects.add(effectObserver);
     return new Subscription().add(effectObserver)
 }
 
-function next(injector: Injector, errorHandler: ErrorHandler, notification: Notification<any>, observer: any) {
+function next(injector: Injector, errorHandler: ErrorHandler, notification: Notification<any>, observer: any, scheduler: Scheduler) {
     notification.accept(unsubscribe)
-    createContext(currentContext, injector, errorHandler)
+    createContext(currentContext, injector, errorHandler, scheduler)
     try {
         addTeardown(notification.accept(observer as any))
     } catch (error) {
         errorHandler.handleError(error)
     }
     notification.accept(subscribe)
+    scheduler?.detectChanges()
 }
 
 export class EffectObserver<T> {
@@ -250,8 +250,8 @@ export class EffectObserver<T> {
     subscribe() {
         const { source } = this
         if (typeof source === "function") {
-            const { injector, errorHandler } = this;
-            runInContext(this, next, injector, errorHandler, Notification.createNext(void 0), source)
+            const { injector, errorHandler, scheduler } = this;
+            runInContext(this, next, injector, errorHandler, Notification.createNext(void 0), source, scheduler)
         } else {
             return source.subscribe(this);
         }
@@ -262,28 +262,27 @@ export class EffectObserver<T> {
         runInContext(this, unsubscribe)
     }
     private call(notification: Notification<T>) {
-        const { observer, injector, errorHandler } = this;
+        const { observer, injector, errorHandler, scheduler } = this;
         const isError = notification.kind === 'E';
         let errorHandled = !isError;
         errorHandled = errorHandled || observer && 'error' in observer;
         if (observer) {
-            runInContext(this, next, injector, errorHandler, notification, observer)
+            runInContext(this, next, injector, errorHandler, notification, observer, scheduler)
         }
         if (!errorHandled) {
             errorHandler.handleError(notification.error);
         }
-        this.scheduler?.detectChanges()
     }
     constructor(
         private source: any,
         private observer: any,
         private errorHandler: ErrorHandler,
         private injector: Injector,
-        private scheduler?: Scheduler
+        private scheduler: Scheduler
     ) {
         this.closed = false
         addTeardown(this)
-        createContext(this, injector, errorHandler)
+        createContext(this, injector, errorHandler, scheduler)
     }
 }
 

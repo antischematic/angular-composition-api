@@ -12,10 +12,10 @@ export interface Context {
     error: ErrorHandler;
     subscription: Subscription;
     effects: Set<EffectObserver<any>>;
+    scheduler: any
     0: Set<Check>;
     1: Set<Check>;
     2: Set<Check>;
-    3: any
 }
 
 export interface CheckSubject<T> {
