@@ -249,13 +249,13 @@ view during the `ngDoCheck` lifecycle hook.
 
 #### Query
 
-Creates a `Value` that will receive a `ContentChild` or `StateChild`. Pass `false` when used with dynamic `StateChild` so
+Creates a `Value` that will receive a `ContentChild` or `ViewChild`. Pass `false` when used with dynamic `ViewChild` so
 that it syncs correctly. Pass `true` for static queries.
 
 #### QueryList
 
-Creates a `QueryListSubject` that will receive `ContentChildren` or `StateChildren`. Subscribes to the underlying query
-list when it becomes available. Pass `false` when used with `StateChildren` so that it syncs correctly.
+Creates a `QueryListSubject` that will receive `ContentChildren` or `ViewChildren`. Subscribes to the underlying query
+list when it becomes available. Pass `false` when used with `ViewChildren` so that it syncs correctly.
 
 #### Emitter
 
