@@ -68,10 +68,11 @@ or application (ie. imports from declaration files won't work).
 </details>
 
 <details>
-    <summary>Safer option</summary>
+    <summary>Slightly safer option</summary>
 
-Alternatively, you can add `inputs` and `outputs` to the `@Component` or `@Directive` metadata.
-This option is safer, but you lose type inference on inputs, which will be cast to `any`.
+Same as above, except `inputs` and `outputs` are added to the `@Component` or `@Directive` metadata instead.
+This doesn't fix the mixin problem, but it might help if the language service gives you issues.
+You lose type inference on inputs though, which will be cast to `any`.
 
 ```ts
 class Props {
@@ -92,6 +93,16 @@ class Props {
 })
 export class MyComponent extends State(Props) {}
 ```
+</details>
+
+<details>
+    <summary>IDE language service</summary>
+
+If your IDE is complaining about types, either disable the inspection for input bindings (Jetbrains),
+or use the second option above to suppress template errors.
+
+VSCode should work fine with the latest updates.
+
 </details>
 
 ## Example
