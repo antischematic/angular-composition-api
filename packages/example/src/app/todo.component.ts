@@ -1,6 +1,18 @@
-import {Component, Directive, ElementRef, Input, NgModule, Output, Renderer2, ViewChild} from '@angular/core';
+import {
+    ChangeDetectionStrategy,
+    Component,
+    Directive,
+    ElementRef,
+    HostBinding,
+    Input,
+    NgModule,
+    Output,
+    Renderer2,
+    ViewChild
+} from '@angular/core';
 import {FormsModule} from '@angular/forms';
-import {Emitter, Inject, Query, State, Subscribe, Value} from '@mmuscat/angular-composition-api';
+import {Emitter, Inject, Query, set, Subscribe, Value, ValueSubject} from '@mmuscat/angular-composition-api';
+import {State} from "./state";
 
 export interface Todo {
     id?: number
@@ -10,14 +22,30 @@ export interface Todo {
 
 @Directive()
 export class Props {
-    @Input() id = Value<number>()
-    @Input() text = Value('');
-    @Input() done = Value(false);
-    @Input() resetOnSave = Value(false);
-    @Output() saveTodo = Emitter<Todo>();
-    @ViewChild('textContent') textEditor = Query<ElementRef<HTMLDivElement>>(false);
+    @Input()
+    id = Value<number>()
+    @Input()
+    text = Value('')
+    @HostBinding("class.red")
+    @Input()
+    done = Value(false)
+    @Input()
+    resetOnSave = Value(false)
+    @Output()
+    saveTodo = Emitter<Todo>()
+    @Output()
+    textChange = Emitter<string>()
+    @ViewChild('textContent')
+    textEditor = Query<ElementRef>(false)
 
-    static create({ saveTodo, id, text, done, resetOnSave, textEditor }: Props) {
+    static create({
+        id,
+        text,
+        done,
+        resetOnSave,
+        saveTodo,
+        textEditor,
+    }: Props) {
         const renderer = Inject(Renderer2);
 
         function toggleDone(value: boolean) {
@@ -30,15 +58,16 @@ export class Props {
 
         function editText(value: string) {
             if (!value || value === text.value) return;
-            saveTodo.emit({
+            setText(value)
+            set(saveTodo, {
+                id: id.value,
                 text: value,
                 done: done.value
             });
             if (resetOnSave.value) {
                 reset()
             } else {
-                setText(value)
-                text.next(value);
+                set(text, value);
             }
         }
 
@@ -51,31 +80,40 @@ export class Props {
         }
 
         function reset() {
-            console.log('reset?')
             text.next(text.value)
         }
 
         Subscribe(text, setText)
 
         return {
-            toggleDone,
             editText,
-            reset
-        };
+            toggleDone
+        }
     }
+
 }
 
 @Component({
     selector: 'app-todo',
     templateUrl: './todo.component.html'
 })
-export class TodoComponent extends State(Props) {
+export class TodoComponent extends State(Props) {}
+@Directive()
+export class HelloProps {
+    @Input() names!: ValueSubject<string>
 }
+
+
+@Component({
+    selector: 'hello',
+    template: `<h1>Hello {{names}}!</h1>`,
+    styles: [`h1 { font-family: Lato; }`]
+})
+export class HelloComponent extends State(HelloProps) {}
 
 @NgModule({
     imports: [FormsModule],
-    declarations: [TodoComponent],
-    exports: [TodoComponent]
+    declarations: [TodoComponent, HelloComponent],
+    exports: [TodoComponent, HelloComponent]
 })
-export class TodoModule {
-}
+export class TodoModule {}

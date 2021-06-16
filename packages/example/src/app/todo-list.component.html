@@ -1,10 +1,12 @@
 Add new todo
-<app-todo [resetOnSave]="true" (saveTodo)="createTodo({ type: 'request', value: $event })"></app-todo>
+<app-todo [resetOnSave]="true"></app-todo>
 <hr>
 <div>
-  <app-todo *ngFor="let todo of todos trackBy id" [id]="todo.id" [text]="todo.text" [done]="todo.done" (saveTodo)="todoChange($event)"></app-todo>
+  <app-todo *ngFor="let todo of todos trackBy id" [id]="todo.id" [text]="todo.text" [done]="todo.done" ></app-todo>
   <app-todo *ngIf="creating" [resetOnSave]="true" [text]="creating.text"></app-todo>
 </div>
+
+<hello [names]="'3'"></hello>
 
 <button (click)="toggleAll()">Toggle All</button>
 <button (click)="explode()">Explode</button>

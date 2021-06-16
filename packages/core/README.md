@@ -19,6 +19,81 @@ Install with Yarn
 yarn add @mmuscat/angular-composition-api
 ```
 
+### Known Issues
+
+The Angular compiler only discovers `@Input` or `@Output` metadata on properties that
+can be statically resolved. Unfortunately this doesn't work with mixins, causing template binding
+errors. A couple of workarounds are listed below.
+
+<details>
+    <summary>Trick the compiler</summary>
+    
+To work around this issue you can define a mixin that tricks the compiler into thinking
+it's a static call. In your project, create a file with the following code:
+
+```ts
+import {decorate, State} from "@mmuscat/angular-composition-api";
+
+export function State<T, U>(base: Type<T> & { create?: (base: T) => U}, _ = base = decorate(base)): State<T, U> {
+    return base as any
+}
+```
+
+Then use it in your application:
+
+```ts
+@Directive()
+class Props {
+    @Input() 
+    count = Value(0)
+    
+    @Output() 
+    countChange = Emitter<number>()
+
+    @ContentChild(TemplateRef)
+    content = Query<TemplateRef>()
+    
+    static create() {
+        // etc...
+    }
+}
+
+@Component()
+export class MyComponent extends State(Props) {}
+```
+
+While this works, it could potentially break if the underlying compiler implementation changes.
+Note that the mixin functions needs to be concrete, it can't be imported from a compiled library
+or application (ie. imports from declaration files won't work).
+</details>
+
+<details>
+    <summary>Safer option</summary>
+
+Alternatively, you can add `inputs` and `outputs` to the `@Component` or `@Directive` metadata.
+This option is safer, but you lose type inference on inputs, which will be cast to `any`.
+
+```ts
+class Props {
+    count = Value(0)
+    countChange = Emitter<number>()
+    
+    @ContentChild(TemplateRef)
+    content = Query<TemplateRef>()
+
+    static create() {
+        // etc...
+    }
+}
+
+@Component({
+    inputs: ["count"],
+    outputs: ["countChange"]
+})
+export class MyComponent extends State(Props) {}
+```
+</details>
+
 ## Example
 
 ### Application
@@ -122,8 +197,24 @@ const CustomProvider = {
 
 #### State
 
-Creates a context-aware state from the provided state factory. Components and directives that extend this class have
-their `ChangeDetectorRef` detached and will only trigger view updates when reactive state emits a new value.
+Creates a context-aware class from the provided base class. Inputs,
+outputs, queries and other props are defined as fields on the base class. 
+The static `create` method takes the instance of the base class as an
+argument and returns a state object that is merged with the base class.
+Reactive values created with `Value` are unwrapped. If returned
+from the static `create` method, `Emitter` is unwrapped to a plain
+function. Emitters in the base class are not unwrapped.
+
+**Detach mode**
+
+Components and directives with the `DETACHED` provider will have
+their `ChangeDetectorRef` detached and will only trigger view updates 
+when reactive state changes. In this mode:
+
+- Variables assignment in templates is not propagated to reactive state (use events instead)
+- Two-way bindings won't work (use events instead)
+- `@HostBinding` will not work (use `HostBinding` in `create` or roll your own instead.)
+- Static `@Input` values (eg. `count = 0`) will not trigger view updates (use `count = Value(0)` instead)
 
 #### Service
 

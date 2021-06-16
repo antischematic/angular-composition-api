@@ -1,14 +1,16 @@
 import {CommonModule} from '@angular/common';
 import {Component, Directive, ErrorHandler, Input, NgModule} from '@angular/core';
-import {Emitter, Inject, set, State, Subscribe, Value} from '@mmuscat/angular-composition-api';
+import {Emitter, Inject, set, Subscribe, Value} from '@mmuscat/angular-composition-api';
 import {CreateTodo, LoadTodosById} from './api.service';
 import {Todo, TodoModule} from './todo.component';
+import {State} from "./state";
 
 @Directive()
 class Props {
-    @Input() userId = Value<string>("");
+    @Input()
+    userId = Value("");
 
-    static create({userId}: Props) {
+    static create({ userId }: Props) {
         const loadTodosById = Inject(LoadTodosById);
         const createTodo = Inject(CreateTodo);
         const todoChange = Emitter<Todo>();
@@ -25,8 +27,7 @@ class Props {
             console.log('todo changed!', value);
             setTodos((values) => {
                 return values.map(todo => ({
-                    ...todo,
-                    done: todo.id === value.id ? value.done : todo.done
+                    ...(todo.id === value.id ? value : todo)
                 }))
             })
         });
@@ -58,14 +59,20 @@ class Props {
             return value.id
         }
 
+        function textChange(text: string) {
+            console.log('text changed!', text)
+        }
+
         return {
+            userId,
             todos,
             todoChange,
             createTodo,
             creating,
             toggleAll,
             explode,
-            id
+            id,
+            textChange
         };
     }
 }
@@ -73,7 +80,7 @@ class Props {
 @Component({
     selector: 'app-todo-list',
     templateUrl: './todo-list.component.html',
-    providers: [CreateTodo, LoadTodosById]
+    providers: [CreateTodo, LoadTodosById],
 })
 export class TodoListComponent extends State(Props) {
 }

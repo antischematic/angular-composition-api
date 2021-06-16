@@ -88,14 +88,8 @@
             "styles": [
               "packages/example/src/styles.css"
             ],
-            "scripts": [],
-            "aot": false,
-            "vendorChunk": true,
-            "extractLicenses": false,
-            "buildOptimizer": false,
-            "sourceMap": true,
-            "optimization": false,
-            "namedChunks": true
+            "statsJson": true,
+            "scripts": []
           },
           "configurations": {
             "production": {
@@ -120,6 +114,12 @@
               "outputHashing": "all"
             },
             "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
             }
           },
           "defaultConfiguration": "production"

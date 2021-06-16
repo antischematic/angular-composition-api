@@ -13,7 +13,7 @@ import {
     ɵɵdirectiveInject as directiveInject
 } from '@angular/core';
 import {Notification, Observable, PartialObserver, Subscribable, Subscription, TeardownLogic,} from 'rxjs';
-import {checkPhase, CheckPhase, CheckSubject, Context, StateFactory, SyncState} from './interfaces';
+import {checkPhase, CheckPhase, CheckSubject, Context} from './interfaces';
 import {isObject} from "./utils";
 
 let currentContext: any;
@@ -74,35 +74,48 @@ function createService(context: {}, factory: any) {
 class ContextBinding<T = any> {
     next(value: T[keyof T]) {
         const { context, scheduler } = this
+        if (value !== context[this.key]) {
+            this.emitter?.next(value)
+        }
         context[this.key] = value;
         scheduler.markForCheck();
     }
     check() {
         const value = this.context[this.key];
         if (this.source.value !== value) {
+            this.scheduler.markForCheck();
             this.source.next(value)
-            return true
         }
-        return false
     }
     constructor(
         private context: T,
         private key: keyof T,
         private source: any,
-        private scheduler: Scheduler
+        private scheduler: Scheduler,
+        private emitter?: EventEmitter<T[keyof T]>
     ) {}
+}
+
+class Detach extends Boolean {}
+
+export const DETACHED = {
+    provide: Detach,
+    useValue: true
 }
 
 class Scheduler {
     dirty: boolean
-    detectChanges(ref: ChangeDetectorRef = this.ref, errorHandler: ErrorHandler = this.errorHandler) {
+    detach: Detach | null
+    detectChanges() {
         if (this.dirty) {
             this.dirty = false
             try {
-                ref.detach()
-                ref.detectChanges()
+                if (this.detach == true) {
+                    this.ref.detach()
+                }
+                this.ref.detectChanges()
             } catch (error) {
-                errorHandler.handleError(error)
+                this.errorHandler.handleError(error)
             }
         }
     }
@@ -112,8 +125,9 @@ class Scheduler {
             this.detectChanges()
         }
     }
-    constructor(private ref: ChangeDetectorRef, private errorHandler: ErrorHandler) {
+    constructor(private ref: ChangeDetectorRef, private errorHandler: ErrorHandler, detach: Boolean | null) {
         this.dirty = false
+        this.detach = detach
     }
 }
 
@@ -122,7 +136,9 @@ function isCheckSubject(value: unknown): value is CheckSubject<any> {
 }
 
 function createBinding(context: any, key: any, value: any, scheduler: any) {
-    const binding = new ContextBinding(context, key, value, scheduler);
+    const twoWayBinding = context[`${key}Change`]
+    const emitter = twoWayBinding instanceof EventEmitter ? twoWayBinding : void 0
+    const binding = new ContextBinding(context, key, value, scheduler, emitter);
     addTeardown(value.subscribe(binding));
     addCheck(value[checkPhase], binding)
 }
@@ -131,7 +147,7 @@ function setup(injector: Injector, stateFactory?: (props?: any) => {}) {
     const context: { [key: string]: any } = currentContext;
     const props = Object.create(context)
     const error = injector.get(ErrorHandler);
-    const scheduler = new Scheduler(injector.get(ChangeDetectorRef), error);
+    const scheduler = new Scheduler(injector.get(ChangeDetectorRef), error, directiveInject(Detach, InjectFlags.Self | InjectFlags.Optional));
 
     createContext(context, injector, error, [new Set(), new Set(), new Set(), scheduler]);
 
@@ -271,7 +287,7 @@ export class EffectObserver<T> {
     }
 }
 
-function decorate(Props: any, fn?: any) {
+export function decorate(Props: any) {
     return class extends Props {
         ngDoCheck() {
             runInContext(this, check, 0);
@@ -286,11 +302,11 @@ function decorate(Props: any, fn?: any) {
         ngOnDestroy() {
             runInContext(this, unsubscribe);
         }
-        constructor(...args: any[]) {
-            super(...args);
-            runInContext(this, setup, directiveInject(INJECTOR), fn);
+        constructor() {
+            super();
+            runInContext(this, setup, directiveInject(INJECTOR), Props.create);
         }
-    }
+    } as any
 }
 
 export type ProvidedIn = Type<any> | 'root' | 'platform' | 'any' | null
@@ -335,18 +351,4 @@ export function Subscribe<T>(
         }
     }
     return addEffect(source, observer);
-}
-
-export type State<T extends Type<any> | StateFactory<any, any>> = Type<
-    SyncState<InstanceType<T>> & (T extends StateFactory<any, any> ? SyncState<ReturnType<T["create"]>> : {})
->
-export function State<T extends StateFactory<any, any>>(props: T): State<T>
-export function State<T extends Type<any>>(
-    props: T
-): State<T>
-export function State(
-    props: any,
-    _ = (props = decorate(props, props.create) as any)
-): State<any> {
-    return props as any;
 }

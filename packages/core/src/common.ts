@@ -15,6 +15,7 @@ export class QueryListObserver {
 }
 
 export class QueryListSubject<T> extends NgQueryList<T> implements CheckSubject<QueryListSubject<T>> {
+    value!: QueryListSubject<T>
     readonly [checkPhase]: CheckPhase
     private subscription?: Subscription
     next(value: NgQueryList<T>) {

@@ -29,7 +29,7 @@ function loadTodosById() {
   return function(userId: string) {
     console.log('Loading from fake server. userId:', userId);
     // http.get() for real application
-    return boundary.cloak(timer(1000)).pipe(map(() => database));
+    return boundary.cloak(timer(1000)).pipe(map(() => database.sort(() => Math.random())));
   };
 }
 

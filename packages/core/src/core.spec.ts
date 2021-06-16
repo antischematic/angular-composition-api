@@ -20,7 +20,8 @@ import {
     InjectionToken,
     Input,
     NgModuleRef,
-    Type
+    Type,
+    ɵivyEnabled
 } from "@angular/core";
 import {ComponentFixture, TestBed} from "@angular/core/testing";
 import {defer, merge, of, throwError} from "rxjs";
