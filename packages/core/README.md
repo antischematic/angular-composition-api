@@ -377,7 +377,7 @@ const count = Select(state, (val) => val.count)
 ```
 With `ProviderToken`
 ```ts
-const State = new InjectionToken<{ count: number }>("State")
+const State = new InjectionToken<Observable<{ count: number }>>("State")
 
 const count = Select(State, (val) => val.count)
 ```
