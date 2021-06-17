@@ -11,8 +11,8 @@ import {
     ViewChild
 } from '@angular/core';
 import {FormsModule} from '@angular/forms';
-import {Emitter, Inject, Query, set, Subscribe, Value, ValueSubject} from '@mmuscat/angular-composition-api';
 import {State} from "./state";
+import {Emitter, Inject, Query, Subscribe, Value} from "@mmuscat/angular-composition-api";
 
 export interface Todo {
     id?: number
@@ -33,71 +33,40 @@ export class Props {
     resetOnSave = Value(false)
     @Output()
     saveTodo = Emitter<Todo>()
-    @Output()
-    textChange = Emitter<string>()
     @ViewChild('textContent')
     textEditor = Query<ElementRef>(false)
 
-    static create({
-        id,
-        text,
-        done,
-        resetOnSave,
-        saveTodo,
-        textEditor,
-    }: Props) {
-        const renderer = Inject(Renderer2);
-
-        function toggleDone(value: boolean) {
-            saveTodo.emit({
-                id: id.value,
-                text: text.value,
-                done: value
-            });
-        }
-
-        function editText(value: string) {
-            if (!value || value === text.value) return;
-            setText(value)
-            set(saveTodo, {
-                id: id.value,
-                text: value,
-                done: done.value
-            });
-            if (resetOnSave.value) {
-                reset()
-            } else {
-                set(text, value);
-            }
-        }
-
-        function setText(value: string) {
-            renderer.setProperty(
-                textEditor.value?.nativeElement,
-                'textContent',
-                value
-            )
-        }
-
-        function reset() {
-            text.next(text.value)
-        }
-
-        Subscribe(text, setText)
-
-        return {
-            editText,
-            toggleDone
-        }
-    }
-
+    static create = create
 }
 
 @Component({
     selector: 'app-todo',
-    templateUrl: './todo.component.html'
+    templateUrl: './todo.component.html',
+    // providers: [DETACHED]
 })
-export class TodoComponent extends State(Props) {}
+export class TodoComponent extends State(Props) {
+    toggleDone(value: boolean) {
+        this.saveTodo.emit({
+            id: this.id,
+            text: this.text,
+            done: value
+        });
+    }
+    editText(value: string) {
+        if (!value || value === this.text) return;
+        this.text = value
+        this.saveTodo.emit({
+            id: this.id,
+            text: this.text,
+            done: this.done
+        });
+        if (this.resetOnSave) {
+            this.setEditorText(this.text)
+        } else {
+            this.text = value
+        }
+    }
+}
 
 @NgModule({
     imports: [FormsModule],
@@ -105,3 +74,24 @@ export class TodoComponent extends State(Props) {}
     exports: [TodoComponent]
 })
 export class TodoModule {}
+
+function create({
+    text,
+    textEditor,
+}: Props) {
+    const renderer = Inject(Renderer2);
+
+    function setEditorText(value: string) {
+        renderer.setProperty(
+            textEditor.value?.nativeElement,
+            'textContent',
+            value
+        )
+    }
+
+    Subscribe(text, setEditorText)
+
+    return {
+        setEditorText
+    }
+}

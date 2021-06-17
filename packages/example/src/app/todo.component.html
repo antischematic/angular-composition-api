@@ -1,11 +1,10 @@
 <label>
-  <input 
-    type="checkbox" 
-    [disabled]="resetOnSave" 
-    [(ngModel)]="done"
-    (ngModelChange)="toggleDone($event)"
+  <input
+          type="checkbox"
+          [disabled]="resetOnSave"
+          [ngModel]="done"
+          (ngModelChange)="toggleDone($event)"
   />
-  {{done}}
 </label>
 &nbsp;
 <div class="text" contenteditable data-placeholder="Buy milk tomorrow morning..." (keydown.enter)="

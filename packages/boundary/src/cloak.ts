@@ -36,24 +36,28 @@ export const NG_CLOAK_CONFIG = new InjectionToken<CloakConfig>("NG_CLOAK_CONFIG"
 
 export class CloakObserver {
     closed: boolean
+    thrownError: any
     next(value: any) {
+        if (this.closed) return
         this.subscriber.next(value)
         this.unsubscribe()
     }
     error(error: any) {
+        if (this.closed) return this.subscriber.error(this.thrownError)
+        this.thrownError = error
         this.errorHandler.handleError(error)
         this.subscriber.error(error)
         this.unsubscribe()
     }
     complete() {
-        this.subscriber.complete()
+        if (this.closed) return this.subscriber.complete()
         this.unsubscribe()
     }
     unsubscribe() {
-        if (!this.closed) {
-            this.closed = true
-            this.queue.next(-1)
-        }
+        if (this.closed) return
+        this.subscriber.complete()
+        this.closed = true
+        this.queue.next(-1)
     }
     constructor(private subscriber: any, private queue: Subject<any>, private errorHandler: ErrorHandler) {
         this.closed = false
