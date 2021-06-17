@@ -1,6 +1,15 @@
-<ng-cloak>
-    <app-todo-list userId="stupidawesome"></app-todo-list>
+<error-boundary #boundary="errorBoundary">
+    <ng-cloak *catchError>
+        <app-todo-list userId="stupidawesome"></app-todo-list>
+        <div fallback>
+            Loading...
+        </div>
+    </ng-cloak>
+
     <div fallback>
-        Loading...
+        <p>Something exploded!</p>
+        <button (click)="boundary.reset()">
+            Start again
+        </button>
     </div>
-</ng-cloak>
+</error-boundary>

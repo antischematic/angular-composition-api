@@ -1,7 +1,36 @@
-import {Subject} from "rxjs";
+import {PartialObserver, Subject, SubscriptionLike} from "rxjs";
 import {EventEmitter} from "@angular/core";
 
-export function get<T>(source: { value: T }): T {
+let previous: Set<any>
+let deps: Set<any>
+let track = false
+
+export function trackDeps<T>(fn: () => T): [T, Set<any>] {
+    const flushed = new Set()
+    track = true
+    previous = deps
+    deps = flushed
+    const value = fn()
+    track = false
+    deps = previous
+    return [value, flushed]
+}
+
+export function computeValue<T>(compute: (value?: T) => T) {
+    return trackDeps(compute)
+}
+
+export function arrayCompare(a: Set<any>, b: Set<any>) {
+    const aArr = [...a]
+    const bArr = [...b]
+    return aArr.every((v, i) => v === bArr[i])
+}
+export function get<T>(source: { value: T, subscribe(value: (value: T) => void): SubscriptionLike }): T
+export function get<T>(source: { value: T, subscribe(value: PartialObserver<T>): SubscriptionLike }): T
+export function get<T>(source: { value: T, subscribe(value: PartialObserver<T> | ((value: T) => void)): SubscriptionLike }): T {
+    if (track) {
+        deps.add(source)
+    }
     return source.value;
 }
 

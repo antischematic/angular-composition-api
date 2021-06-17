@@ -216,16 +216,30 @@ Reactive values created with `Value` are unwrapped. If returned
 from the static `create` method, `Emitter` is unwrapped to a plain
 function. Emitters in the base class are not unwrapped.
 
-**Detach mode**
+**Change Detection**
 
-Components and directives with the `DETACHED` provider will have
-their `ChangeDetectorRef` detached and will only trigger view updates 
-when reactive state changes. In this mode:
+Change detection occurs in the following scenarios (assuming `OnPush`
+strategy):
 
-- Variables assignment in templates is not propagated to reactive state (use events instead)
-- Two-way bindings won't work (use events instead)
-- `@HostBinding` will not work (use `HostBinding` in `create` or roll your own instead.)
-- Static `@Input` values (eg. `count = 0`) will not trigger view updates (use `count = Value(0)` instead)
+- On first render.
+- When inputs or reactive state changes (ie. props that implement `CheckSubject`).
+- When an event from is emitted from a view (if zone.js is enabled).
+- When `Subscribe` emits a value, after calling the observer.
+
+Change detection might *not* occur if:
+
+- Reactive state is mutated outside a reactive context. For example,
+if you manually create a component and mutate a value, you must call
+  `detectChanges` to propagate the change.
+
+Updates to reactive state are not immediately reflected in the view.
+If you need an immediate update, inject the `ChangeDetectorRef` and
+call `detectChanges` after updating a value.
+
+**Detached mode**
+
+Components and directives that extend `State` and provide the 
+`DETACHED` token will have their `ChangeDetectorRef` detached from parent views.
 
 #### Service
 
@@ -246,6 +260,40 @@ invoked immediately after the containing function has executed.
 
 If called outside a valid context, creates a subscription which needs to be handled manually.
 
+**Reactive Observers**
+
+When using `Subscribe` with a single function, it
+will track reactive dependencies and call the function recursively
+when those dependencies emit a new value. For example, the following two snippets
+are functionally equivalent.
+
+```ts
+const firstName = Value("John")
+const lastName = Value("Smith")
+
+Subscribe(firstName, () => {
+  console.log(
+    `Full name: ${firstName.value} ${lastName.value}`
+  )
+})
+```
+
+```ts
+const firstName = Value("John")
+const lastName = Value("Smith")
+
+Subscribe(() => {
+  console.log(
+    `Full name: ${get(firstName)} ${lastName.value}`
+  )
+})
+```
+
+In both of the examples the observer is only called when `firstName`
+is updated. Dependencies are tracked based on calls to `get`. To read
+a `Value` without marking it as a dependency, use the `value`
+property accessor.
+
 ---
 
 ### Common
@@ -255,32 +303,89 @@ a `CallContextError` to be thrown.
 
 #### Value
 
-Creates a `BehaviorSubject`. Optionally mirror an upstream `BehaviorSubject` if provided. Values are synced with the
+Creates a `BehaviorSubject`. Values are synced with the
 view during the `ngDoCheck` lifecycle hook.
 
 #### Query
 
-Creates a `Value` that will receive a `ContentChild` or `ViewChild`. Pass `false` when used with dynamic `ViewChild` so
-that it syncs correctly. Pass `true` for static queries.
+Creates a `Value` that will receive a `ContentChild` or `ViewChild`.
+Pass `true` for static queries. Pass `false` for dynamic `ViewChild` queries.
+
+```ts
+@Directive()
+class Props {
+  @ContentChild(TemplateRef, { static: true })
+  child = Query<TemplateRef<any>>(true)
+  // or
+  @ContentChild(TemplateRef)
+  child = Query<TemplateRef<any>>()
+  // or
+  @ViewChild(TemplateRef)
+  child = Query<TemplateRef<any>>(false)
+  
+  static create({ child }: Props) {
+    Subscribe(child, (value) => {
+      if (value) {
+        console.log(value)
+      }
+    })
+  }
+}
+```
 
 #### QueryList
 
 Creates a `QueryListSubject` that will receive `ContentChildren` or `ViewChildren`. Subscribes to the underlying query
 list when it becomes available. Pass `false` when used with `ViewChildren` so that it syncs correctly.
 
+
+```ts
+@Directive()
+class Props {
+  @ContentChildren(TemplateRef)
+  children = QueryList<TemplateRef<any>>()
+  // or
+  @ViewChildren(TemplateRef)
+  children = QueryList<TemplateRef<any>>(false)
+  
+  static create({ children }: Props) {
+    Subscribe(() => {
+      for (const child of get(children)) {
+          console.log(child)
+      }
+    })
+  }
+}
+```
+
+
 #### Emitter
 
 Creates an `EventEmitter`.
 
-#### HostListener
+#### Select
 
-Works like the `HostListener` decorator, returns an `Emitter` if an observer wasn't provided, otherwise it
-will `Subscribe` to the observer and return the subscription.
+Computes a new `Value` from the given `Observable` and an optional `selector`.
+Alternatively accepts a reactive selector that is recomputed when its dependencies
+change. Also accepts a `ProviderToken<Observable>` that allows you
+to map the injected value.
 
-#### HostBinding
+With `Observable`
+```ts
+const state = Value({ count: 0 })
+const count = Select(state, (val) => val.count)
+```
+With `ProviderToken`
+```ts
+const State = new InjectionToken<{ count: number }>("State")
 
-Works like the `HostBinding` decorator, it will `Subscribe` to an `Observable` and use the `Renderer` to apply changes
-to the property, attribute, class or style that was selected.
+const count = Select(State, (val) => val.count)
+```
+With reactive `selector`
+```ts
+const state = Value({ count: 0 })
+const count = Select(() => get(state).count)
+```
 
 ---
 
@@ -288,8 +393,17 @@ to the property, attribute, class or style that was selected.
 
 #### get
 
-Get the current value of a `Value`.
+Get the current value of a `Value`. If used inside a reactive observer,
+tracks the `Value` as a dependency.
 
 #### set
 
 Sets a `Value` or triggers an `Emitter`, otherwise returns a function that will emit values passed to it.
+
+```ts
+const count = Value(0),
+   setCount = set(count)
+
+setCount(10)
+set(count, 10)
+```

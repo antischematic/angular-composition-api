@@ -3,7 +3,9 @@ import {Component, Directive, ErrorHandler, Input, NgModule} from '@angular/core
 import { CreateTodo, LoadTodosById } from './api.service';
 import { Todo, TodoModule } from './todo.component';
 import { State } from './state';
-import {Inject, set, Subscribe, Value} from "@mmuscat/angular-composition-api";
+import {get, Inject, Select, set, Subscribe, Value} from "@mmuscat/angular-composition-api";
+import {Observable} from "rxjs";
+import {ValueSubject} from "../../../core/src/common";
 
 function trackById(index: number, value: any) {
     return value?.id ?? index;
@@ -44,6 +46,10 @@ function create({ userId }: Props) {
         setCreating = set(creating),
         error = Inject(ErrorHandler);
 
+    let count = 0
+    const changeCount = Select(todos, (val) => count++)
+    const setChangeCount = set(changeCount)
+
     Subscribe(userId, value => {
         Subscribe(loadTodosById(value), {
             next: setTodos,
@@ -67,14 +73,20 @@ function create({ userId }: Props) {
             }
         }
     });
+    Subscribe(todos, () => {
+        setChangeCount(get(changeCount) + 1)
+    })
 
-    Subscribe(todos, value => {
-        console.log('todos changed!', value);
+    Subscribe(() => {
+        console.log('todos changed!', get(todos))
+        console.log('change count:', changeCount.value)
+        creating.next(null)
     });
 
     function explode() {
         error.handleError(new Error("Boom!"))
     }
+
 
     return {
         todos,

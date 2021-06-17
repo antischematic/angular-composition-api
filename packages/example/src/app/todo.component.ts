@@ -12,7 +12,7 @@ import {
 } from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {State} from "./state";
-import {Emitter, Inject, Query, Subscribe, Value} from "@mmuscat/angular-composition-api";
+import {DETACHED, Emitter, Inject, Query, Subscribe, Value} from "@mmuscat/angular-composition-api";
 
 export interface Todo {
     id?: number
@@ -42,7 +42,7 @@ export class Props {
 @Component({
     selector: 'app-todo',
     templateUrl: './todo.component.html',
-    // providers: [DETACHED]
+    providers: [DETACHED]
 })
 export class TodoComponent extends State(Props) {
     toggleDone(value: boolean) {

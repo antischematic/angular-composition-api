@@ -12,9 +12,19 @@ import {
     Type,
     ɵɵdirectiveInject as directiveInject
 } from '@angular/core';
-import {Notification, Observable, PartialObserver, Subscribable, Subscription, TeardownLogic,} from 'rxjs';
+import {
+    BehaviorSubject, combineLatest,
+    Notification,
+    Observable,
+    PartialObserver,
+    Subject,
+    Subscribable,
+    Subscription,
+    TeardownLogic,
+} from 'rxjs';
 import {checkPhase, CheckPhase, CheckSubject, Context} from './interfaces';
-import {isObject} from "./utils";
+import {arrayCompare, computeValue, isObject} from "./utils";
+import {distinctUntilChanged, skip, switchMap, tap} from "rxjs/operators";
 
 let currentContext: any;
 const contextMap = new WeakMap<{}, Context>();
@@ -230,6 +240,46 @@ function next(injector: Injector, errorHandler: ErrorHandler, notification: Noti
     scheduler?.detectChanges()
 }
 
+
+export class ComputedSubject<T> extends BehaviorSubject<T> {
+    [checkPhase]: CheckPhase
+    source: Observable<any[]>
+    compute
+    deps: Subject<Set<any>>
+    subscription?: Subscription
+    subscribe(): Subscription
+    subscribe(observer: (value: T) => void): Subscription
+    subscribe(observer: PartialObserver<T>): Subscription
+    subscribe(observer?: any): Subscription {
+        if (this.observers.length === 0) {
+            this.subscription = this.source.subscribe((v) => {
+                const [value, deps] = computeValue(this.compute)
+                this.deps.next(deps)
+                this.next(value)
+            })
+        }
+        Notification.createNext(this.value).accept(observer)
+        return super.subscribe(observer).add(() => {
+            if (this.observers.length === 0) {
+                this.subscription?.unsubscribe()
+            }
+        })
+    }
+    constructor(compute: (value?: T) => T) {
+        const [value, deps] = computeValue(compute)
+        super(value)
+        this[checkPhase] = 0
+        this.compute = compute
+        this.deps = new BehaviorSubject(deps)
+        this.source = this.deps.pipe(
+            distinctUntilChanged(arrayCompare),
+            switchMap((deps) => combineLatest([...deps]).pipe(
+                skip(1),
+            ))
+        )
+    }
+}
+
 export class EffectObserver<T> {
     closed
     next(value: T | Notification<T>) {
@@ -251,7 +301,8 @@ export class EffectObserver<T> {
         const { source } = this
         if (typeof source === "function") {
             const { injector, errorHandler, scheduler } = this;
-            runInContext(this, next, injector, errorHandler, Notification.createNext(void 0), source, scheduler)
+            const fn = () => runInContext(this, next, injector, errorHandler, Notification.createNext(void 0), source, scheduler)
+            new ComputedSubject(fn).subscribe(this)
         } else {
             return source.subscribe(this);
         }
