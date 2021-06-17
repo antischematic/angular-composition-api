@@ -223,7 +223,7 @@ strategy):
 
 - On first render.
 - When inputs or reactive state changes (ie. props that implement `CheckSubject`).
-- When an event from is emitted from a view (if zone.js is enabled).
+- When an event binding emits (if zone.js is enabled).
 - When `Subscribe` emits a value, after calling the observer.
 
 Change detection might *not* occur if:
