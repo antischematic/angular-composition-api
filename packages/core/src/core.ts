@@ -24,7 +24,7 @@ import {
 } from 'rxjs';
 import {checkPhase, CheckPhase, CheckSubject, Context} from './interfaces';
 import {arrayCompare, computeValue, isObject} from "./utils";
-import {distinctUntilChanged, skip, switchMap, tap} from "rxjs/operators";
+import {distinctUntilChanged, skip, switchMap} from "rxjs/operators";
 
 let currentContext: any;
 const contextMap = new WeakMap<{}, Context>();
@@ -121,9 +121,6 @@ class Scheduler {
         if (this.dirty) {
             this.dirty = false
             try {
-                if (this.detach == true) {
-                    this.ref.detach()
-                }
                 this.ref.detectChanges()
             } catch (error) {
                 this.errorHandler.handleError(error)
@@ -136,6 +133,10 @@ class Scheduler {
     constructor(private ref: ChangeDetectorRef, private errorHandler: ErrorHandler, detach: Boolean | null) {
         this.dirty = false
         this.detach = detach
+        if (this.detach == true) {
+            this.ref.detach()
+            this.markForCheck()
+        }
     }
 }
 
@@ -189,9 +190,6 @@ export function check(key: CheckPhase) {
     for (const subject of context[key] ?? empty) {
         subject.check();
     }
-    if (key === 2) {
-        context.scheduler.detectChanges()
-    }
 }
 
 export function subscribe() {
@@ -219,13 +217,18 @@ export function addTeardown(teardown: TeardownLogic) {
 }
 
 export function addEffect<T>(
-    source: Subscribable<T> | (() => TeardownLogic),
+    source?: Subscribable<T> | (() => TeardownLogic),
     observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
 ): Subscription {
     const { effects, injector, error, scheduler } = getContext();
+    const subscription = new Subscription()
     const effectObserver = new EffectObserver<T>(source, observer, error, injector, scheduler);
+    addTeardown(subscription)
+    if (!source) {
+        return subscription
+    }
     effects.add(effectObserver);
-    return new Subscription().add(effectObserver)
+    return subscription.add(effectObserver)
 }
 
 function next(injector: Injector, errorHandler: ErrorHandler, notification: Notification<any>, observer: any, scheduler: Scheduler) {
@@ -243,24 +246,26 @@ function next(injector: Injector, errorHandler: ErrorHandler, notification: Noti
 
 export class ComputedSubject<T> extends BehaviorSubject<T> {
     [checkPhase]: CheckPhase
-    source: Observable<any[]>
     compute
     deps: Subject<Set<any>>
+    refs: number
     subscription?: Subscription
+    changes: Observable<any>
     subscribe(): Subscription
     subscribe(observer: (value: T) => void): Subscription
     subscribe(observer: PartialObserver<T>): Subscription
     subscribe(observer?: any): Subscription {
         if (this.observers.length === 0) {
-            this.subscription = this.source.subscribe((v) => {
+            this.subscription = this.changes.subscribe((v) => {
                 const [value, deps] = computeValue(this.compute)
                 this.deps.next(deps)
                 this.next(value)
             })
         }
-        Notification.createNext(this.value).accept(observer)
+        this.refs++
         return super.subscribe(observer).add(() => {
-            if (this.observers.length === 0) {
+            this.refs--
+            if (this.refs === 0) {
                 this.subscription?.unsubscribe()
             }
         })
@@ -271,12 +276,13 @@ export class ComputedSubject<T> extends BehaviorSubject<T> {
         this[checkPhase] = 0
         this.compute = compute
         this.deps = new BehaviorSubject(deps)
-        this.source = this.deps.pipe(
+        this.changes = this.deps.pipe(
             distinctUntilChanged(arrayCompare),
             switchMap((deps) => combineLatest([...deps]).pipe(
                 skip(1),
             ))
         )
+        this.refs = 0
     }
 }
 
@@ -384,20 +390,23 @@ export function Inject<T>(token: ProviderToken<T>, notFoundValue?: T, flags?: In
     return value
 }
 
+export function Subscribe<T>(): Subscription;
 export function Subscribe<T>(observer: () => TeardownLogic): Subscription;
 export function Subscribe<T>(
     source: Observable<T>,
     observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
 ): Subscription;
 export function Subscribe<T>(
-    source: Observable<T> | (() => TeardownLogic),
+    source?: Observable<T> | (() => TeardownLogic),
     observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
 ): Subscription {
     if (!currentContext) {
         if (typeof source === "function") {
             return new Subscription().add(source())
-        } else {
+        } else if (source) {
             return source.subscribe(observer as any)
+        } else {
+            return new Subscription()
         }
     }
     return addEffect(source, observer);

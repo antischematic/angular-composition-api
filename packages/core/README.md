@@ -365,23 +365,19 @@ Creates an `EventEmitter`.
 
 #### Select
 
-Computes a new `Value` from the given `Observable` and an optional `selector`.
-Alternatively accepts a reactive selector that is recomputed when its dependencies
-change. Also accepts a `ProviderToken<Observable>` that allows you
-to map the injected value.
+Creates a new `Value` from a reactive observer, `Observable` or `BehaviorSubject`, with an optional `selector`.
 
-With `Observable`
+With `BehaviorSubject`
 ```ts
 const state = Value({ count: 0 })
 const count = Select(state, (val) => val.count)
 ```
-With `ProviderToken`
+With `Observable`
 ```ts
-const State = new InjectionToken<Observable<{ count: number }>>("State")
-
-const count = Select(State, (val) => val.count)
+const store = Inject(Store)
+const count = Select(store.select((val) => val.count), 0)
 ```
-With reactive `selector`
+With reactive observer
 ```ts
 const state = Value({ count: 0 })
 const count = Select(() => get(state).count)
