@@ -18,6 +18,10 @@
       "@mmuscat/angular-error-boundary": [
         "./dist/boundary"
       ],
+      "@mmuscat/angular-actions": [
+        "dist/store/store",
+        "dist/store"
+      ],
     },
     "experimentalDecorators": true,
     "moduleResolution": "node",
