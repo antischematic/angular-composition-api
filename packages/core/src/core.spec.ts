@@ -21,8 +21,16 @@ import {
     NgModuleRef,
     Type,
 } from "@angular/core";
-import {ComponentFixture, TestBed} from "@angular/core/testing";
-import {defer, merge, of, throwError} from "rxjs";
+import {
+    ComponentFixture,
+    discardPeriodicTasks,
+    fakeAsync,
+    flush,
+    flushMicrotasks,
+    TestBed,
+    tick
+} from "@angular/core/testing";
+import {defer, interval, merge, of, Subject, throwError} from "rxjs";
 import {materialize, mergeMap} from "rxjs/operators";
 import {checkPhase, CheckSubject} from "./interfaces";
 import {Value} from "./common";
@@ -30,6 +38,7 @@ import objectContaining = jasmine.objectContaining;
 import createSpy = jasmine.createSpy;
 
 import {decorate} from "./core";
+import {Subscription} from "rxjs/internal/Subscription";
 
 export function State<T, U>(base: Type<T> & { create?: (base: T) => U}, _ = base = decorate(base)): State<T, U> {
     return base as any
@@ -544,12 +553,95 @@ describe("Subscribe", () => {
         expect(spy).toHaveBeenCalled()
     })
 
-    it("should subscribe when used out of context", () => {
+    it ("should cancel on abort signal", fakeAsync(() => {
         const spy = createSpy()
-        Subscribe(spy)
-        Subscribe(of(1), spy)
-        expect(spy).toHaveBeenCalledTimes(2)
-    })
+        const abortController = new AbortController()
+        const spy2 = createSpy()
+        const signal = new Subscription()
+        class Props {
+            static create() {
+                Subscribe(interval(1000), () => spy, abortController.signal)
+                Subscribe(interval(1000), () => spy2, signal)
+                return {}
+            }
+        }
+        @Component({ template: `` })
+        class Test extends State(Props) {}
+        const createView = defineView(Test)
+        createView().detectChanges()
+        tick(1000)
+        abortController.abort()
+        abortController.abort()
+        signal.unsubscribe()
+        signal.unsubscribe()
+        expect(spy).toHaveBeenCalledTimes(1)
+        expect(spy2).toHaveBeenCalledTimes(1)
+    }))
+
+    it ("should not cleanup until abort signal is called", fakeAsync(() => {
+        const spy = createSpy()
+        const signal = new Subscription()
+        class Props {
+            static create() {
+                Subscribe(interval(1000), (v) => spy, signal)
+                return {}
+            }
+        }
+        @Component({ template: `` })
+        class Test extends State(Props) {}
+        const createView = defineView(Test)
+        const view = createView()
+        view.detectChanges()
+        view.destroy()
+        tick(5000)
+        expect(spy).toHaveBeenCalledTimes(0)
+        signal.unsubscribe()
+        tick(5000)
+        expect(spy).toHaveBeenCalledTimes(5)
+    }))
+
+    it("should not cleanup inner subscriptions that are subscribed to an abort signal when view is destroyed", fakeAsync(() => {
+        const spy = createSpy()
+        const signal = new Subscription()
+        class Props {
+            static create() {
+                Subscribe(() => {
+                    Subscribe(interval(1000), (v) => spy, signal)
+                })
+                return {}
+            }
+        }
+        @Component({ template: `` })
+        class Test extends State(Props) {}
+        const createView = defineView(Test)
+        const view = createView()
+        view.detectChanges()
+        view.destroy()
+        tick(5000)
+        expect(spy).toHaveBeenCalledTimes(0)
+        signal.unsubscribe()
+        tick(5000)
+        expect(spy).toHaveBeenCalledTimes(5)
+    }))
+
+    it("should never cleanup subscriptions", fakeAsync(() => {
+        const spy = createSpy()
+        class Props {
+            static create() {
+                Subscribe(interval(1000), () => spy, null)
+                return {}
+            }
+        }
+        @Component({ template: `` })
+        class Test extends State(Props) {}
+        const createView = defineView(Test)
+        const view = createView()
+        view.detectChanges()
+        tick(10000)
+        view.destroy()
+        expect(spy).toHaveBeenCalledTimes(0)
+        discardPeriodicTasks()
+    }))
 })
 
 describe("Inject", () => {

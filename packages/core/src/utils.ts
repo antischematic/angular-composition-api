@@ -1,5 +1,6 @@
-import {PartialObserver, Subject, SubscriptionLike} from "rxjs";
+import {PartialObserver, Subject, Subscription, SubscriptionLike, TeardownLogic} from "rxjs";
 import {EventEmitter} from "@angular/core";
+import {UnsubscribeSignal} from "./interfaces";
 
 let previous: Set<any>
 let deps: Set<any>
@@ -67,4 +68,15 @@ export function set(
 
 export function Emitter<T>(async?: boolean): EventEmitter<T> {
     return new EventEmitter<T>(async);
+}
+
+export function addSignal(teardown: TeardownLogic, abort: UnsubscribeSignal) {
+    if (!abort || !teardown) return
+    const subscription = new Subscription().add(teardown)
+    if (abort instanceof AbortSignal) {
+        const listener = () => subscription.unsubscribe()
+        abort.addEventListener("abort", listener)
+    } else {
+        abort.add(subscription)
+    }
 }

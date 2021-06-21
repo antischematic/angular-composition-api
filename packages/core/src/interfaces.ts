@@ -1,5 +1,5 @@
 import {AbstractType, ErrorHandler, EventEmitter, Injector, Type} from '@angular/core';
-import {PartialObserver, Subscribable, Subscription, SubscriptionLike} from 'rxjs';
+import {Observable, PartialObserver, Subscribable, Subscription, SubscriptionLike} from 'rxjs';
 
 export const checkPhase = Symbol("checkPhase")
 
@@ -33,3 +33,5 @@ export type State<T, U> = Type<{
 } & {
     [key in keyof U]: U[key] extends CheckSubject<infer R> ? R : U[key] extends EventEmitter<infer R> ? (value: R) => void : U[key]
 }>
+
+export type UnsubscribeSignal = Subscription | AbortSignal | null

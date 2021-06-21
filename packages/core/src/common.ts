@@ -38,20 +38,11 @@ export class QueryListSubject<T> extends NgQueryList<T> implements CheckSubject<
 }
 
 export class ValueSubject<T> extends BehaviorSubject<T> implements CheckSubject<T> {
-    private upstreamSubscription?: Subscription
     readonly [checkPhase]: CheckPhase
 
-    unsubscribe() {
-        this.upstreamSubscription?.unsubscribe()
-        super.unsubscribe();
-    }
-
     constructor(value: T, check: CheckPhase = 0) {
-        super(value);
+        super(value instanceof BehaviorSubject ? value.value : value)
         this[checkPhase] = check
-        if (value instanceof BehaviorSubject) {
-            this.upstreamSubscription = Subscribe(value, this)
-        }
     }
 }
 

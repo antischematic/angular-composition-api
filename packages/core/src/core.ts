@@ -22,8 +22,8 @@ import {
     Subscription,
     TeardownLogic,
 } from 'rxjs';
-import {checkPhase, CheckPhase, CheckSubject, Context} from './interfaces';
-import {arrayCompare, computeValue, isObject} from "./utils";
+import {UnsubscribeSignal, checkPhase, CheckPhase, CheckSubject, Context} from './interfaces';
+import {arrayCompare, computeValue, isObject, addSignal} from "./utils";
 import {distinctUntilChanged, skip, switchMap} from "rxjs/operators";
 
 let currentContext: any;
@@ -198,7 +198,7 @@ export function subscribe() {
     const list = Array.from(effects);
     effects.clear();
     for (const effect of list) {
-        addTeardown(effect.subscribe())
+        effect.subscribe()
     }
     return true
 }
@@ -218,24 +218,35 @@ export function addTeardown(teardown: TeardownLogic) {
 
 export function addEffect<T>(
     source?: Subscribable<T> | (() => TeardownLogic),
-    observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
-): Subscription {
-    const { effects, injector, error, scheduler } = getContext();
+    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
+    signal?: UnsubscribeSignal
+): Subscription | void {
     const subscription = new Subscription()
-    const effectObserver = new EffectObserver<T>(source, observer, error, injector, scheduler);
-    addTeardown(subscription)
     if (!source) {
+        addTeardown(subscription)
         return subscription
     }
+    const { effects, injector, error, scheduler } = getContext();
+    const effectObserver = new EffectObserver<T>(source, observer, error, injector, scheduler, signal);
     effects.add(effectObserver);
-    return subscription.add(effectObserver)
+    if (signal || signal === null) {
+        addSignal(effectObserver, signal)
+    } else {
+        addTeardown(subscription)
+        return subscription.add(effectObserver)
+    }
 }
 
-function next(injector: Injector, errorHandler: ErrorHandler, notification: Notification<any>, observer: any, scheduler: Scheduler) {
+function next(injector: Injector, errorHandler: ErrorHandler, notification: Notification<any>, observer: any, scheduler: Scheduler, signal?: UnsubscribeSignal) {
     notification.accept(unsubscribe)
     createContext(currentContext, injector, errorHandler, scheduler)
     try {
-        addTeardown(notification.accept(observer as any))
+        const teardown = notification.accept(observer as any)
+        if (signal || signal === null) {
+            addSignal(teardown, signal)
+        } else {
+            addTeardown(teardown)
+        }
     } catch (error) {
         errorHandler.handleError(error)
     }
@@ -305,13 +316,18 @@ export class EffectObserver<T> {
     }
     subscribe() {
         const { source } = this
+        let subscription
         if (typeof source === "function") {
-            const { injector, errorHandler, scheduler } = this;
+            const { injector, errorHandler, scheduler, signal } = this;
             const fn = () => runInContext(this, next, injector, errorHandler, Notification.createNext(void 0), source, scheduler)
-            new ComputedSubject(fn).subscribe(this)
+            subscription = new ComputedSubject(fn).subscribe(this)
         } else {
-            return source.subscribe(this);
+            subscription = source.subscribe(this);
         }
+        if (this.signal) {
+            return addSignal(subscription, this.signal)
+        }
+        return subscription
     }
     unsubscribe() {
         if (this.closed) return
@@ -319,12 +335,12 @@ export class EffectObserver<T> {
         runInContext(this, unsubscribe)
     }
     private call(notification: Notification<T>) {
-        const { observer, injector, errorHandler, scheduler } = this;
+        const { observer, injector, errorHandler, scheduler, signal } = this;
         const isError = notification.kind === 'E';
         let errorHandled = !isError;
         errorHandled = errorHandled || observer && 'error' in observer;
         if (observer) {
-            runInContext(this, next, injector, errorHandler, notification, observer, scheduler)
+            runInContext(this, next, injector, errorHandler, notification, observer, scheduler, signal)
         }
         if (!errorHandled) {
             errorHandler.handleError(notification.error);
@@ -335,10 +351,10 @@ export class EffectObserver<T> {
         private observer: any,
         private errorHandler: ErrorHandler,
         private injector: Injector,
-        private scheduler: Scheduler
+        private scheduler: Scheduler,
+        private signal?: UnsubscribeSignal,
     ) {
         this.closed = false
-        addTeardown(this)
         createContext(this, injector, errorHandler, scheduler)
     }
 }
@@ -392,22 +408,20 @@ export function Inject<T>(token: ProviderToken<T>, notFoundValue?: T, flags?: In
 
 export function Subscribe<T>(): Subscription;
 export function Subscribe<T>(observer: () => TeardownLogic): Subscription;
+export function Subscribe<T>(observer: () => TeardownLogic): void;
 export function Subscribe<T>(
     source: Observable<T>,
-    observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
+    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
 ): Subscription;
 export function Subscribe<T>(
+    source: Observable<T>,
+    observer: PartialObserver<T> | ((value: T) => TeardownLogic),
+    signal: UnsubscribeSignal
+): void
+export function Subscribe<T>(
     source?: Observable<T> | (() => TeardownLogic),
-    observer?: PartialObserver<T> | ((value: T) => TeardownLogic)
-): Subscription {
-    if (!currentContext) {
-        if (typeof source === "function") {
-            return new Subscription().add(source())
-        } else if (source) {
-            return source.subscribe(observer as any)
-        } else {
-            return new Subscription()
-        }
-    }
-    return addEffect(source, observer);
+    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
+    signal?: UnsubscribeSignal
+): Subscription | void {
+    return addEffect(source, observer, signal);
 }

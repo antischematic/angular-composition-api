@@ -21,20 +21,19 @@ yarn add @mmuscat/angular-composition-api
 
 ### Known Issues
 
-The Angular compiler only discovers `@Input` or `@Output` metadata on properties that
-can be statically resolved. Unfortunately this doesn't work with mixins, causing template binding
-errors. A couple of workarounds are listed below.
+The Angular compiler only discovers `@Input` or `@Output` metadata on properties that can be statically resolved.
+Unfortunately this doesn't work with mixins, causing template binding errors. A couple of workarounds are listed below.
 
 <details>
     <summary>Trick the compiler</summary>
-    
-To work around this issue you can define a mixin that tricks the compiler into thinking
-it's a static call. In your project, create a file with the following code:
+
+To work around this issue you can define a mixin that tricks the compiler into thinking it's a static call. In your
+project, create a file with the following code:
 
 ```ts
 import {decorate, State} from "@mmuscat/angular-composition-api";
 
-export function State<T, U>(base: Type<T> & { create?: (base: T) => U}, _ = base = decorate(base)): State<T, U> {
+export function State<T, U>(base: Type<T> & { create?: (base: T) => U }, _ = base = decorate(base)): State<T, U> {
     return base as any
 }
 ```
@@ -44,41 +43,42 @@ Then use it in your application:
 ```ts
 @Directive()
 class Props {
-    @Input() 
+    @Input()
     count = Value(0)
-    
-    @Output() 
+
+    @Output()
     countChange = Emitter<number>()
 
     @ContentChild(TemplateRef)
     content = Query<TemplateRef>()
-    
+
     static create() {
         // etc...
     }
 }
 
 @Component()
-export class MyComponent extends State(Props) {}
+export class MyComponent extends State(Props) {
+}
 ```
 
-While this works, it could potentially break if the underlying compiler implementation changes.
-Note that the mixin functions needs to be concrete, it can't be imported from a compiled library
-or application (ie. imports from declaration files won't work).
+While this works, it could potentially break if the underlying compiler implementation changes. Note that the mixin
+functions needs to be concrete, it can't be imported from a compiled library or application (ie. imports from
+declaration files won't work).
 </details>
 
 <details>
     <summary>Slightly safer option</summary>
 
-Same as above, except `inputs` and `outputs` are added to the `@Component` or `@Directive` metadata instead.
-This doesn't fix the mixin problem, but it might help if the language service gives you issues.
-You lose type inference on inputs though, which will be cast to `any`.
+Same as above, except `inputs` and `outputs` are added to the `@Component` or `@Directive` metadata instead. This
+doesn't fix the mixin problem, but it might help if the language service gives you issues. You lose type inference on
+inputs though, which will be cast to `any`.
 
 ```ts
 class Props {
     count = Value(0)
     countChange = Emitter<number>()
-    
+
     @ContentChild(TemplateRef)
     content = Query<TemplateRef>()
 
@@ -91,15 +91,17 @@ class Props {
     inputs: ["count"],
     outputs: ["countChange"]
 })
-export class MyComponent extends State(Props) {}
+export class MyComponent extends State(Props) {
+}
 ```
+
 </details>
 
 <details>
     <summary>IDE language service</summary>
 
-If your IDE is complaining about types, either disable the inspection for input bindings (Jetbrains),
-or use the second option above to suppress template errors.
+If your IDE is complaining about types, either disable the inspection for input bindings (Jetbrains), or use the second
+option above to suppress template errors.
 
 VSCode should work fine with the latest updates.
 
@@ -120,7 +122,7 @@ class Props {
     @Input() count = Value(0) // Value<number> becomes `number`
 
     // 2. Create a factory function.
-    static create({ count }: Props) {
+    static create({count}: Props) {
         const setCount = set(count)
         const increment = Emitter()
         const disabled = Value(false)
@@ -145,7 +147,8 @@ class Props {
         <button (click)="increment()">Increment</button>
     `
 })
-export class Counter extends State(Props) {}
+export class Counter extends State(Props) {
+}
 ```
 
 ### Service
@@ -192,7 +195,8 @@ class Props {
 @Component({
     providers: [LoadTodosByUserId]
 })
-export class Todos extends State(Props) {}
+export class Todos extends State(Props) {
+}
 
 // 5. Override provider if needed
 
@@ -208,13 +212,10 @@ const CustomProvider = {
 
 #### State
 
-Creates a context-aware class from the provided base class. Inputs,
-outputs, queries and other props are defined as fields on the base class. 
-The static `create` method takes the instance of the base class as an
-argument and returns a state object that is merged with the base class.
-Reactive values created with `Value` are unwrapped. If returned
-from the static `create` method, `Emitter` is unwrapped to a plain
-function. Emitters in the base class are not unwrapped.
+Creates a context-aware class from the provided base class. Inputs, outputs, queries and other props are defined as
+fields on the base class. The static `create` method takes the instance of the base class as an argument and returns a
+state object that is merged with the base class. Reactive values created with `Value` are unwrapped. If returned from
+the static `create` method, `Emitter` is unwrapped to a plain function. Emitters in the base class are not unwrapped.
 
 **Change Detection**
 
@@ -228,17 +229,16 @@ strategy):
 
 Change detection might *not* occur if:
 
-- Reactive state is mutated outside a reactive context. For example,
-if you manually create a component and mutate a value, you must call
+- Reactive state is mutated outside a reactive context. For example, if you manually create a component and mutate a
+  value, you must call
   `detectChanges` to propagate the change.
 
-Updates to reactive state are not immediately reflected in the view.
-If you need an immediate update, inject the `ChangeDetectorRef` and
-call `detectChanges` after updating a value.
+Updates to reactive state are not immediately reflected in the view. If you need an immediate update, inject
+the `ChangeDetectorRef` and call `detectChanges` after updating a value.
 
 **Detached mode**
 
-Components and directives that extend `State` and provide the 
+Components and directives that extend `State` and provide the
 `DETACHED` token will have their `ChangeDetectorRef` detached from parent views.
 
 #### Service
@@ -249,32 +249,30 @@ Creates a context-aware, tree-shakable service from the provided factory functio
 
 #### Inject
 
-Equivalent to `Injector.get(ProviderToken)`. Only works inside the context of a `State` or `Service`. Throws if called
-outside a valid context.
+Equivalent to `Injector.get(ProviderToken)`. Throws `CallContextError` if called outside a `State`
+or `Service` factory.
 
 #### Subscribe
 
 Registers an effect in the current context. If `Subscribe` is called inside a `State`, the subscription is deferred
 until the view has mounted. If it is called inside a `Service` or nested in another `Subscribe`, the subscription is
-invoked immediately after the containing function has executed.
-
-If called outside a valid context, creates a subscription which needs to be handled manually.
+invoked immediately after the containing function has executed. Throws `CallContextError` if called outside a `State`
+or `Service` factory. Returns a subscription to that can be used to manually stop the effect, or void if passed an abort
+signal.
 
 **Reactive Observers**
 
-When using `Subscribe` with a single function, it
-will track reactive dependencies and call the function recursively
-when those dependencies emit a new value. For example, the following two snippets
-are functionally equivalent.
+When using `Subscribe` with a single function, it will track reactive dependencies and call the function recursively
+when those dependencies emit a new value. For example, the following two snippets are functionally equivalent.
 
 ```ts
 const firstName = Value("John")
 const lastName = Value("Smith")
 
 Subscribe(firstName, () => {
-  console.log(
-    `Full name: ${firstName.value} ${lastName.value}`
-  )
+    console.log(
+        `Full name: ${firstName.value} ${lastName.value}`
+    )
 })
 ```
 
@@ -283,16 +281,53 @@ const firstName = Value("John")
 const lastName = Value("Smith")
 
 Subscribe(() => {
-  console.log(
-    `Full name: ${get(firstName)} ${lastName.value}`
-  )
+    console.log(
+        `Full name: ${get(firstName)} ${lastName.value}`
+    )
 })
 ```
 
 In both of the examples the observer is only called when `firstName`
-is updated. Dependencies are tracked based on calls to `get`. To read
-a `Value` without marking it as a dependency, use the `value`
+is updated. Dependencies are tracked based on calls to `get`. To read a `Value` without marking it as a dependency, use
+the `value`
 property accessor.
+
+**Abort Signals**
+
+By default, subscriptions returned by `Subscribe` are subscribed to the lifecycle of a
+`State`, `Service` or `Subscribe` they were created in. You can override this behavior by supplying
+an `UnsubscribeSignal` to `Subscribe`. This can either be a `Subscription` or an `AbortSignal`. In this mode, the
+subscription is kept alive even if the context is destroyed, and teardown logic won't execute until the abort signal is
+sent by calling `abort` on
+`AbortController` or `unsubscribe` on `Subscription`.
+
+For example, you can use `UnsubscribeSignal` to merge inner streams instead of switching between them (the default
+behavior).
+
+```ts
+class Props {
+    static create() {
+        const ping = Inject(PingService)
+        const untilDestroy = Subscribe() // cancels when view is destroyed
+        const state = Value<State>()
+      
+        Subscribe(interval(1000), () => {
+            Subscribe(ping.pong(), state)
+        }, untilDestroy)
+      
+        return {
+            state
+        }
+    }
+}
+
+@Component()
+export class Pinger extends State(Props) {}
+```
+
+In this example, a new inner stream is created every second and will not
+be disposed even if it takes longer than 1 second to complete. If the
+view is destroyed, then all remaining streams are unsubscribed.
 
 ---
 
@@ -303,33 +338,32 @@ a `CallContextError` to be thrown.
 
 #### Value
 
-Creates a `BehaviorSubject`. Values are synced with the
-view during the `ngDoCheck` lifecycle hook.
+Creates a `BehaviorSubject`. Values are synced with the view during the `ngDoCheck` lifecycle hook.
 
 #### Query
 
-Creates a `Value` that will receive a `ContentChild` or `ViewChild`.
-Pass `true` for static queries. Pass `false` for dynamic `ViewChild` queries.
+Creates a `Value` that will receive a `ContentChild` or `ViewChild`. Pass `true` for static queries. Pass `false` for
+dynamic `ViewChild` queries.
 
 ```ts
 @Directive()
 class Props {
-  @ContentChild(TemplateRef, { static: true })
-  child = Query<TemplateRef<any>>(true)
-  // or
-  @ContentChild(TemplateRef)
-  child = Query<TemplateRef<any>>()
-  // or
-  @ViewChild(TemplateRef)
-  child = Query<TemplateRef<any>>(false)
-  
-  static create({ child }: Props) {
-    Subscribe(child, (value) => {
-      if (value) {
-        console.log(value)
-      }
-    })
-  }
+    @ContentChild(TemplateRef, {static: true})
+    child = Query<TemplateRef<any>>(true)
+    // or
+    @ContentChild(TemplateRef)
+    child = Query<TemplateRef<any>>()
+    // or
+    @ViewChild(TemplateRef)
+    child = Query<TemplateRef<any>>(false)
+
+    static create({child}: Props) {
+        Subscribe(child, (value) => {
+            if (value) {
+                console.log(value)
+            }
+        })
+    }
 }
 ```
 
@@ -338,26 +372,24 @@ class Props {
 Creates a `QueryListSubject` that will receive `ContentChildren` or `ViewChildren`. Subscribes to the underlying query
 list when it becomes available. Pass `false` when used with `ViewChildren` so that it syncs correctly.
 
-
 ```ts
 @Directive()
 class Props {
-  @ContentChildren(TemplateRef)
-  children = QueryList<TemplateRef<any>>()
-  // or
-  @ViewChildren(TemplateRef)
-  children = QueryList<TemplateRef<any>>(false)
-  
-  static create({ children }: Props) {
-    Subscribe(() => {
-      for (const child of get(children)) {
-          console.log(child)
-      }
-    })
-  }
+    @ContentChildren(TemplateRef)
+    children = QueryList<TemplateRef<any>>()
+    // or
+    @ViewChildren(TemplateRef)
+    children = QueryList<TemplateRef<any>>(false)
+
+    static create({children}: Props) {
+        Subscribe(() => {
+            for (const child of get(children)) {
+                console.log(child)
+            }
+        })
+    }
 }
 ```
-
 
 #### Emitter
 
@@ -368,18 +400,23 @@ Creates an `EventEmitter`.
 Creates a new `Value` from a reactive observer, `Observable` or `BehaviorSubject`, with an optional `selector`.
 
 With `BehaviorSubject`
+
 ```ts
-const state = Value({ count: 0 })
+const state = Value({count: 0})
 const count = Select(state, (val) => val.count)
 ```
+
 With `Observable`
+
 ```ts
 const store = Inject(Store)
 const count = Select(store.select((val) => val.count), 0)
 ```
+
 With reactive observer
+
 ```ts
-const state = Value({ count: 0 })
+const state = Value({count: 0})
 const count = Select(() => get(state).count)
 ```
 
@@ -389,8 +426,7 @@ const count = Select(() => get(state).count)
 
 #### get
 
-Get the current value of a `Value`. If used inside a reactive observer,
-tracks the `Value` as a dependency.
+Get the current value of a `Value`. If used inside a reactive observer, tracks the `Value` as a dependency.
 
 #### set
 
@@ -398,7 +434,7 @@ Sets a `Value` or triggers an `Emitter`, otherwise returns a function that will 
 
 ```ts
 const count = Value(0),
-   setCount = set(count)
+    setCount = set(count)
 
 setCount(10)
 set(count, 10)
