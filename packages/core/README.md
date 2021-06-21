@@ -312,8 +312,8 @@ class Props {
         const state = Value<State>()
       
         Subscribe(interval(1000), () => {
-            Subscribe(ping.pong(), state)
-        }, untilDestroy)
+            Subscribe(ping.pong(), state, untilDestroy)
+        })
       
         return {
             state
@@ -406,7 +406,7 @@ const state = Value({count: 0})
 const count = Select(state, (val) => val.count)
 ```
 
-With `Observable`
+With `Observable` and initial value
 
 ```ts
 const store = Inject(Store)
