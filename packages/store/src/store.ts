@@ -1,6 +1,17 @@
-import {MonoTypeOperatorFunction, of, OperatorFunction, queueScheduler, scheduled, Subject, throwError} from "rxjs";
+import {
+    BehaviorSubject,
+    isObservable,
+    MonoTypeOperatorFunction,
+    Observable,
+    of,
+    OperatorFunction,
+    queueScheduler,
+    scheduled,
+    Subject,
+    throwError
+} from "rxjs";
 import {Subscribe, Value, ValueSubject} from "@mmuscat/angular-composition-api";
-import {catchError, filter, map} from "rxjs/operators";
+import {catchError, filter, map, switchMap} from "rxjs/operators";
 
 type ActionDispatcher<T extends ActionFactory, TKeys extends string = T["kind"]> = {
     [key in TKeys]: (value: T extends ActionFactory<key, infer R> ? ReturnType<R> : never) => void
@@ -81,31 +92,37 @@ function kindOf<T extends string>(...types: ActionFactory<T>[]): MonoTypeOperato
     }
 }
 
-function UseEffects<T extends StoreSubject<any>, U extends Effect<any, EffectHandler<T extends StoreSubject<any, infer R> ? StateRef<R> : StateRef<unknown>, any>>[]>(dispatch: T, effects: U) {
+function UseEffects<T extends StoreSubject<any>, U extends Effect<any, EffectHandler<T extends StoreSubject<any, infer R> ? ValueSubject<R> : ValueSubject<unknown>, any>>[]>(dispatch: T, effects: U) {
     const cleanup = Subscribe()
     const stateRef = Object.freeze(Object.create(dispatch.state))
     for (const effect of effects) {
         const operator = effect.factory(stateRef)
-        const kinds = Array.isArray(effect.action) ? effect.action : [effect.action]
-        cleanup.add(scheduled(dispatch, queueScheduler).pipe(
-            kindOf(...kinds),
-            operator
-        ).subscribe(dispatch))
+        if (isObservable(operator)) {
+            cleanup.add(operator.subscribe(dispatch))
+        } else {
+            const kinds = Array.isArray(effect.action) ? effect.action : [effect.action]
+            cleanup.add(scheduled(dispatch, queueScheduler).pipe(
+                kindOf(...kinds),
+                operator
+            ).subscribe(dispatch))
+        }
     }
     return cleanup
 }
 
-type EffectHandler<T, U> = (state: T) => OperatorFunction<U, Action>
+type EffectHandler<T, U> = (state: T) => OperatorFunction<U, Action> | Observable<Action>
 
 export interface Effect<T extends ActionFactory<any>, U extends EffectHandler<any, ReturnType<T>>> {
-    action: T,
+    action?: T,
     factory: U
 }
 
+function Effect<U extends (state: any) => OperatorFunction<Action, Action>>(factory: U): Effect<never, U>
+function Effect<U extends (state: any) => Observable<Action>>(factory: U): Effect<never, U>
 function Effect<T extends ActionFactory<any, any>, U extends (state: any) => OperatorFunction<ReturnType<T>, Action>>(action: T, factory: U): Effect<T, U>
 function Effect<T extends ActionFactory<any, any>, U extends (state: any) => OperatorFunction<ReturnType<T>, Action>>(action: T[], factory: U): Effect<T, U>
-function Effect<T extends ActionFactory<any, any>, U extends (state: any) => OperatorFunction<ReturnType<T>, Action>>
-(action: T, factory: U): Effect<T, U> {
+function Effect(actionOrFactory: any, factory: any = actionOrFactory): Effect<any, any> {
+    const action = arguments.length === 2 ? actionOrFactory : void 0
     return {
         action,
         factory
@@ -122,5 +139,3 @@ function action<T extends ActionFactory, U extends ActionFactory>(action: T, err
         )
     }
 }
-
-export type StateRef<T> = Readonly<{ value: T }>

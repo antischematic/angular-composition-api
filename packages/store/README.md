@@ -122,7 +122,37 @@ Creates an action factory of a `kind`, with or without data.
 
 ### Effect
 
-Creates an effect factory.
+Creates an effect factory. Effects can return an `OperatorFunction` or an `Observable` of actions to
+be dispatched to `Store`. Receives the store's `Value` as an argument.
+
+With `Observable`
+
+```ts
+const effect = Effect((state: ValueSubject<any>) => {
+    return of(Increment())
+})
+```
+
+With `OperatorFunction`
+
+```ts
+const effect = Effect((state: ValueSubject<any>) => {
+    return mergeMap((action: Action) =>
+        of(Increment())
+    )
+})
+```
+
+With action filter
+
+```ts
+
+const effect = Effect(Increment, (state: ValueSubject<any>) => {
+    return mergeMap((action) =>
+        of(Multiply(action.data))
+    )
+})
+```
 
 ### Store
 

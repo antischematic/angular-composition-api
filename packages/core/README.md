@@ -298,8 +298,7 @@ By default, subscriptions returned by `Subscribe` are subscribed to the lifecycl
 `State`, `Service` or `Subscribe` they were created in. You can override this behavior by supplying
 an `UnsubscribeSignal` to `Subscribe`. This can either be a `Subscription` or an `AbortSignal`. In this mode, the
 subscription is kept alive even if the context is destroyed, and teardown logic won't execute until the abort signal is
-sent by calling `abort` on
-`AbortController` or `unsubscribe` on `Subscription`.
+sent by calling `abort` on `AbortController` or `unsubscribe` on `Subscription`.
 
 For example, you can use `UnsubscribeSignal` to merge inner streams instead of switching between them (the default
 behavior).
@@ -310,11 +309,11 @@ class Props {
         const ping = Inject(PingService)
         const untilDestroy = Subscribe() // cancels when view is destroyed
         const state = Value<State>()
-      
+
         Subscribe(interval(1000), () => {
             Subscribe(ping.pong(), state, untilDestroy)
         })
-      
+
         return {
             state
         }
@@ -322,12 +321,12 @@ class Props {
 }
 
 @Component()
-export class Pinger extends State(Props) {}
+export class Pinger extends State(Props) {
+}
 ```
 
-In this example, a new inner stream is created every second and will not
-be disposed even if it takes longer than 1 second to complete. If the
-view is destroyed, then all remaining streams are unsubscribed.
+In this example, a new inner stream is created every second and will not be disposed even if it takes longer than 1
+second to complete. If the view is destroyed, then all remaining streams are unsubscribed.
 
 ---
 
