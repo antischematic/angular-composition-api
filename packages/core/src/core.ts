@@ -229,9 +229,9 @@ export function addEffect<T>(
     const { effects, injector, error, scheduler } = getContext();
     const effectObserver = new EffectObserver<T>(source, observer, error, injector, scheduler, signal);
     effects.add(effectObserver);
-    if (signal || signal === null) {
+    if (signal) {
         addSignal(effectObserver, signal)
-    } else {
+    } else if (signal !== null) {
         addTeardown(subscription)
         return subscription.add(effectObserver)
     }
@@ -242,9 +242,9 @@ function next(injector: Injector, errorHandler: ErrorHandler, notification: Noti
     createContext(currentContext, injector, errorHandler, scheduler)
     try {
         const teardown = notification.accept(observer as any)
-        if (signal || signal === null) {
+        if (signal) {
             addSignal(teardown, signal)
-        } else {
+        } else if (signal !== null) {
             addTeardown(teardown)
         }
     } catch (error) {
@@ -266,7 +266,7 @@ export class ComputedSubject<T> extends BehaviorSubject<T> {
     subscribe(observer: (value: T) => void): Subscription
     subscribe(observer: PartialObserver<T>): Subscription
     subscribe(observer?: any): Subscription {
-        if (this.observers.length === 0) {
+        if (this.refs === 0) {
             this.subscription = this.changes.subscribe((v) => {
                 const [value, deps] = computeValue(this.compute)
                 this.deps.next(deps)
@@ -318,7 +318,7 @@ export class EffectObserver<T> {
         const { source } = this
         let subscription
         if (typeof source === "function") {
-            const { injector, errorHandler, scheduler, signal } = this;
+            const { injector, errorHandler, scheduler } = this;
             const fn = () => runInContext(this, next, injector, errorHandler, Notification.createNext(void 0), source, scheduler)
             subscription = new ComputedSubject(fn).subscribe(this)
         } else {
@@ -406,13 +406,31 @@ export function Inject<T>(token: ProviderToken<T>, notFoundValue?: T, flags?: In
     return value
 }
 
+function isSignal(value: any): value is UnsubscribeSignal {
+    return value === null || value instanceof Subscription || value instanceof AbortSignal
+}
+
+function isObserver(observer: any): observer is PartialObserver<any> | Function {
+    return observer && "next" in observer || typeof observer === "function" ? observer : void 0
+}
+
 export function Subscribe<T>(): Subscription;
 export function Subscribe<T>(observer: () => TeardownLogic): Subscription;
-export function Subscribe<T>(observer: () => TeardownLogic): void;
 export function Subscribe<T>(
     source: Observable<T>,
-    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
 ): Subscription;
+export function Subscribe<T>(
+    source: Observable<T>,
+    observer: PartialObserver<T>,
+): Subscription;
+export function Subscribe<T>(
+    source: Observable<T>,
+    observer: (value: T) => TeardownLogic,
+): Subscription;
+export function Subscribe<T>(
+    source: Observable<T>,
+    signal: UnsubscribeSignal,
+): void;
 export function Subscribe<T>(
     source: Observable<T>,
     observer: PartialObserver<T> | ((value: T) => TeardownLogic),
@@ -420,8 +438,10 @@ export function Subscribe<T>(
 ): void
 export function Subscribe<T>(
     source?: Observable<T> | (() => TeardownLogic),
-    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
+    observerOrSignal?: PartialObserver<T> | ((value: T) => TeardownLogic) | UnsubscribeSignal,
     signal?: UnsubscribeSignal
 ): Subscription | void {
+    const observer = isObserver(observerOrSignal) ? observerOrSignal : void 0
+    signal = isSignal(observerOrSignal) ? observerOrSignal : signal
     return addEffect(source, observer, signal);
 }
