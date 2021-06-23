@@ -48,7 +48,7 @@ Configure a store in your directive, component or service.
 
 ```ts
 function create() {
-    const { state, action } = Store(reducer, 0, actions)
+    const { state, action } = Store(reducer, Value(0), actions)
 
     action.Increment()
     
@@ -104,7 +104,7 @@ function reducer(state: Todo[], action: Actions) {
 }
 
 function create() {
-    const initialState: Todo[] = []
+    const initialState = Value<Todo>([])
     const store = Store(reducer, initialState, actions)
     
     UseEffects(store, effects)
@@ -154,6 +154,35 @@ const effect = Effect(Increment, (state: ValueSubject<any>) => {
 })
 ```
 
+**Dependency Injection**
+
+Use `Inject` from [Angular Composition API](https://github.com/mmuscat/angular-composition-api/tree/master/packages/core#Inject) to get dependencies inside your effects.
+
+```ts
+import {Inject} from "@mmuscat/angular-composition";
+
+const effect = Effect((state: ValueSubject<any>) => {
+    const http = Inject(HttpClient)
+    return http.get("//example.com/api/v1/todos").pipe(
+        action(TodosLoaded)
+    )
+})
+```
+
+If using effects without Angular Composition API, get dependencies with `inject`
+instead.
+
+```ts
+import {inject} from "@angular/core";
+
+const effect = Effect((state: ValueSubject<any>) => {
+    const http = inject(HttpClient)
+    return http.get("//example.com/api/v1/todos").pipe(
+        action(TodosLoaded)
+    )
+})
+```
+
 ### Store
 
 Takes a `reducer`, `initialValue` and `actions` array. Returns a store
@@ -164,8 +193,19 @@ returned store is an observable of actions that have been broadcast,
 
 ### UseEffects
 
-Run an array of `effects` against the given store and return a subscription
-that can be used to stop them.
+Run an array of `effects` against actions emitted by a `Store`.
+
+```ts
+UseEffects(store, effects)
+```
+
+Effects can also be used without [Angular Composition API](https://github.com/mmuscat/angular-composition-api/tree/master/packages/core)
+by calling `useEffect` instead. Note the additional `injector` argument. You must dispose the
+returned subscription to stop running effects.
+
+```
+const subscription = useEffects(store, effects, injector)
+```
 
 ### kindOf
 
