@@ -27,7 +27,7 @@ const actions = [CreateTodo]
 
 Define the action union type for your reducer
 
-```
+```ts
 type Actions = ActionUnion<typeof actions>
 ```
 
@@ -56,7 +56,7 @@ function create() {
     })
 
     function increment() {
-        action.Increment()
+        store.action.Increment()
     }
 
     return {
@@ -167,7 +167,7 @@ const effect = Effect(Increment, (state: ValueSubject<any>) => {
 Use `Inject` from [Angular Composition API](https://github.com/mmuscat/angular-composition-api/tree/master/packages/core#Inject) to get dependencies inside your effects.
 
 ```ts
-import {Inject} from "@mmuscat/angular-composition";
+import {Inject} from "@mmuscat/angular-composition-api";
 
 const effect = Effect((state: ValueSubject<any>) => {
     const http = Inject(HttpClient)
