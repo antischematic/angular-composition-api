@@ -18,19 +18,19 @@ type ActionDispatcher<T extends ActionFactory, TKeys extends string = T["kind"]>
     [key in TKeys]: (value: T extends ActionFactory<key, infer R> ? ReturnType<R> : never) => void
 }
 
-export class StoreSubject<T extends Action, U extends BehaviorSubject<any> = any, V extends ActionFactory<any, any>[] = []> extends Subject<T> {
-    #reducer: (state: U, action: T) => U
+export class StoreSubject<T extends Action<any, any> = Action, U extends BehaviorSubject<W> = any, V extends ActionFactory<any, any>[] = [], W = any> extends Subject<T> {
+    reducer: (state: W, action: T) => W
     next(value: T): void
     next(value: T extends Action<infer R> ? { kind: R } : never): void
     next(value: any) {
-        this.state.next(this.#reducer(this.state.value, value))
+        this.state.next(this.reducer(this.state.value, value))
         super.next(value)
     }
     action: ActionDispatcher<V[number]>
-    state: U
-    constructor(state: U, reducer: (state: U, action: T) => U, actions: V) {
+    state: BehaviorSubject<W>
+    constructor(state: BehaviorSubject<W>, reducer: (state: W, action: T) => W, actions: V) {
         super()
-        this.#reducer = reducer
+        this.reducer = reducer
         this.state = state
         this.action = actions.reduce((acc, next) => {
             acc[next.kind] = (...args: any[]) => {
@@ -38,44 +38,36 @@ export class StoreSubject<T extends Action, U extends BehaviorSubject<any> = any
             }
             return acc
         }, {} as any)
-        return Object.create(this, {
-            action: {
-                enumerable: true,
-                value: this.action
-            },
-            state: {
-                enumerable: true,
-                value: this.state
-            }
-        })
     }
 }
 
 type TArgs<T> = T extends (...args: infer R) => any ? R : never
 
-export interface Action<T extends string = string, U = unknown> {
-    readonly kind: T
-    readonly data: U
-}
+export type Action<T extends string | ActionFactory = string, U = unknown> =
+    T extends string ? {
+        readonly kind: T
+        readonly data: U
+    } : T extends ActionFactory ? ReturnType<T> : never
+
 
 export type ActionFactory<T extends string = string, U extends (...args: any[]) => any = (...args: any[]) => unknown> = {
     readonly kind: T,
     (...args: TArgs<U>): Action<T, ReturnType<U>>
 }
 
-export function Store<T extends BehaviorSubject<any>, U extends (ActionFactory)[]>(reducer: (state: T, action: ActionUnion<U>) => T, initialValue: T, actions?: U): StoreSubject<ActionUnion<U>, T, U>
-export function Store<T extends BehaviorSubject<any>, U extends Action<any, any>>(reducer: (state: T, action: U) => T, initialValue: T): StoreSubject<U, T>
-export function Store<T extends BehaviorSubject<any>>(reducer: (state: T, action: Action<any>) => T, initialValue: T): StoreSubject<Action<any>, T>
-export function Store<T extends BehaviorSubject<any>>(reducer: (state: T, action: Action<any>) => T, initialValue: T, actions = []): StoreSubject<Action<any>, T> {
+export function Store<T extends BehaviorSubject<V>, U extends (ActionFactory)[], V>(reducer: (state: V, action: ActionUnion<U>) => V, initialValue: T, actions?: U): StoreSubject<ActionUnion<U>, T, U, V>
+export function Store<T extends BehaviorSubject<V>, U extends Action<any, any>, V>(reducer: (state: V, action: U) => V, initialValue: T): StoreSubject<U, T, [], V>
+export function Store<T extends BehaviorSubject<U>, U>(reducer: (state: U, action: Action<any>) => U, initialValue: T): StoreSubject<Action<any>, T, [], U>
+export function Store<T extends BehaviorSubject<any>>(reducer: (state: any, action: Action<any>) => any, initialValue: T, actions = []): StoreSubject<Action<any>, T> {
     return new StoreSubject<any, T, any[]>(initialValue, reducer, actions)
 }
 
-export type ActionUnion<T extends ActionFactory[]> = ReturnType<T[number]> & { kind: T[number]["kind"]}
+export type ActionUnion<T extends ActionFactory[]> = ReturnType<T[number]>
 
 export function Action<T extends string, U extends (...args: any) => any>(kind: T): ActionFactory<T, () => void>
 export function Action<T extends string, U extends (...args: any) => any>(kind: T, data: U): ActionFactory<T, U>
-export function Action<T extends string, U extends (...args: any) => any>(kind: T, data: U = ((arg: any) => arg) as any): ActionFactory<T, U> {
-    function createAction(...args: TArgs<U>[]) {
+export function Action<T extends string, U extends (...args: any) => any>(kind: T, data: U = ((arg: any) => arg) as any) {
+    function createAction(...args: TArgs<U>[]): Action {
         return {
             kind,
             data: data(...args)
@@ -85,7 +77,7 @@ export function Action<T extends string, U extends (...args: any) => any>(kind: 
     return createAction
 }
 
-export function kindOf<T extends string>(...types: ActionFactory<T>[]): MonoTypeOperatorFunction<Action<T>> {
+export function kindOf<T extends ActionFactory[], U extends ActionUnion<T>>(...types: T): OperatorFunction<any, ActionUnion<T>> {
     return function (source) {
         return source.pipe(
             filter((value) => types.some(type => value.kind === type.kind))
@@ -106,7 +98,7 @@ export function subscribe<T extends StoreSubject<any>, U extends Effect<any, Eff
                 catchError(retry)
             ).subscribe(store))
         } else {
-            const kinds = Array.isArray(effect.action) ? effect.action : [effect.action]
+            const kinds = effect.action
             cleanup.add(scheduled(store, queueScheduler).pipe(
                 kindOf(...kinds),
                 operator,
@@ -135,7 +127,7 @@ export function useEffects<T extends StoreSubject<any>, U extends Effect<any, Ef
 export type EffectHandler<T, U> = (state: T) => OperatorFunction<U, Action> | Observable<Action>
 
 export interface Effect<T extends ActionFactory<any>, U extends EffectHandler<any, ReturnType<T>>> {
-    action?: T,
+    action: T[],
     factory: U
 }
 
@@ -144,20 +136,27 @@ export function Effect<U extends (state: any) => Observable<Action>>(factory: U)
 export function Effect<T extends ActionFactory<any, any>, U extends (state: any) => OperatorFunction<ReturnType<T>, Action>>(action: T, factory: U): Effect<T, U>
 export function Effect<T extends ActionFactory<any, any>, U extends (state: any) => OperatorFunction<ReturnType<T>, Action>>(action: T[], factory: U): Effect<T, U>
 export function Effect(actionOrFactory: any, factory: any = actionOrFactory): Effect<any, any> {
-    const action = arguments.length === 2 ? actionOrFactory : void 0
+    const action = arguments.length === 2 ? (Array.isArray(actionOrFactory) ? actionOrFactory : [actionOrFactory]) : []
     return {
         action,
         factory
     }
 }
-
+export function action<T extends ActionFactory>(action: T): OperatorFunction<ReturnType<T>["data"], Action<T>>
+export function action<T extends ActionFactory, U extends ActionFactory>(action: T, errorAction?: U): OperatorFunction<ReturnType<T>["data"], Action<T | U>>
 export function action<T extends ActionFactory, U extends ActionFactory>(action: T, errorAction?: U): OperatorFunction<ReturnType<T>["data"], Action> {
     return function (source) {
         return source.pipe(
             map(action),
             catchError((error) => {
                 return errorAction ? of(errorAction(error)) : throwError(error)
-            })
+            }),
         )
     }
+}
+
+export function props<T>(): (value: T) => T
+export function props<T extends (...args: any[]) => any>(fn: T): T
+export function props<T extends (...args: any[]) => any>(fn: T = ((value) => value) as T): T {
+    return fn
 }

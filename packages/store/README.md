@@ -200,7 +200,7 @@ UseEffects(store, effects)
 ```
 
 Effects can also be used without [Angular Composition API](https://github.com/mmuscat/angular-composition-api/tree/master/packages/core)
-by calling `useEffect` instead. Note the additional `injector` argument. You must dispose the
+by calling `useEffects` instead. Note the additional `injector` argument. You must dispose the
 returned subscription to stop running effects.
 
 ```
