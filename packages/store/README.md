@@ -48,17 +48,20 @@ Configure a store in your directive, component or service.
 
 ```ts
 function create() {
-    const { state, action } = Store(reducer, Value(0), actions)
+    const state = Value(0)
+    const store = Store(reducer, state, actions)
 
-    action.Increment()
-    
     Subscribe(state, (value) => {
         console.log("state changed!", value)
     })
-    
+
+    function increment() {
+        action.Increment()
+    }
+
     return {
         state,
-        ...action,
+        increment
     }
 }
 ```
@@ -119,6 +122,11 @@ function create() {
 ### Action
 
 Creates an action factory of a `kind`, with or without data.
+
+```ts
+const Reload = Action("Reload")
+const SaveTodo = Action("SaveTodo", props<Todo>())
+```
 
 ### Effect
 
@@ -185,11 +193,31 @@ const effect = Effect((state: ValueSubject<any>) => {
 
 ### Store
 
-Takes a `reducer`, `initialValue` and `actions` array. Returns a store
-with reactive `state`. Actions are mapped to `action` keys as bound
-functions that will emit actions of that type when invoked. The
-returned store is an observable of actions that have been broadcast,
-*after* the state has updated.
+Takes a `reducer`, a `value` and an `actions` array. Returns a store
+that emits actions dispatched to it *after* the state has been updated. Actions are also mapped to an `action` key as bound
+functions that will emit actions of its kind when invoked.
+
+```ts
+const Increment = Action("Increment")
+const actions = [Increment]
+function reducer(state: number, action) {
+    return state
+}
+const state = Value(0)
+const store = Store(reducer, state, actions)
+```
+
+Dispatch an action
+
+```ts
+store.next(Increment())
+```
+
+or
+
+```ts
+store.action.Increment()
+```
 
 ### UseEffects
 
@@ -203,7 +231,7 @@ Effects can also be used without [Angular Composition API](https://github.com/mm
 by calling `useEffects` instead. Note the additional `injector` argument. You must dispose the
 returned subscription to stop running effects.
 
-```
+```ts
 const subscription = useEffects(store, effects, injector)
 ```
 
@@ -212,7 +240,40 @@ const subscription = useEffects(store, effects, injector)
 An `OperatorFunction` that filters a stream of `Action` to the
 actions listed in its arguments.
 
+```ts
+const increment = store.pipe(
+    kindOf(Increment)
+)
+```
+
 ### action
 
 An `OperatorFunction` that maps a stream of data to the given `action`,
-optionally catching and mapping errors to the provided `errorAction`. 
+optionally catching and mapping errors to the provided `errorAction`.
+
+```ts
+import {throwError} from "rxjs";
+
+const Increment = Action("Increment", props<number>())
+const IncrementTooHigh = Action("IncrementTooHigh")
+
+of(10, 20, 30).pipe(
+    switchMap((data) => data > 15 ? throwError() : of(data)),
+    action(Increment, IncrementTooHigh),
+).subscribe(store)
+```
+
+### props
+
+Returns a typed function for producing `data` on an `Action`.
+
+```ts
+const Increment = Action("Increment", props<number>())
+```
+
+Which is equivalent to
+
+```ts
+const Increment = Action("Increment", (value: number) => value)
+```
+
