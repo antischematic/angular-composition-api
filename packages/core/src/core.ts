@@ -266,14 +266,14 @@ export class ComputedSubject<T> extends BehaviorSubject<T> {
     subscribe(observer: (value: T) => void): Subscription
     subscribe(observer: PartialObserver<T>): Subscription
     subscribe(observer?: any): Subscription {
-        if (this.refs === 0) {
+        this.refs++
+        if (this.refs === 1) {
             this.subscription = this.changes.subscribe((v) => {
                 const [value, deps] = computeValue(this.compute)
                 this.deps.next(deps)
                 this.next(value)
             })
         }
-        this.refs++
         return super.subscribe(observer).add(() => {
             this.refs--
             if (this.refs === 0) {

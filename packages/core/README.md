@@ -249,25 +249,37 @@ Creates a context-aware, tree-shakable service from the provided factory functio
 
 #### Provide
 
-Creates a value provider that can be used to set and get values inside a
-`State` context.
+Allows `State` to declare and set `ValueToken` providers inside its `create` factory.
+
+```ts
+const Token = ValueToken("TOKEN")
+
+function parent() {
+    Provide(Token, { value: "hello" })
+}
+
+function child() {
+    const token = Inject(Token)
+}
+```
+
+Example
 
 ```html
-
 <parent>
     <child></child>
 </parent>
 ```
 
-Create a value provider. Value providers can only be set in the same injector context they are provided in, otherwise
-throws `NullInjectorError`.
+Create a `ValueToken`. Value tokens can only have their value set in the same injector context they are provided in, 
+otherwise it throws `NullInjectorError`.
 
 ```ts
-const Count = Provider("COUNT", {value: 0}) // <- default is optional
+const Count = ValueToken("COUNT", {value: 0}) // <- default is optional
 
 class Props {
     static create() {
-        Count.Value({value: 10})
+        Provide(Count, {value: 10})
     }
 }
 
@@ -279,7 +291,7 @@ export class Parent extends State(Props) {
 }
 ```
 
-Inject the value from a child context. Throws `EmptyValueError` if no value or default
+Inject the `ValueToken` from a child context. Throws `EmptyValueError` if no value or default
  has been set.
 
 ```ts

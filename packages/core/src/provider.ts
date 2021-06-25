@@ -1,18 +1,7 @@
-import {InjectFlags, ɵɵdirectiveInject as directiveInject} from "@angular/core";
+import {Injectable, InjectFlags, ɵɵdirectiveInject as directiveInject} from "@angular/core";
 
-const providers = new WeakMap()
-
-function getProvider(token: {}) {
-    return providers.get(token)
-}
-
-function setProvider<T>(token: {}, value: T) {
-    return providers.set(token, value)
-}
-
-interface ValueProvider<T extends {}> {
+export interface ValueToken<T extends {}> {
     new(): T
-    Value(value: T): void
 }
 
 export class EmptyValueError extends Error {
@@ -21,18 +10,21 @@ export class EmptyValueError extends Error {
     }
 }
 
-export function Provider<T extends {}>(name: string): ValueProvider<T>
-export function Provider<T extends {}>(name: string, defaultValue: T): ValueProvider<T>
-export function Provider(name: string, defaultValue?: unknown) {
-    let skipEmpty = false
+let skipEmpty = false
+
+export function Provide<T>(token: ValueToken<T>, value: T) {
+    skipEmpty = true
+    const provider = directiveInject<T>(token, InjectFlags.Self)
+    skipEmpty = false
+    Object.assign(provider, value)
+}
+
+export function ValueToken<T extends {}>(name: string): ValueToken<T>
+export function ValueToken<T extends {}>(name: string, defaultValue: T): ValueToken<T>
+export function ValueToken(name: string, defaultValue?: unknown) {
+    @Injectable({ providedIn: "root" })
     class ValueProvider {
         static overriddenName = name
-        static Value(value: unknown) {
-            skipEmpty = true
-            const provider = directiveInject(ValueProvider, InjectFlags.Self)
-            skipEmpty = false
-            Object.assign(provider, value)
-        }
         constructor() {
             if (!skipEmpty) {
                 if (defaultValue) {
