@@ -88,14 +88,8 @@
             "styles": [
               "packages/example/src/styles.css"
             ],
-            "scripts": [],
-            "aot": false,
-            "vendorChunk": true,
-            "extractLicenses": false,
-            "buildOptimizer": false,
-            "sourceMap": true,
-            "optimization": false,
-            "namedChunks": true
+            "statsJson": true,
+            "scripts": []
           },
           "configurations": {
             "production": {
@@ -120,6 +114,12 @@
               "outputHashing": "all"
             },
             "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
             }
           },
           "defaultConfiguration": "production"
@@ -171,6 +171,37 @@
             "main": "packages/boundary/src/test.ts",
             "tsConfig": "packages/boundary/tsconfig.spec.json",
             "karmaConfig": "packages/boundary/karma.conf.js"
+          }
+        }
+      }
+    },
+    "store": {
+      "projectType": "library",
+      "root": "packages/store",
+      "sourceRoot": "packages/store/src",
+      "prefix": "lib",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:ng-packagr",
+          "options": {
+            "project": "packages/store/ng-package.json"
+          },
+          "configurations": {
+            "production": {
+              "tsConfig": "packages/store/tsconfig.lib.prod.json"
+            },
+            "development": {
+              "tsConfig": "packages/store/tsconfig.lib.json"
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "packages/store/src/test.ts",
+            "tsConfig": "packages/store/tsconfig.spec.json",
+            "karmaConfig": "packages/store/karma.conf.js"
           }
         }
       }

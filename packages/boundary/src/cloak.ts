@@ -1,34 +1,26 @@
 import {
     ContentChildren,
     Directive,
-    ElementRef,
-    ErrorHandler, Host,
+    ErrorHandler,
     Inject,
     InjectionToken,
     Input,
-    OnDestroy, Optional,
-    QueryList, SimpleChanges,
+    OnDestroy,
+    Optional,
+    QueryList,
+    SimpleChanges,
     TemplateRef,
     Type,
     ViewContainerRef
 } from '@angular/core';
-import {
-    asapScheduler,
-    asyncScheduler,
-    concat,
-    forkJoin,
-    Observable,
-    partition,
-    queueScheduler,
-    Subject,
-    timer
-} from "rxjs";
+import {asapScheduler, asyncScheduler, concat, forkJoin, Observable, partition, Subject, timer} from "rxjs";
 import {distinctUntilChanged, map, scan, share, switchMap, take, takeUntil} from "rxjs/operators";
 import {Fallback} from "./error-boundary";
 import {Renderer} from "./renderer";
 
 export abstract class CloakBoundary {
     abstract cloak<T>(source: Observable<T>): Observable<T>
+    abstract handleError(error: unknown): void
 }
 
 export interface CloakConfig {
@@ -45,24 +37,28 @@ export const NG_CLOAK_CONFIG = new InjectionToken<CloakConfig>("NG_CLOAK_CONFIG"
 
 export class CloakObserver {
     closed: boolean
+    thrownError: any
     next(value: any) {
+        if (this.closed) return
         this.subscriber.next(value)
         this.unsubscribe()
     }
     error(error: any) {
+        if (this.closed) return this.subscriber.error(this.thrownError)
+        this.thrownError = error
         this.errorHandler.handleError(error)
         this.subscriber.error(error)
         this.unsubscribe()
     }
     complete() {
-        this.subscriber.complete()
+        if (this.closed) return this.subscriber.complete()
         this.unsubscribe()
     }
     unsubscribe() {
-        if (!this.closed) {
-            this.closed = true
-            this.queue.next(-1)
-        }
+        if (this.closed) return
+        this.subscriber.complete()
+        this.closed = true
+        this.queue.next(-1)
     }
     constructor(private subscriber: any, private queue: Subject<any>, private errorHandler: ErrorHandler) {
         this.closed = false
@@ -119,6 +115,10 @@ export class NgCloak implements CloakBoundary, OnDestroy {
         } else {
             this.renderer.renderContent(this.fallbackType)
         }
+    }
+
+    handleError(error: unknown) {
+        this.errorHandler.handleError(error)
     }
 
     next(cloaked: boolean) {

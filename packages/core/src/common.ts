@@ -1,7 +1,6 @@
 import {BehaviorSubject, Notification, PartialObserver, Subscription} from 'rxjs';
 import {QueryList as NgQueryList} from '@angular/core';
 import {checkPhase, CheckPhase, CheckSubject} from './interfaces';
-import {Subscribe} from "./core";
 
 export class QueryListObserver {
     next(value: NgQueryList<any>) {
@@ -15,6 +14,7 @@ export class QueryListObserver {
 }
 
 export class QueryListSubject<T> extends NgQueryList<T> implements CheckSubject<QueryListSubject<T>> {
+    value!: QueryListSubject<T>
     readonly [checkPhase]: CheckPhase
     private subscription?: Subscription
     next(value: NgQueryList<T>) {
@@ -37,20 +37,11 @@ export class QueryListSubject<T> extends NgQueryList<T> implements CheckSubject<
 }
 
 export class ValueSubject<T> extends BehaviorSubject<T> implements CheckSubject<T> {
-    private upstreamSubscription?: Subscription
     readonly [checkPhase]: CheckPhase
 
-    unsubscribe() {
-        this.upstreamSubscription?.unsubscribe()
-        super.unsubscribe();
-    }
-
     constructor(value: T, check: CheckPhase = 0) {
-        super(value);
+        super(value instanceof BehaviorSubject ? value.value : value)
         this[checkPhase] = check
-        if (value instanceof BehaviorSubject) {
-            this.upstreamSubscription = Subscribe(value, this)
-        }
     }
 }
 

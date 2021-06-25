@@ -104,11 +104,11 @@ interface ErrorBoundaryEvent {
 
 **examples:**
 ```html
-<error-boundary (error)="handleError($event)" #boundary>
+<error-boundary (error)="handleError($event)" #boundary="errorBoundary">
     <maybe-throws *catchError></maybe-throws>
     <div fallback>
         <p>Uh oh... Something happened.</p>
-        <button (click)="boundary.reset({ create: true })">
+        <button (click)="boundary.reset()">
             Start again
         </button>
     </div>

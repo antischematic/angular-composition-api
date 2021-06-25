@@ -1,14 +1,14 @@
 <label>
-  <input 
-    type="checkbox" 
-    [disabled]="resetOnSave" 
-    [ngModel]="done" 
-    (ngModelChange)="toggleDone($event)"
+  <input
+          type="checkbox"
+          [disabled]="resetOnSave"
+          [ngModel]="done"
+          (ngModelChange)="toggleDone($event)"
   />
 </label>
 &nbsp;
 <div class="text" contenteditable data-placeholder="Buy milk tomorrow morning..." (keydown.enter)="
-    editText(textContent.textContent.trim());
+    editText(textContent.textContent!.trim());
     $event.preventDefault();
   " #textContent>{{text}}</div>
 
@@ -16,6 +16,10 @@
   :host {
     display: flex;
     margin: 0.5rem;
+  }
+
+  :host.red {
+    color: red
   }
 
   .text {

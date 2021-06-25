@@ -18,6 +18,10 @@
       "@mmuscat/angular-error-boundary": [
         "./dist/boundary"
       ],
+      "@mmuscat/angular-actions": [
+        "dist/store/store",
+        "dist/store"
+      ],
       "resource": [
         "dist/resource/resource",
         "dist/resource"
@@ -37,6 +41,6 @@
     "enableI18nLegacyMessageIdFormat": false,
     "strictInjectionParameters": true,
     "strictInputAccessModifiers": true,
-    "strictTemplates": true
+    "strictTemplates": true,
   },
 }

@@ -1,5 +1,5 @@
-import {ErrorHandler, EventEmitter, Injector, Type} from '@angular/core';
-import {PartialObserver, Subscribable, Subscription, SubscriptionLike} from 'rxjs';
+import {AbstractType, ErrorHandler, EventEmitter, Injector, Type} from '@angular/core';
+import {Observable, PartialObserver, Subscribable, Subscription, SubscriptionLike} from 'rxjs';
 
 export const checkPhase = Symbol("checkPhase")
 
@@ -12,14 +12,14 @@ export interface Context {
     error: ErrorHandler;
     subscription: Subscription;
     effects: Set<EffectObserver<any>>;
+    scheduler: any
     0: Set<Check>;
     1: Set<Check>;
     2: Set<Check>;
-    3: any
 }
 
 export interface CheckSubject<T> {
-    value?: T
+    value: T
     readonly [checkPhase]: CheckPhase
     subscribe(observer: PartialObserver<T>): SubscriptionLike
     subscribe(observer: (value: T) => void): SubscriptionLike
@@ -27,12 +27,11 @@ export interface CheckSubject<T> {
 
 export type CheckPhase = 0 | 1 | 2;
 export type EffectObserver<T> = Subscribable<T>
-export type SyncState<T> = {
-    [key in keyof T]: T[key] extends EventEmitter<infer R>
-        ? ((value: R) => void)
-        : T[key] extends CheckSubject<infer R>
-            ? R
-            : T[key]
-};
 
-export type StateFactory<T, U extends (props: Type<T>) => {}> = Type<T> & { create: U }
+export type State<T, U> = Type<{
+    [key in keyof T]: T[key] extends CheckSubject<infer R> ? R : T[key]
+} & {
+    [key in keyof U]: U[key] extends CheckSubject<infer R> ? R : U[key] extends EventEmitter<infer R> ? (value: R) => void : U[key]
+}>
+
+export type UnsubscribeSignal = Subscription | AbortSignal | null

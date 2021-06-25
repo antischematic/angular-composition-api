@@ -1,11 +1,13 @@
 import {
-    ComponentFactoryResolver, ComponentRef,
+    ComponentFactoryResolver,
+    ComponentRef,
     ElementRef,
     Injectable,
     Renderer2,
     TemplateRef,
     Type,
-    ViewContainerRef, ViewRef
+    ViewContainerRef,
+    ViewRef
 } from "@angular/core";
 
 @Injectable()

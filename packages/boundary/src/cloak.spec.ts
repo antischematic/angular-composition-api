@@ -1,17 +1,9 @@
 import {Component, ElementRef, Inject, InjectionToken, Input, Type} from "@angular/core";
-import {
-    ComponentFixture,
-    discardPeriodicTasks,
-    fakeAsync,
-    flush,
-    flushMicrotasks,
-    TestBed,
-    tick
-} from "@angular/core/testing";
+import {ComponentFixture, discardPeriodicTasks, fakeAsync, TestBed, tick} from "@angular/core/testing";
 import {BoundaryModule} from "./boundary.module";
 import {NG_CLOAK_CONFIG, NgCloak} from "./cloak";
 import {asyncScheduler, Observable, queueScheduler, throwError, timer} from "rxjs";
-import {delay, mapTo} from "rxjs/operators";
+import {mapTo} from "rxjs/operators";
 import {CommonModule} from "@angular/common";
 import {By} from "@angular/platform-browser";
 import {CustomFallback} from "./error-boundary.spec";

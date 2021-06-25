@@ -1,7 +1,7 @@
-import { QueryList as NgQueryList } from "@angular/core"
-import {Query, QueryList, Value, ValueSubject} from "./common";
-import createSpy = jasmine.createSpy;
+import {QueryList as NgQueryList} from "@angular/core"
+import {Query, QueryList, Value} from "./common";
 import {checkPhase} from "./interfaces";
+import createSpy = jasmine.createSpy;
 
 describe("QueryList", () => {
     it("should notify observers when query list becomes available", () => {
@@ -115,25 +115,11 @@ describe("Value", () => {
         value.next(void 0)
         expect(value.value).toBe(void 0)
     })
-    it("should mirror other values", () => {
-        const value = Value(10)
-        const value2 = Value(value)
-        expect(value2.value).toBe(10)
-        value2.next(100)
-        expect(value2.value).toBe(100)
-        expect(value.value).toBe(10)
-        value.next(200)
-        expect(value2.value).toBe(200)
-        expect(value.value).toBe(200)
-    })
-    it("should not mirror when unsubscribed", () => {
-        const spy = createSpy()
-        const value = Value(10)
-        const value2 = Value(value)
-        value2.subscribe(spy)
-        value2.unsubscribe()
-        value.next(200)
-        expect(spy).toHaveBeenCalledOnceWith(10)
+    it("should be assignable to other values", () => {
+        const value = Value(0)
+        const otherValue = Value(value)
+
+        expect(otherValue.value).toBe(0)
     })
     it("should throw when reading value after unsubscribe", () => {
         const value = Value(10)

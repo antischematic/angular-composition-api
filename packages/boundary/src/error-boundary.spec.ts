@@ -1,5 +1,14 @@
 import {ComponentFixture, fakeAsync, TestBed, tick} from "@angular/core/testing";
-import {ChangeDetectorRef, Component, DebugElement, EventEmitter, ErrorHandler, Inject, InjectionToken, Type} from "@angular/core";
+import {
+    ChangeDetectorRef,
+    Component,
+    DebugElement,
+    ErrorHandler,
+    EventEmitter,
+    Inject,
+    InjectionToken,
+    Type
+} from "@angular/core";
 import {BoundaryModule} from "./boundary.module";
 import {ErrorBoundary} from "./error-boundary";
 import {By} from "@angular/platform-browser";
