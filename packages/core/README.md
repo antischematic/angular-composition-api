@@ -62,16 +62,16 @@ export class MyComponent extends State(Props) {
 }
 ```
 
-While this works, it could potentially break if the underlying compiler implementation changes. Note that the mixin
-functions needs to be concrete, it can't be imported from a compiled library or application (ie. imports from
-declaration files won't work).
+While this works locally, it could break if the underlying compiler implementation changes. Note that the mixin
+function needs to be concrete, it can't be imported from a compiled library or application (ie. imports from
+declaration files won't work). [See this issue for a detailed explanation](https://github.com/angular/angular/issues/42594).
 </details>
 
 <details>
-    <summary>Slightly safer option</summary>
+    <summary>Safer option</summary>
 
-Same as above, except `inputs` and `outputs` are added to the `@Component` or `@Directive` metadata instead. This
-doesn't fix the mixin problem, but it might help if the language service gives you issues. You lose type inference on
+Same as above, except `inputs` and `outputs` are added to the `@Component` or `@Directive` metadata instead. 
+If the language service gives you issues, use this option. You lose type inference on
 inputs though, which will be cast to `any`.
 
 ```ts
@@ -247,6 +247,56 @@ Creates a context-aware, tree-shakable service from the provided factory functio
 `providedIn` option is set to null, or omitted, you must provide the service in a `NgModule`,
 `Directive` or `Component`. Start or retrieve the service with `Inject`.
 
+#### Provide
+
+Creates a value provider that can be used to set and get values inside a
+`State` context.
+
+```html
+
+<parent>
+    <child></child>
+</parent>
+```
+
+Create a value provider. Value providers can only be set in the same injector context they are provided in, otherwise
+throws `NullInjectorError`.
+
+```ts
+const Count = Provider("COUNT", {value: 0}) // <- default is optional
+
+class Props {
+    static create() {
+        Count.Value({value: 10})
+    }
+}
+
+@Component({
+    selector: "parent",
+    providers: [Count] // <- important
+})
+export class Parent extends State(Props) {
+}
+```
+
+Inject the value from a child context. Throws `EmptyValueError` if no value or default
+ has been set.
+
+```ts
+class Props {
+    static create() {
+        const count = Inject(Count)
+        return {
+            count
+        }
+    }
+}
+
+@Component({selector: "child"})
+export class Child extends State(Props) {
+}
+```
+
 #### Inject
 
 Equivalent to `Injector.get(ProviderToken)`. Throws `CallContextError` if called outside a `State`
@@ -289,8 +339,7 @@ Subscribe(() => {
 
 In both of the examples the observer is only called when `firstName`
 is updated. Dependencies are tracked based on calls to `get`. To read a `Value` without marking it as a dependency, use
-the `value`
-property accessor.
+the `value` property accessor.
 
 **Abort Signals**
 
@@ -331,9 +380,6 @@ second to complete. If the view is destroyed, then all remaining streams are uns
 ---
 
 ### Common
-
-These APIs only work inside the context of a `State` or `Service`. Calling them at the wrong time may cause
-a `CallContextError` to be thrown.
 
 #### Value
 
@@ -429,12 +475,18 @@ Get the current value of a `Value`. If used inside a reactive observer, tracks t
 
 #### set
 
-Sets a `Value` or triggers an `Emitter`, otherwise returns a function that will emit values passed to it.
+Returns a function that will emit a value to `Value`, useful for ignoring error and
+complete events in `Subscribe`.
+
+Also accepts an additional observer, which is a useful for notifying emitters.
 
 ```ts
+const countChange = Emitter()
 const count = Value(0),
-    setCount = set(count)
+    setCount = set(count, countChange)
 
 setCount(10)
-set(count, 10)
+setCount((value) => value + 10)
+
+Subscribe(of(10, 20, 30), setCount)
 ```
