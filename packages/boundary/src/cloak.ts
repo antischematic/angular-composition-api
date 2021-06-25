@@ -20,6 +20,7 @@ import {Renderer} from "./renderer";
 
 export abstract class CloakBoundary {
     abstract cloak<T>(source: Observable<T>): Observable<T>
+    abstract handleError(error: unknown): void
 }
 
 export interface CloakConfig {
@@ -114,6 +115,10 @@ export class NgCloak implements CloakBoundary, OnDestroy {
         } else {
             this.renderer.renderContent(this.fallbackType)
         }
+    }
+
+    handleError(error: unknown) {
+        this.errorHandler.handleError(error)
     }
 
     next(cloaked: boolean) {
