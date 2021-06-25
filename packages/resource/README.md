@@ -1,24 +1,149 @@
-# Resource
+# Angular Resource
 
-This library was generated with [Angular CLI](https://github.com/angular/angular-cli) version 12.0.2.
+Remote data streams for Angular.
 
-## Code scaffolding
+## Quick Start
 
-Run `ng generate component component-name --project resource` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module --project resource`.
-> Note: Don't forget to add `--project resource` or else it will be added to the default project in your `angular.json` file. 
+Install via NPM
 
-## Build
+```bash
+npm install @mmuscat/angular-resource
+```
 
-Run `ng build resource` to build the project. The build artifacts will be stored in the `dist/` directory.
+Install via Yarn
 
-## Publishing
+```bash
+yarn add @mmuscat/angular-resource
+```
 
-After building your library with `ng build resource`, go to the dist folder `cd dist/resource` and run `npm publish`.
+### Example
 
-## Running unit tests
+```ts
+class Props {
+    static create() {
+        const user = Resource("/api/user", source)
+        return {
+            user
+        }
+    }
+}
 
-Run `ng test resource` to execute the unit tests via [Karma](https://karma-runner.github.io).
+@Component({
+    template: `
+        <div *ngIf="user.error">Failed to load</div>
+        <div *ngIf="user.pending">Loading...</div>
+        <div *ngIf="user.value">hello {user.value.name}!</div>
+    `
+})
+export class Profile extends State(Props) {
+}
+```
 
-## Further help
+## Api Reference
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+### Resource
+
+Creates a `ResourceSubject` that subscribes to a data source, updating itself as the data stream progresses from its
+initial state to completion. Subscribers to
+`ResourceSubject` will receive `ResourceSubject` notifications each time the internal state changes. The data source is
+not subscribed until there is at least one observer, and is disposed when there are no more observers.
+
+```ts
+function create() {
+    const user = Resource("/api/user", source)
+
+    Subscribe(user, () => {
+        console.log(user.value)
+        console.log(user.pending)
+        console.log(user.error)
+    })
+
+    return {
+        user
+    }
+}
+```
+
+Usage with params
+
+```ts
+function source(url: string) {
+    const http = Inject(HttpClient)
+    return switchMap((params) => http.get(url, {
+        params
+    }))
+}
+
+
+class Props {
+    userId = Value<string>()
+    static create = create
+}
+
+function create({userId}: Props) {
+    const user = Resource(["/api/user", {userId}], source)
+
+    Subscribe(user, () => {
+        console.log(user.value)
+        console.log(user.pending)
+        console.log(user.error)
+    })
+
+    return {
+        user
+    }
+}
+```
+
+#### method `mutate`
+
+Invalidates the resource cache and replays its last action. TBD.
+
+```ts
+function create({userId}: Props) {
+    const user = Resource(["/api/user", userId], source)
+
+    user.mutate()
+
+    return {
+        user
+    }
+}
+```
+
+#### method `subscribe`
+
+Subscribes an observer to state changes. TBD.
+
+### mutate
+
+A global function that will invalidate all active resources that match the given `key` argument, replaying each
+invalidated resource's last action. TBD.
+
+```ts
+function create({userId}: Props) {
+    const user = Resource(["/api/user", userId], source)
+
+    mutate("/api/user")
+
+    return {
+        user
+    }
+}
+```
+
+## Cloak Mode
+
+If `@mmuscat/angular-error-boundary` is installed, `Resource` can be configured with a cloak boundary that hides components
+until at least one value has emitted. When used with reactive params, the cloak is activated each time the params
+change, unless the value is already cached.
+
+```ts
+function create({userId}: Props) {
+    const user = Resource(["/api/user", userId], source, {cloak: true})
+
+    return {
+        user
+    }
+}
+```

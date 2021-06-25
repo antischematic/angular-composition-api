@@ -19,12 +19,10 @@
         "./dist/boundary"
       ],
       "@mmuscat/angular-actions": [
-        "dist/store/store",
-        "dist/store"
+        "./dist/store"
       ],
-      "resource": [
-        "dist/resource/resource",
-        "dist/resource"
+      "@mmuscat/angular-resource": [
+        "./dist/resource"
       ],
     },
     "experimentalDecorators": true,
