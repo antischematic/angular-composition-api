@@ -1,106 +1,72 @@
-import {Provide, ValueToken} from "./provider";
-import {TestBed} from "@angular/core/testing";
-import {inject, Injector} from "@angular/core";
-import {Inject, Service} from "./core";
-import objectContaining = jasmine.objectContaining;
+import { provide, ValueToken } from "./provider"
+import { TestBed } from "@angular/core/testing"
+import { Component, DebugElement } from "@angular/core"
+import { By } from "@angular/platform-browser"
+import { inject, ViewDef } from "./core"
 
-fdescribe("Provider", () => {
-    it("should create", () => {
-        const ValueProvider = ValueToken("ValueProvider", { value: 10 })
+const Value = new ValueToken("Value", 0)
 
-        TestBed.configureTestingModule({
-            providers: [ValueProvider]
-        })
+@Component({
+   selector: "parent",
+   template: `<child></child>`,
+   providers: [Value],
+})
+class Parent {
+   constructor() {
+      provide(Value, 10)
+   }
+}
 
-        expect(TestBed.inject(ValueProvider)).toEqual({ value: 10 })
-    })
+@Component({
+   selector: "child",
+   template: `<grandchild></grandchild>`,
+})
+class Child {
+   constructor() {}
+}
 
-    it("should not throw if not provided", () => {
-        const ValueProvider = ValueToken("ValueProvider", { value: 10 })
-        expect(() => TestBed.inject(ValueProvider)).not.toThrow()
-    })
+@Component({
+   selector: "grandchild",
+   template: ``,
+})
+class GrandChild extends ViewDef(() => {
+   return {
+      value: inject(Value),
+   }
+}) {}
 
-    it("should throw if no value or default", () => {
-        const ValueProvider = ValueToken<{ value: number }>("ValueProvider")
+describe("provide", () => {
+   it("should create", () => {
+      expect(() => new ValueToken("Value", 0)).not.toThrow()
+   })
+   it("should provide a value", () => {
+      function test() {
+         provide(Value, 10)
+      }
 
-        TestBed.configureTestingModule({
-            providers: [ValueProvider]
-        })
+      TestBed.configureTestingModule({
+         providers: [
+            {
+               provide: test,
+               useFactory: test,
+            },
+         ],
+      })
 
-        expect(() => TestBed.inject(ValueProvider)).toThrow()
-    })
+      TestBed.inject(test)
+      const value = TestBed.inject(Value)
+      expect(value.get()).toBe(10)
+   })
+   it("should resolve a value", () => {
+      TestBed.configureTestingModule({
+         declarations: [Parent, Child, GrandChild],
+      })
 
-    it("should throw when attempting to set a provider further up the injector tree", () => {
-        const ValueProvider = ValueToken<{ value: number }>("ValueProvider")
+      const parent = TestBed.createComponent(Parent)
+      const child = parent.debugElement.query(By.directive(Child))
+      const grandChild = child.query(By.directive(GrandChild))
 
-        TestBed.configureTestingModule({
-            providers: [ValueProvider]
-        })
-
-        const injector = Injector.create({
-            parent: TestBed.inject(Injector),
-            providers: [{
-                provide: setValue,
-                useFactory: setValue
-            }]
-        })
-        function setValue() {
-            Provide(ValueProvider, { value: 10 })
-        }
-
-        expect(() => injector.get(setValue)).toThrow()
-    })
-
-    it("should set the provider value", () => {
-        const ValueProvider = ValueToken<{ value: number }>("ValueProvider")
-
-        TestBed.configureTestingModule({
-            providers: [ValueProvider, {
-                provide: create,
-                useClass: Service(create)
-            }]
-        })
-
-        function create() {
-            Provide(ValueProvider, { value: 10 })
-        }
-
-        expect(() => TestBed.inject(create)).not.toThrow()
-        expect(TestBed.inject(ValueProvider)).toEqual(objectContaining({ value: 10 }))
-    })
-
-    it("should set different values for the same provider", () => {
-        const ValueProvider = ValueToken<{ value: number }>("ValueProvider")
-
-        TestBed.configureTestingModule({
-            providers: [ValueProvider, {
-                provide: parent,
-                useClass: Service(parent)
-            }]
-        })
-
-        const injector = Injector.create({
-            parent: TestBed.inject(Injector),
-            providers: [{
-                provide: ValueProvider,
-                useClass: ValueProvider
-            }, {
-                provide: child,
-                useFactory: child
-            }]
-        })
-
-        function parent() {
-            Provide(ValueProvider, { value: 10 })
-        }
-
-        function child() {
-            Provide(ValueProvider, { value: 1337 })
-        }
-
-        expect(() => TestBed.inject(parent)).not.toThrow()
-        expect(() => injector.get(child)).not.toThrow()
-        expect(TestBed.inject(ValueProvider)).toEqual(objectContaining({ value: 10 }))
-        expect(injector.get(ValueProvider)).toEqual(objectContaining({ value: 1337 }))
-    })
+      expect(grandChild).toBeInstanceOf(DebugElement)
+      expect(grandChild.componentInstance.value).toBe(10)
+   })
 })

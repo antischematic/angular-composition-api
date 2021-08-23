@@ -1,447 +1,494 @@
 import {
-    ChangeDetectorRef,
-    ErrorHandler,
-    EventEmitter,
-    inject,
-    Injectable,
-    InjectFlags,
-    Injector,
-    INJECTOR,
-    NgModuleRef,
-    ProviderToken,
-    Type,
-    ɵɵdirectiveInject as directiveInject
-} from '@angular/core';
+   ChangeDetectorRef,
+   ErrorHandler,
+   EventEmitter,
+   inject as serviceInject,
+   Injectable,
+   InjectFlags,
+   Injector,
+   INJECTOR,
+   NgModuleRef,
+   ProviderToken,
+   Type,
+   ɵɵdirectiveInject as directiveInject,
+} from "@angular/core"
 import {
-    BehaviorSubject, combineLatest,
-    Notification,
-    Observable,
-    PartialObserver,
-    Subject,
-    Subscribable,
-    Subscription,
-    TeardownLogic,
-} from 'rxjs';
-import {UnsubscribeSignal, checkPhase, CheckPhase, CheckSubject, Context} from './interfaces';
-import {arrayCompare, computeValue, isObject, addSignal} from "./utils";
-import {distinctUntilChanged, skip, switchMap} from "rxjs/operators";
+   BehaviorSubject,
+   combineLatest,
+   Notification,
+   Observable,
+   PartialObserver,
+   Subject,
+   Subscribable,
+   Subscription,
+   TeardownLogic, Unsubscribable,
+} from "rxjs"
+import {
+   UnsubscribeSignal,
+   checkPhase,
+   CheckPhase,
+   CheckSubject,
+   Context,
+   Value,
+   Emitter,
+} from "./interfaces"
+import {
+   arrayCompare,
+   computeValue,
+   isValue,
+   addSignal,
+   isObject,
+} from "./utils"
+import { distinctUntilChanged, skip, switchMap } from "rxjs/operators"
+import { ValueGetterSetter, ValueToken } from "./provider"
 
-let currentContext: any;
-const contextMap = new WeakMap<{}, Context>();
+let currentContext: any
+const contextMap = new WeakMap<{}, Context>()
 
 export function beginContext(value: any) {
-    const previousContext = currentContext;
-    currentContext = value;
-    return previousContext;
+   const previousContext = currentContext
+   currentContext = value
+   return previousContext
 }
 
 export function endContext(previous: any) {
-    currentContext = previous;
+   currentContext = previous
 }
 
 export class CallContextError extends Error {
-    constructor() {
-        super('Call out of context');
-    }
+   constructor() {
+      super("Call out of context")
+   }
 }
 
 export function getContext() {
-    const context = contextMap.get(currentContext);
-    if (context) {
-        return context;
-    }
-    throw new CallContextError();
+   const context = contextMap.get(currentContext)
+   if (context) {
+      return context
+   }
+   throw new CallContextError()
 }
 
 function runInContext<T extends (...args: any[]) => any>(
-    context: any,
-    fn: T,
-    ...args: any[]
+   context: any,
+   fn: T,
+   ...args: any[]
 ): any {
-    const previous = beginContext(context);
-    const value = fn(...args);
-    endContext(previous);
-    return value;
+   const previous = beginContext(context)
+   const value = fn(...args)
+   endContext(previous)
+   return value
 }
 
-function createContext(context: {}, injector: Injector, error: ErrorHandler, scheduler?: Scheduler, additionalContext?: any) {
-    contextMap.set(context, {
-        injector,
-        error,
-        subscription: new Subscription(),
-        scheduler: scheduler!,
-        effects: new Set(),
-        ...additionalContext
-    });
+function createContext(
+   context: {},
+   injector: Injector,
+   error: ErrorHandler,
+   scheduler?: Scheduler,
+   additionalContext?: any,
+) {
+   contextMap.set(context, {
+      injector,
+      error,
+      subscription: new Subscription(),
+      scheduler: scheduler!,
+      effects: new Set(),
+      ...additionalContext,
+   })
 }
 
 function createService(context: {}, factory: any) {
-    createContext(context, inject(INJECTOR), inject(ErrorHandler))
-    const value = runInContext(context, factory)
-    runInContext(context, subscribe)
-    return value
+   createContext(context, serviceInject(INJECTOR), serviceInject(ErrorHandler))
+   const value = runInContext(context, factory)
+   runInContext(context, subscribe)
+   return value
 }
 
 class ContextBinding<T = any> {
-    next(value: T[keyof T]) {
-        const { context, scheduler } = this
-        if (value !== context[this.key]) {
-            context[this.key] = value;
-            this.emitter?.next(value)
-            scheduler.markForCheck();
-        }
-    }
-    check() {
-        const value = this.context[this.key];
-        if (this.source.value !== value) {
-            this.source.next(value)
-            this.scheduler.markForCheck();
-        }
-    }
-    constructor(
-        private context: T,
-        private key: keyof T,
-        private source: any,
-        private scheduler: Scheduler,
-        private emitter?: EventEmitter<T[keyof T]>
-    ) {}
+   next(value: T[keyof T]) {
+      const { context, scheduler } = this
+      context[this.key] = value
+      scheduler.markForCheck()
+   }
+   check() {
+      const value = this.context[this.key]
+      if (this.source.value !== value) {
+         this.source.next(value)
+         this.scheduler.markForCheck()
+      }
+   }
+   constructor(
+      private context: T,
+      private key: keyof T,
+      private source: any,
+      private scheduler: Scheduler,
+   ) {}
 }
 
 class Detach extends Boolean {}
 
 export const DETACHED = {
-    provide: Detach,
-    useValue: true
+   provide: Detach,
+   useValue: true,
 }
 
 class Scheduler {
-    dirty: boolean
-    detach: Detach | null
-    detectChanges() {
-        if (this.dirty) {
-            this.dirty = false
-            try {
-                this.ref.detectChanges()
-            } catch (error) {
-                this.errorHandler.handleError(error)
-            }
-        }
-    }
-    markForCheck() {
-        this.dirty = true
-    }
-    constructor(private ref: ChangeDetectorRef, private errorHandler: ErrorHandler, detach: Boolean | null) {
-        this.dirty = false
-        this.detach = detach
-        if (this.detach == true) {
-            this.ref.detach()
-            this.markForCheck()
-        }
-    }
+   dirty: boolean
+   detach: Detach | null
+   detectChanges() {
+      if (this.dirty) {
+         this.dirty = false
+         try {
+            this.ref.detectChanges()
+         } catch (error) {
+            this.errorHandler.handleError(error)
+         }
+      }
+   }
+   markForCheck() {
+      this.dirty = true
+   }
+   constructor(
+      private ref: ChangeDetectorRef,
+      private errorHandler: ErrorHandler,
+      detach: Boolean | null,
+   ) {
+      this.dirty = false
+      this.detach = detach
+      if (this.detach == true) {
+         this.ref.detach()
+         this.markForCheck()
+      }
+   }
 }
 
-function isCheckSubject(value: unknown): value is CheckSubject<any> {
-    return isObject(value) && checkPhase in value
+function isCheckSubject(value: any): value is CheckSubject<any> {
+   return (isObject(value) || isValue(value)) && checkPhase in value
 }
 
 function createBinding(context: any, key: any, value: any, scheduler: any) {
-    const twoWayBinding = context[`${key}Change`]
-    const emitter = twoWayBinding instanceof EventEmitter ? twoWayBinding : void 0
-    const binding = new ContextBinding(context, key, value, scheduler, emitter);
-    addCheck(value[checkPhase], binding)
-    addEffect(value, binding);
+   const binding = new ContextBinding(context, key, value, scheduler)
+   addCheck(value[checkPhase], binding)
+   addEffect(value, binding)
 }
 
-function setup(injector: Injector, stateFactory?: (props?: any) => {}) {
-    const context: { [key: string]: any } = currentContext;
-    const props = Object.create(context)
-    const error = injector.get(ErrorHandler);
-    const scheduler = new Scheduler(injector.get(ChangeDetectorRef), error, directiveInject(Detach, InjectFlags.Self | InjectFlags.Optional));
+function setup(injector: Injector, stateFactory?: () => {}) {
+   const context: { [key: string]: any } = currentContext
+   const error = injector.get(ErrorHandler)
+   const scheduler = new Scheduler(
+      injector.get(ChangeDetectorRef),
+      error,
+      directiveInject(Detach, InjectFlags.Self | InjectFlags.Optional),
+   )
 
-    createContext(context, injector, error, scheduler, [new Set(), new Set(), new Set()]);
+   createContext(context, injector, error, scheduler, [
+      new Set(),
+      new Set(),
+      new Set(),
+   ])
 
-    for (const [key, value] of Object.entries(context)) {
-        if (typeof value === "object" && isCheckSubject(value)) {
-            props[key] = value
+   if (stateFactory) {
+      const state = stateFactory()
+      for (const [key, value] of Object.entries(state)) {
+         if (value instanceof EventEmitter) {
+            context[key] = function (event: any) {
+               value.emit(event)
+            }
+         } else if (isCheckSubject(value)) {
             context[key] = value.value
             createBinding(context, key, value, scheduler)
-        }
-    }
-
-    if (stateFactory) {
-        const state = stateFactory(Object.freeze(props))
-        for (const [key, value] of Object.entries(state)) {
-            if (value instanceof EventEmitter) {
-                context[key] = function (event: any) {
-                    value.emit(event)
-                }
-            } else if (isCheckSubject(value)) {
-                context[key] = value.value
-                createBinding(context, key, value, scheduler)
-            } else {
-                Object.defineProperty(context, key, Object.getOwnPropertyDescriptor(state, key)!)
-            }
-        }
-    }
+         } else {
+            Object.defineProperty(
+               context,
+               key,
+               Object.getOwnPropertyDescriptor(state, key)!,
+            )
+         }
+      }
+   }
 }
 const empty = [] as any[]
 export function check(key: CheckPhase) {
-    const context = getContext();
-    for (const subject of context[key] ?? empty) {
-        subject.check();
-    }
+   const context = getContext()
+   for (const subject of context[key] ?? empty) {
+      subject.check()
+   }
 }
 
 export function subscribe() {
-    const { effects } = getContext();
-    if (effects.size === 0) return;
-    const list = Array.from(effects);
-    effects.clear();
-    for (const effect of list) {
-        effect.subscribe()
-    }
-    return true
+   const { effects } = getContext()
+   if (effects.size === 0) return
+   const list = Array.from(effects)
+   effects.clear()
+   for (const effect of list) {
+      effect.subscribe()
+   }
+   return true
 }
 
 export function unsubscribe() {
-    if (!contextMap.has(currentContext)) return
-    getContext().subscription.unsubscribe();
+   if (!contextMap.has(currentContext)) return
+   getContext().subscription.unsubscribe()
 }
 
 export function addCheck(key: CheckPhase, subject: any) {
-    getContext()[key].add(subject);
+   getContext()[key].add(subject)
 }
 
 export function addTeardown(teardown: TeardownLogic) {
-    getContext().subscription.add(teardown);
+   getContext().subscription.add(teardown)
 }
 
 export function addEffect<T>(
-    source?: Subscribable<T> | (() => TeardownLogic),
-    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
-    signal?: UnsubscribeSignal
+   source?: Subscribable<T> | (() => TeardownLogic),
+   observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
+   signal?: UnsubscribeSignal,
 ): Subscription | void {
-    const subscription = new Subscription()
-    if (!source) {
-        addTeardown(subscription)
-        return subscription
-    }
-    const { effects, injector, error, scheduler } = getContext();
-    const effectObserver = new EffectObserver<T>(source, observer, error, injector, scheduler, signal);
-    effects.add(effectObserver);
-    if (signal) {
-        addSignal(effectObserver, signal)
-    } else if (signal !== null) {
-        addTeardown(subscription)
-        return subscription.add(effectObserver)
-    }
+   const subscription = new Subscription()
+   if (!source) {
+      addTeardown(subscription)
+      return subscription
+   }
+   const { effects, injector, error, scheduler } = getContext()
+   const effectObserver = new EffectObserver<T>(
+      source,
+      observer,
+      error,
+      injector,
+      scheduler,
+      signal,
+   )
+   effects.add(effectObserver)
+   if (signal) {
+      addSignal(effectObserver, signal)
+   } else if (signal !== null) {
+      addTeardown(subscription)
+      return subscription.add(effectObserver)
+   }
 }
 
-function next(injector: Injector, errorHandler: ErrorHandler, notification: Notification<any>, observer: any, scheduler: Scheduler, signal?: UnsubscribeSignal) {
-    notification.accept(unsubscribe)
-    createContext(currentContext, injector, errorHandler, scheduler)
-    try {
-        const teardown = notification.accept(observer as any)
-        if (signal) {
-            addSignal(teardown, signal)
-        } else if (signal !== null) {
-            addTeardown(teardown)
-        }
-    } catch (error) {
-        errorHandler.handleError(error)
-    }
-    notification.accept(subscribe)
-    scheduler?.detectChanges()
+function next(
+   injector: Injector,
+   errorHandler: ErrorHandler,
+   notification: Notification<any>,
+   observer: any,
+   scheduler: Scheduler,
+   signal?: UnsubscribeSignal,
+) {
+   notification.accept(unsubscribe)
+   createContext(currentContext, injector, errorHandler, scheduler)
+   try {
+      let previous = checkValues
+      checkValues = new Set()
+      const teardown = notification.accept(observer as any)
+      for (const value of checkValues) {
+         value(value.value)
+      }
+      checkValues = previous
+      if (signal) {
+         addSignal(teardown, signal)
+      } else if (signal !== null) {
+         addTeardown(teardown)
+      }
+   } catch (error) {
+      errorHandler.handleError(error)
+   }
+   notification.accept(subscribe)
+   scheduler?.detectChanges()
 }
-
 
 export class ComputedSubject<T> extends BehaviorSubject<T> {
-    [checkPhase]: CheckPhase
-    compute
-    deps: Subject<Set<any>>
-    refs: number
-    subscription?: Subscription
-    changes: Observable<any>
-    subscribe(): Subscription
-    subscribe(observer: (value: T) => void): Subscription
-    subscribe(observer: PartialObserver<T>): Subscription
-    subscribe(observer?: any): Subscription {
-        this.refs++
-        if (this.refs === 1) {
-            this.subscription = this.changes.subscribe((v) => {
-                const [value, deps] = computeValue(this.compute)
-                this.deps.next(deps)
-                this.next(value)
-            })
-        }
-        return super.subscribe(observer).add(() => {
-            this.refs--
-            if (this.refs === 0) {
-                this.subscription?.unsubscribe()
-            }
-        })
-    }
-    constructor(compute: (value?: T) => T) {
-        const [value, deps] = computeValue(compute)
-        super(value)
-        this[checkPhase] = 0
-        this.compute = compute
-        this.deps = new BehaviorSubject(deps)
-        this.changes = this.deps.pipe(
-            distinctUntilChanged(arrayCompare),
-            switchMap((deps) => combineLatest([...deps]).pipe(
-                skip(1),
-            ))
-        )
-        this.refs = 0
-    }
+   [checkPhase]: CheckPhase
+   compute
+   deps: Subject<Set<any>>
+   refs: number
+   subscription?: Unsubscribable
+   changes: Subscribable<any>
+   subscribe(): Subscription
+   subscribe(observer: (value: T) => void): Subscription
+   subscribe(observer: PartialObserver<T>): Subscription
+   subscribe(observer?: any): Subscription {
+      this.refs++
+      if (this.refs === 1) {
+         this.subscription = this.changes.subscribe((v) => {
+            const [value, deps] = computeValue(this.compute)
+            this.deps.next(deps)
+            this.next(value)
+         })
+      }
+      return super.subscribe(observer).add(() => {
+         this.refs--
+         if (this.refs === 0) {
+            this.subscription?.unsubscribe()
+         }
+      })
+   }
+   constructor(compute: (value?: T) => T) {
+      const [value, deps] = computeValue(compute)
+      super(value)
+      this[checkPhase] = 0
+      this.compute = compute
+      this.deps = new BehaviorSubject(deps)
+      this.changes = this.deps.pipe(
+         distinctUntilChanged(arrayCompare),
+         switchMap((deps) => combineLatest([...deps]).pipe(skip(1))),
+      )
+      this.refs = 0
+   }
 }
 
 export class EffectObserver<T> {
-    closed
-    next(value: T | Notification<T>) {
-        if (this.closed) return
-        if (value instanceof Notification) {
-            return this.call(value);
-        }
-        this.call(Notification.createNext(value));
-    }
-    error(error: unknown) {
-        if (this.closed) return
-        this.call(Notification.createError(error));
-    }
-    complete() {
-        if (this.closed) return
-        this.call(Notification.createComplete());
-    }
-    subscribe() {
-        const { source } = this
-        let subscription
-        if (typeof source === "function") {
-            const { injector, errorHandler, scheduler } = this;
-            const fn = () => runInContext(this, next, injector, errorHandler, Notification.createNext(void 0), source, scheduler)
-            subscription = new ComputedSubject(fn).subscribe(this)
-        } else {
-            subscription = source.subscribe(this);
-        }
-        if (this.signal) {
-            return addSignal(subscription, this.signal)
-        }
-        return subscription
-    }
-    unsubscribe() {
-        if (this.closed) return
-        this.closed = true
-        runInContext(this, unsubscribe)
-    }
-    private call(notification: Notification<T>) {
-        const { observer, injector, errorHandler, scheduler, signal } = this;
-        const isError = notification.kind === 'E';
-        let errorHandled = !isError;
-        errorHandled = errorHandled || observer && 'error' in observer;
-        if (observer) {
-            runInContext(this, next, injector, errorHandler, notification, observer, scheduler, signal)
-        }
-        if (!errorHandled) {
-            errorHandler.handleError(notification.error);
-        }
-    }
-    constructor(
-        private source: any,
-        private observer: any,
-        private errorHandler: ErrorHandler,
-        private injector: Injector,
-        private scheduler: Scheduler,
-        private signal?: UnsubscribeSignal,
-    ) {
-        this.closed = false
-        createContext(this, injector, errorHandler, scheduler)
-    }
+   closed
+   next(value: T | Notification<T>) {
+      if (this.closed) return
+      if (value instanceof Notification) {
+         return this.call(value)
+      }
+      this.call(Notification.createNext(value))
+   }
+   error(error: unknown) {
+      if (this.closed) return
+      this.call(Notification.createError(error))
+   }
+   complete() {
+      if (this.closed) return
+      this.call(Notification.createComplete())
+   }
+   subscribe() {
+      const { source } = this
+      let subscription
+      if (typeof source === "function" && !isValue(source)) {
+         const { injector, errorHandler, scheduler } = this
+         const fn = () =>
+            runInContext(
+               this,
+               next,
+               injector,
+               errorHandler,
+               Notification.createNext(void 0),
+               source,
+               scheduler,
+            )
+         subscription = new ComputedSubject(fn).subscribe(this)
+      } else {
+         subscription = source.subscribe(this)
+      }
+      if (this.signal) {
+         return addSignal(subscription, this.signal)
+      }
+      return subscription
+   }
+   unsubscribe() {
+      if (this.closed) return
+      this.closed = true
+      runInContext(this, unsubscribe)
+   }
+   private call(notification: Notification<T>) {
+      const { observer, injector, errorHandler, scheduler, signal } = this
+      const isError = notification.kind === "E"
+      let errorHandled = !isError
+      errorHandled = errorHandled || (observer && "error" in observer)
+      if (observer) {
+         runInContext(
+            this,
+            next,
+            injector,
+            errorHandler,
+            notification,
+            observer,
+            scheduler,
+            signal,
+         )
+      }
+      if (!errorHandled) {
+         errorHandler.handleError(notification.error)
+      }
+   }
+   constructor(
+      private source: any,
+      private observer: any,
+      private errorHandler: ErrorHandler,
+      private injector: Injector,
+      private scheduler: Scheduler,
+      private signal?: UnsubscribeSignal,
+   ) {
+      this.closed = false
+      createContext(this, injector, errorHandler, scheduler)
+   }
 }
 
-export function decorate(Props: any) {
-    return class extends Props {
-        ngDoCheck() {
-            runInContext(this, check, 0);
-        }
-        ngAfterContentChecked() {
-            runInContext(this, check, 1);
-        }
-        ngAfterViewChecked() {
-            runInContext(this, check, 2);
-            runInContext(this, subscribe);
-        }
-        ngOnDestroy() {
-            runInContext(this, unsubscribe);
-        }
-        constructor() {
-            super();
-            runInContext(this, setup, directiveInject(INJECTOR), Props.create);
-        }
-    } as any
+export function decorate(create: any) {
+   return class {
+      ngDoCheck() {
+         runInContext(this, check, 0)
+      }
+      ngAfterContentChecked() {
+         runInContext(this, check, 1)
+      }
+      ngAfterViewChecked() {
+         runInContext(this, check, 2)
+         runInContext(this, subscribe)
+      }
+      ngOnDestroy() {
+         runInContext(this, unsubscribe)
+      }
+      constructor() {
+         runInContext(this, setup, directiveInject(INJECTOR), create)
+      }
+   } as any
 }
 
-export type ProvidedIn = Type<any> | 'root' | 'platform' | 'any' | null
+export type ProvidedIn = Type<any> | "root" | "platform" | "any" | null
 
-export function Service<T>(factory: () => T, options?: { providedIn: ProvidedIn }): Type<T> {
-    @Injectable({ providedIn: options?.providedIn ?? null  })
-    class Class {
-        static overriddenName = factory.name
-        ngOnDestroy() {
-            runInContext(this, unsubscribe)
-        }
-        constructor() {
-            inject(NgModuleRef, InjectFlags.Self | InjectFlags.Optional)?.onDestroy(() => this.ngOnDestroy())
-            return createService(this, factory)
-        }
-    }
-    return Class as any
+export function Service<T>(
+   factory: () => T,
+   options?: { providedIn: ProvidedIn },
+): Type<T> {
+   @Injectable({ providedIn: options?.providedIn ?? null })
+   class Class {
+      static overriddenName = factory.name
+      ngOnDestroy() {
+         runInContext(this, unsubscribe)
+      }
+      constructor() {
+         serviceInject(
+            NgModuleRef,
+            InjectFlags.Self | InjectFlags.Optional,
+         )?.onDestroy(() => this.ngOnDestroy())
+         return createService(this, factory)
+      }
+   }
+   return Class as any
 }
 
-export function Inject<T>(token: ProviderToken<T>, notFoundValue?: T, flags?: InjectFlags): T {
-    const { injector } = getContext();
-    const previous = beginContext(void 0);
-    const value = injector.get(token, notFoundValue, flags);
-    endContext(previous);
-    return value
+export function inject<T>(
+   token: ProviderToken<T> | ValueToken<T>,
+   notFoundValue?: T,
+   flags?: InjectFlags,
+): T {
+   const { injector } = getContext()
+   const previous = beginContext(void 0)
+   const value = injector.get(token, notFoundValue, flags)
+   endContext(previous)
+   if (value instanceof ValueGetterSetter) {
+      return value.get()
+   }
+   return value
 }
 
-function isSignal(value: any): value is UnsubscribeSignal {
-    return value === null || value instanceof Subscription || value instanceof AbortSignal
+let checkValues = new Set<Value<any>>()
+
+export function markDirty<T>(value: Value<T>): T {
+   checkValues.add(value)
+   return value.value
 }
 
-function isObserver(observer: any): observer is PartialObserver<any> | Function {
-    return observer && "next" in observer || typeof observer === "function" ? observer : void 0
+export function ViewDef<T>(create: () => T): ViewDef<T> {
+   return decorate(create)
 }
 
-export function Subscribe<T>(): Subscription;
-export function Subscribe<T>(observer: () => TeardownLogic): Subscription;
-export function Subscribe<T>(
-    source: Observable<T>,
-): Subscription;
-export function Subscribe<T>(
-    source: Observable<T>,
-    observer: PartialObserver<T>,
-): Subscription;
-export function Subscribe<T>(
-    source: Observable<T>,
-    observer: (value: T) => TeardownLogic,
-): Subscription;
-export function Subscribe<T>(
-    source: Observable<T>,
-    signal: UnsubscribeSignal,
-): void;
-export function Subscribe<T>(
-    source: Observable<T>,
-    observer: PartialObserver<T> | ((value: T) => TeardownLogic),
-    signal: UnsubscribeSignal
-): void
-export function Subscribe<T>(
-    source?: Observable<T> | (() => TeardownLogic),
-    observerOrSignal?: PartialObserver<T> | ((value: T) => TeardownLogic) | UnsubscribeSignal,
-    signal?: UnsubscribeSignal
-): Subscription | void {
-    const observer = isObserver(observerOrSignal) ? observerOrSignal : void 0
-    signal = isSignal(observerOrSignal) ? observerOrSignal : signal
-    return addEffect(source, observer, signal);
-}
+export type ViewDef<T> = Type<
+   {
+      [key in keyof T]: T[key] extends CheckSubject<infer R> ? R : T[key]
+   }
+>

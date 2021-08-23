@@ -2,9 +2,8 @@
  * Public API Surface of angular-composition-api
  */
 
-export { Service, Inject, Subscribe, CallContextError, decorate, DETACHED } from "./core"
-export { ValueSubject, QueryListSubject, QueryList, QueryListObserver, Query, Value } from "./common"
-export { CheckSubject, checkPhase, CheckPhase, State, UnsubscribeSignal } from "./interfaces"
-export { Select } from "./select"
-export { Provide, ValueToken, EmptyValueError } from "./provider"
-export { get, set, Emitter } from "./utils"
+export { Service, inject, CallContextError, decorate, DETACHED, ViewDef } from "./core"
+export { use, subscribe } from "./common"
+export { CheckSubject, checkPhase, CheckPhase, State, UnsubscribeSignal, Value, ReadonlyValue, Emitter, EmitterWithParams } from "./interfaces"
+export { select } from "./select"
+export { ValueToken, provide } from "./provider"

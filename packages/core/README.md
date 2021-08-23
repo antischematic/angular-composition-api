@@ -4,9 +4,6 @@ A lightweight (3kb) library for writing functional Angular applications.
 
 ## Quick Start
 
-> ⚠ This library is experimental. It relies on private Angular APIs and compiler workarounds
-> that may break in future versions. Use at your own risk.
-
 Install with NPM
 
 ```bash
@@ -19,93 +16,21 @@ Install with Yarn
 yarn add @mmuscat/angular-composition-api
 ```
 
-### Known Issues
-
-The Angular compiler only discovers `@Input` or `@Output` metadata on properties that can be statically resolved.
-Unfortunately this doesn't work with mixins, causing template binding errors. A couple of workarounds are listed below.
-
-<details>
-    <summary>Trick the compiler</summary>
-
-To work around this issue you can define a mixin that tricks the compiler into thinking it's a static call. In your
-project, create a file with the following code:
-
 ```ts
-import {decorate, State} from "@mmuscat/angular-composition-api";
-
-export function State<T, U>(base: Type<T> & { create?: (base: T) => U }, _ = base = decorate(base)): State<T, U> {
-    return base as any
-}
-```
-
-Then use it in your application:
-
-```ts
-@Directive()
-class Props {
-    @Input()
-    count = Value(0)
-
-    @Output()
-    countChange = Emitter<number>()
-
-    @ContentChild(TemplateRef)
-    content = Query<TemplateRef>()
-
-    static create() {
-        // etc...
-    }
-}
-
-@Component()
-export class MyComponent extends State(Props) {
-}
-```
-
-While this works locally, it could break if the underlying compiler implementation changes. Note that the mixin
-function needs to be concrete, it can't be imported from a compiled library or application (ie. imports from
-declaration files won't work). [See this issue for a detailed explanation](https://github.com/angular/angular/issues/42594).
-</details>
-
-<details>
-    <summary>Safer option</summary>
-
-Same as above, except `inputs` and `outputs` are added to the `@Component` or `@Directive` metadata instead. 
-If the language service gives you issues, use this option. You lose type inference on
-inputs though, which will be cast to `any`.
-
-```ts
-class Props {
-    count = Value(0)
-    countChange = Emitter<number>()
-
-    @ContentChild(TemplateRef)
-    content = Query<TemplateRef>()
-
-    static create() {
-        // etc...
-    }
+function create() {
+   const [count, countChange] = use(0)
+   return {
+      count,
+      countChange,
+   }
 }
 
 @Component({
-    inputs: ["count"],
-    outputs: ["countChange"]
+   inputs: ["count"],
+   outputs: ["countChange"],
 })
-export class MyComponent extends State(Props) {
-}
+export class MyComponent extends ViewDef(create) {}
 ```
-
-</details>
-
-<details>
-    <summary>IDE language service</summary>
-
-If your IDE is complaining about types, either disable the inspection for input bindings (Jetbrains), or use the second
-option above to suppress template errors.
-
-VSCode should work fine with the latest updates.
-
-</details>
 
 ## Example
 
@@ -116,150 +41,147 @@ View [Todo List](https://stackblitz.com/edit/angular-composition-api) on Stackbl
 ### Component
 
 ```ts
-// 1. Create props interface. 
-@Directive()
-class Props {
-    @Input() count = Value(0) // Value<number> becomes `number`
+function create() {
+   const [count, countChange] = use(0)
+   const increment = use<void>(Function)
+   const disabled = use(false)
 
-    // 2. Create a factory function.
-    static create({count}: Props) {
-        const setCount = set(count)
-        const increment = Emitter()
-        const disabled = Value(false)
-        // b. Emit values to trigger state updates.
-        Subscribe(increment, () => {
-            if (disabled.value) return
-            setCount(count.value + 1)
-        })
-        // c. Return values are merged with props. 
-        return {
-            disabled, // `Value<boolean>` becomes `boolean`
-            increment // `EventEmitter<number>` becomes `(value: number) => void`
-        }
-    }
+   subscribe(increment, () => {
+      if (disabled.value) return
+      countChange(count() + 1)
+   })
+
+   return {
+      count,
+      countChange,
+      disabled,
+      increment,
+   }
 }
 
-// 3. Extend component class with State.
 @Component({
-    selector: "app-counter",
-    template: `
-        <p>{{ count }}</p>
-        <button (click)="increment()">Increment</button>
-    `
+   selector: "app-counter",
+   template: `
+      <p>{{ count }}</p>
+      <button (click)="increment()">Increment</button>
+   `,
+   inputs: ["count", "disabled"],
+   outputs: ["countChange"],
 })
-export class Counter extends State(Props) {
-}
+export class Counter extends ViewDef(create) {}
 ```
 
 ### Service
 
 ```ts
-// 1. Create a factory function.
-function loadTodosByUserId() {
-    // a. Inject values from context
-    const http = Inject(HttpClient)
-    const emitter = Emitter()
-    const value = Value()
+function todosByUserId() {
+   const http = inject(HttpClient)
+   const getTodosUserById = use<string>(Function)
+   const todos = use<Todo[]>()
+   const error = use<Error>()
+   const loadUser = user.pipe(
+      switchMap(() => http.get(`//example.com/api/v1/todo?userId=${userId}`)),
+   )
 
-    // b. Subscribe to values, cleanup is automatic.
-    Subscribe(emitter, (userId) => {
-        const source = http.get(`//example.com/api/v1/todo?userId=${userId}`)
-        // Subscribe can be nested. It is cancelled each time a new value 
-        // from the parent is received.
-        Subscribe(source, set(value))
-    })
+   subscribe(loadUser, {
+      next: todos,
+      error,
+   })
 
-    // c. Return values are public. Factories are *not* unwrapped.
-    return [value, emitter]
+   return {
+      todos,
+      getTodosUserById,
+      error,
+   }
 }
 
-// 2. Create an injectable service.
-export const LoadTodosByUserId = Service(loadTodosByUserId, {
-    providedIn: "root" // defaults to null
+export const TodosByUserId = Service(todosByUserId, {
+   providedIn: "root", // defaults to null
 })
 
-// 3. Inject service.
-class Props {
-    static create({userId}: Props) {
-        const [todos, loadTodosByUserId] = Inject(LoadTodosByUserId)
+function create() {
+   const userId = use("me")
+   const [todos, getTodosByUserId] = inject(TodosByUserId)
 
-        Subscribe(userId, loadTodosByUserId)
+   subscribe(userId, getTodosByUserId)
 
-        return {
-            todos
-        }
-    }
+   return {
+      userId,
+      todos,
+   }
 }
 
-// 4. Provide local service if needed.
 @Component({
-    providers: [LoadTodosByUserId]
+   providers: [TodosByUserId], // optional if provided in module
 })
-export class Todos extends State(Props) {
-}
-
-// 5. Override provider if needed
-
-const CustomProvider = {
-    provide: LoadTodosByUserId,
-    useClass: Service(factory)
-}
+export class Todos extends ViewDef(create) {}
 ```
 
 ## Api Reference
 
 ### Core
 
-#### State
+#### ViewDef
 
-Creates a context-aware class from the provided base class. Inputs, outputs, queries and other props are defined as
-fields on the base class. The static `create` method takes the instance of the base class as an argument and returns a
-state object that is merged with the base class. Reactive values created with `Value` are unwrapped. If returned from
-the static `create` method, `Emitter` is unwrapped to a plain function. Emitters in the base class are not unwrapped.
+Creates a context-aware class from a factory function. Values returned from this function are merged with the base class.
+`Value` types are unwrapped in the final class and template view, eg. `Value<number>` becomes `number`.
 
 **Change Detection**
 
 Change detection occurs in the following scenarios (assuming `OnPush`
 strategy):
 
-- On first render.
-- When inputs or reactive state changes (ie. props that implement `CheckSubject`).
-- When an event binding emits (if zone.js is enabled).
-- When `Subscribe` emits a value, after calling the observer.
+-  On first render.
+-  When inputs or reactive state changes (ie. fields that implement `CheckSubject`).
+-  When an event binding emits (if zone.js is enabled).
+-  When `subscribe` emits a value, after calling the observer.
+-  When calling `markDirty`, either immediately or after a calling observer.
 
-Change detection might *not* occur if:
+Change detection might _not_ occur if:
 
-- Reactive state is mutated outside a reactive context. For example, if you manually create a component and mutate a
-  value, you must call
-  `detectChanges` to propagate the change.
+-  Reactive state is mutated outside a reactive context. For example, if you manually create a component and mutate a
+   value, you must call `detectChanges` to propagate the change.
 
-Updates to reactive state are not immediately reflected in the view. If you need an immediate update, inject
+Updates to reactive state are not always immediately reflected in the view. If you need an immediate update, inject
 the `ChangeDetectorRef` and call `detectChanges` after updating a value.
+
+**Value mutation**
+
+When modifying mutable data structures we can let the change detector know to check the view.
+
+```ts
+const values = use<number[]>([])
+const append = use<number>(Function)
+
+subscribe(append, (value) => {
+   markDirty(values).push(value)
+})
+```
 
 **Detached mode**
 
-Components and directives that extend `State` and provide the
+Components and directives that extend `ViewDef` and provide the
 `DETACHED` token will have their `ChangeDetectorRef` detached from parent views.
 
 #### Service
 
 Creates a context-aware, tree-shakable service from the provided factory function. If the
 `providedIn` option is set to null, or omitted, you must provide the service in a `NgModule`,
-`Directive` or `Component`. Start or retrieve the service with `Inject`.
+`Directive` or `Component`. Start or retrieve the service with `inject`.
 
 #### Provide
 
-Allows `State` to declare and set `ValueToken` providers inside its `create` factory.
+Allows `ViewDef` to declare and set `ValueToken` providers inside its `create` factory.
 
 ```ts
 const Token = ValueToken("TOKEN")
 
 function parent() {
-    Provide(Token, { value: "hello" })
+   provide(Token, { value: "hello" })
 }
 
 function child() {
-    const token = Inject(Token)
+   const token = inject(Token)
 }
 ```
 
@@ -267,85 +189,75 @@ Example
 
 ```html
 <parent>
-    <child></child>
+   <child></child>
 </parent>
 ```
 
-Create a `ValueToken`. Value tokens can only have their value set in the same injector context they are provided in, 
+Create a `ValueToken`. Value tokens can only have their value set in the same injector context they are provided in,
 otherwise it throws `NullInjectorError`.
 
 ```ts
-const Count = ValueToken("COUNT", {value: 0}) // <- default is optional
+const Count = ValueToken("COUNT", { value: 0 }) // <- default is optional
 
-class Props {
-    static create() {
-        Provide(Count, {value: 10})
-    }
+function create() {
+   provide(Count, { value: 10 })
 }
 
 @Component({
-    selector: "parent",
-    providers: [Count] // <- important
+   selector: "parent",
+   providers: [Count], // <- important
 })
-export class Parent extends State(Props) {
-}
+export class Parent extends ViewDef(create) {}
 ```
 
 Inject the `ValueToken` from a child context. Throws `EmptyValueError` if no value or default
- has been set.
+has been set.
 
 ```ts
-class Props {
-    static create() {
-        const count = Inject(Count)
-        return {
-            count
-        }
-    }
+function create() {
+   const count = inject(Count)
+   return {
+      count,
+   }
 }
 
-@Component({selector: "child"})
-export class Child extends State(Props) {
-}
+@Component({ selector: "child" })
+export class Child extends ViewDef(create) {}
 ```
 
 #### Inject
 
-Equivalent to `Injector.get(ProviderToken)`. Throws `CallContextError` if called outside a `State`
+Equivalent to `Injector.get(ProviderToken)`. Throws `CallContextError` if called outside a `ViewDef`
 or `Service` factory.
 
 #### Subscribe
 
-Registers an effect in the current context. If `Subscribe` is called inside a `State`, the subscription is deferred
-until the view has mounted. If it is called inside a `Service` or nested in another `Subscribe`, the subscription is
-invoked immediately after the containing function has executed. Throws `CallContextError` if called outside a `State`
+Registers an effect in the current context. If `subscribe` is called inside a `ViewDef`, the subscription is deferred
+until the view has mounted. If it is called inside a `Service` or nested in another `subscribe`, the subscription is
+invoked immediately after the containing function has executed. Throws `CallContextError` if called outside a `ViewDef`
 or `Service` factory. Returns a subscription to that can be used to manually stop the effect, or void if passed an abort
 signal.
 
 **Reactive Observers**
 
-When using `Subscribe` with a single function, it will track reactive dependencies and call the function recursively
+When using `subscribe` with a single function, it will track reactive dependencies and call the function recursively
 when those dependencies emit a new value. For example, the following two snippets are functionally equivalent.
 
 ```ts
-const firstName = Value("John")
-const lastName = Value("Smith")
+const firstName = use("John")
+const lastName = use("Smith")
 
-Subscribe(firstName, () => {
-    console.log(
-        `Full name: ${firstName.value} ${lastName.value}`
-    )
+subscribe(firstName, () => {
+   console.log(`Full name: ${firstName.value} ${lastName.value}`)
 })
 ```
 
 ```ts
-const firstName = Value("John")
-const lastName = Value("Smith")
+const firstName = use("John")
+const lastName = use("Smith")
 
-Subscribe(() => {
-    console.log(
-        `Full name: ${get(firstName)} ${lastName.value}`
-    )
+subscribe(() => {
+   console.log(`Full name: ${get(firstName)} ${lastName.value}`)
 })
 ```
 
@@ -355,9 +267,9 @@ the `value` property accessor.
 
 **Abort Signals**
 
-By default, subscriptions returned by `Subscribe` are subscribed to the lifecycle of a
-`State`, `Service` or `Subscribe` they were created in. You can override this behavior by supplying
-an `UnsubscribeSignal` to `Subscribe`. This can either be a `Subscription` or an `AbortSignal`. In this mode, the
+By default, subscriptions returned by `subscribe` are subscribed to the lifecycle of a
+`ViewDef`, `Service` or `subscribe` they were created in. You can override this behavior by supplying
+an `UnsubscribeSignal` to `subscribe`. This can either be a `Subscription` or an `AbortSignal`. In this mode, the
 subscription is kept alive even if the context is destroyed, and teardown logic won't execute until the abort signal is
 sent by calling `abort` on `AbortController` or `unsubscribe` on `Subscription`.
 
@@ -365,25 +277,22 @@ For example, you can use `UnsubscribeSignal` to merge inner streams instead of s
 behavior).
 
 ```ts
-class Props {
-    static create() {
-        const ping = Inject(PingService)
-        const untilDestroy = Subscribe() // cancels when view is destroyed
-        const state = Value<State>()
+function create() {
+   const ping = inject(PingService)
+   const untilDestroy = subscribe() // cancels when view is destroyed
+   const state = Value<State>()
 
-        Subscribe(interval(1000), () => {
-            Subscribe(ping.pong(), state, untilDestroy)
-        })
+   subscribe(interval(1000), () => {
+      subscribe(ping.pong(), state, untilDestroy)
+   })
 
-        return {
-            state
-        }
-    }
+   return {
+      state,
+   }
 }
 
 @Component()
-export class Pinger extends State(Props) {
-}
+export class Pinger extends ViewDef(create) {}
 ```
 
 In this example, a new inner stream is created every second and will not be disposed even if it takes longer than 1
@@ -391,114 +300,128 @@ second to complete. If the view is destroyed, then all remaining streams are uns
 
 ---
 
-### Common
+### Use API
 
 #### Value
 
-Creates a `BehaviorSubject`. Values are synced with the view during the `ngDoCheck` lifecycle hook.
-
-#### Query
-
-Creates a `Value` that will receive a `ContentChild` or `ViewChild`. Pass `true` for static queries. Pass `false` for
-dynamic `ViewChild` queries.
+Creates a `Value`. Values are synced with the view during the `ngDoCheck` lifecycle hook.
 
 ```ts
-@Directive()
-class Props {
-    @ContentChild(TemplateRef, {static: true})
-    child = Query<TemplateRef<any>>(true)
-    // or
-    @ContentChild(TemplateRef)
-    child = Query<TemplateRef<any>>()
-    // or
-    @ViewChild(TemplateRef)
-    child = Query<TemplateRef<any>>(false)
-
-    static create({child}: Props) {
-        Subscribe(child, (value) => {
-            if (value) {
-                console.log(value)
-            }
-        })
-    }
-}
-```
-
-#### QueryList
-
-Creates a `QueryListSubject` that will receive `ContentChildren` or `ViewChildren`. Subscribes to the underlying query
-list when it becomes available. Pass `false` when used with `ViewChildren` so that it syncs correctly.
-
-```ts
-@Directive()
-class Props {
-    @ContentChildren(TemplateRef)
-    children = QueryList<TemplateRef<any>>()
-    // or
-    @ViewChildren(TemplateRef)
-    children = QueryList<TemplateRef<any>>(false)
-
-    static create({children}: Props) {
-        Subscribe(() => {
-            for (const child of get(children)) {
-                console.log(child)
-            }
-        })
-    }
-}
+const num = use(0)
+const arr = use([])
 ```
 
 #### Emitter
 
-Creates an `EventEmitter`.
+Creates an `Emitter` from a `Function` or `Value`.
+
+```ts
+const count = use(0)
+const countChange = use(count)
+
+// shorthand syntax
+const [count, countChange] = use(0)
+
+const increment = use<void>(Function)
+const add = use<number>(Function)
+const sum = use((num1, num2, num3) => num1 + num2 + num3)
+
+subscribe(sum, console.log)
+
+countChange(count() + 1)
+increment()
+add(1)
+sum(1, 2, 3)
+```
+
+#### Query
+
+Creates a `Value` that will receive a `ContentChild` or `ViewChild`.
+
+```ts
+function create() {
+   const staticChild = use<TemplateRef<any>>()
+   const contentChild = use<TemplateRef<any>>(ContentChild)
+   const viewChild = use<TemplateRef<any>>(ViewChild)
+
+   subscribe(viewChild, (value) => {
+      if (value) {
+         console.log(value)
+      }
+   })
+
+   return {
+      staticChild,
+      contentChild,
+      viewChild,
+   }
+}
+
+@Component({
+   queries: {
+      staticChild: new ContentChild(TemplateRef, { static: true }),
+      contentChild: new ContentChild(TemplateRef),
+      viewChild: new ViewChild(TemplateRef),
+   },
+})
+export class MyComponent extends ViewDef(create) {}
+```
+
+#### QueryList
+
+Creates a `ReadonlyValue` that will receive a `QueryList` of `ContentChildren` or `ViewChildren`. Subscribes to the underlying query
+list when it becomes available.
+
+```ts
+function create() {
+   const contentChildren = use<TemplateRef<any>>(ContentChildren)
+   const viewChildren = use<TemplateRef<any>>(ViewChildren)
+
+   subscribe(() => {
+      for (const child of contentChildren()) {
+         console.log(child)
+      }
+   })
+
+   return {
+      contentChildren,
+      viewChildren,
+   }
+}
+
+@Component({
+   queries: {
+      contentChildren: new ContentChildren(TemplateRef),
+      viewChildren: new ViewChildren(TemplateRef),
+   },
+})
+export class MyComponent extends ViewDef(create) {}
+```
 
 #### Select
 
-Creates a new `Value` from a reactive observer, `Observable` or `BehaviorSubject`, with an optional `selector`.
+Creates a new computed `Value` from a reactive observer, `Observable` or `BehaviorSubject`, with an optional `selector`.
 
 With `BehaviorSubject`
 
 ```ts
-const state = Value({count: 0})
-const count = Select(state, (val) => val.count)
+const state = use({ count: 0 })
+const count = select(state, (val) => val.count)
 ```
 
 With `Observable` and initial value
 
 ```ts
-const store = Inject(Store)
-const count = Select(store.select((val) => val.count), 0)
+const store = inject(Store)
+const count = select(
+   store.select((val) => val.count),
+   0,
+)
 ```
 
 With reactive observer
 
 ```ts
-const state = Value({count: 0})
-const count = Select(() => get(state).count)
-```
-
----
-
-### Utils
-
-#### get
-
-Get the current value of a `Value`. If used inside a reactive observer, tracks the `Value` as a dependency.
-
-#### set
-
-Returns a function that will emit a value to `Value`, useful for ignoring error and
-complete events in `Subscribe`.
-
-Also accepts an additional observer, which is a useful for notifying emitters.
-
-```ts
-const countChange = Emitter()
-const count = Value(0),
-    setCount = set(count, countChange)
-
-setCount(10)
-setCount((value) => value + 10)
-
-Subscribe(of(10, 20, 30), setCount)
+const state = use({ count: 0 })
+const count = select(() => state().count)
 ```

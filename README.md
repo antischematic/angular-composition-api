@@ -7,10 +7,11 @@ Composition API and supporting libraries for writing functional Angular applicat
 | Name  | Description |
 |---|---|
 | [Core](https://github.com/mmuscat/angular-composition-api/tree/master/packages/core) | A lightweight (3kb) library for writing functional Angular applications.
-| [Boundary](https://github.com/mmuscat/angular-composition-api/tree/master/packages/boundary) | A lightweight (3kb) implementation of [Error Boundaries](https://reactjs.org/docs/error-boundaries.html) for Angular, with a bit of [Suspense](https://reactjs.org/docs/concurrent-mode-suspense.html).
-| [Store](https://github.com/mmuscat/angular-composition-api/tree/master/packages/store) | A delightfully concise (1kb) redux store for Angular applications
-| [Resource](https://github.com/mmuscat/angular-composition-api/tree/master/packages/resource) | Remote data streams for Angular.
-| [Example](https://github.com/mmuscat/angular-composition-api/tree/master/packages/example) | Todo List sandbox.
+
+[comment]: <> (| [Boundary]&#40;https://github.com/mmuscat/angular-composition-api/tree/master/packages/boundary&#41; | A lightweight &#40;3kb&#41; implementation of [Error Boundaries]&#40;https://reactjs.org/docs/error-boundaries.html&#41; for Angular, with a bit of [Suspense]&#40;https://reactjs.org/docs/concurrent-mode-suspense.html&#41;.)
+[comment]: <> (| [Store]&#40;https://github.com/mmuscat/angular-composition-api/tree/master/packages/store&#41; | A delightfully concise &#40;1kb&#41; redux store for Angular applications)
+[comment]: <> (| [Resource]&#40;https://github.com/mmuscat/angular-composition-api/tree/master/packages/resource&#41; | Remote data streams for Angular.)
+[comment]: <> (| [Example]&#40;https://github.com/mmuscat/angular-composition-api/tree/master/packages/example&#41; | Todo List sandbox.)
 
 ## Contributing
 

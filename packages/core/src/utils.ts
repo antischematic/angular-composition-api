@@ -1,17 +1,18 @@
 import {BehaviorSubject, NextObserver, PartialObserver, Subscription, SubscriptionLike, Unsubscribable} from "rxjs";
 import {EventEmitter} from "@angular/core";
+import {UnsubscribeSignal, Value} from "./interfaces";
 
 let previous: Set<any>
 let deps: Set<any>
-let track = false
+let tracking = false
 
 export function trackDeps<T>(fn: () => T): [T, Set<any>] {
     const flushed = new Set()
-    track = true
+    tracking = true
     previous = deps
     deps = flushed
     const value = fn()
-    track = false
+    tracking = false
     deps = previous
     return [value, flushed]
 }
@@ -26,13 +27,12 @@ export function arrayCompare(a: Set<any>, b: Set<any>) {
     return aArr.every((v, i) => v === bArr[i])
 }
 
-export function get<T>(source: { value: T, subscribe(value: (value: T) => void): SubscriptionLike }): T
-export function get<T>(source: { value: T, subscribe(value: PartialObserver<T>): SubscriptionLike }): T
-export function get<T>(source: { value: T, subscribe(value: PartialObserver<T> | ((value: T) => void)): SubscriptionLike }): T {
-    if (track) {
+export function track<T>(source: { value: T, subscribe(value: (value: T) => void): SubscriptionLike }): void
+export function track<T>(source: { value: T, subscribe(value: PartialObserver<T>): SubscriptionLike }): void
+export function track<T>(source: { value: T, subscribe(value: PartialObserver<T> | ((value: T) => void)): SubscriptionLike }): void {
+    if (tracking) {
         deps.add(source)
     }
-    return source.value;
 }
 
 type ValueOrSetter<T> = T | BehaviorSubject<T> | ((value: T) => T);
@@ -73,4 +73,28 @@ export function addSignal(teardown: Unsubscribable | Function, abort: Subscripti
     } else {
         abort.add(subscription)
     }
+}
+
+export function isEmitter(value: any) {
+   return typeof value === "function" || isValue(value)
+}
+
+export function isValue(value: any): value is Value<any> {
+   return typeof value === "function" && "__ng_value" in value
+}
+
+export function isSignal(value: any): value is UnsubscribeSignal {
+   return (
+      value === null ||
+      value instanceof Subscription ||
+      value instanceof AbortSignal
+   )
+}
+
+export function isObserver(
+   observer: any,
+): observer is PartialObserver<any> | Function {
+   return (observer && "next" in observer) || typeof observer === "function"
+      ? observer
+      : void 0
 }
