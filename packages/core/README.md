@@ -174,7 +174,7 @@ Creates a context-aware, tree-shakable service from the provided factory functio
 Allows `ViewDef` to declare and set `ValueToken` providers inside its `create` factory.
 
 ```ts
-const Token = ValueToken("TOKEN")
+const Token = new ValueToken("TOKEN")
 
 function parent() {
    provide(Token, { value: "hello" })
@@ -197,7 +197,7 @@ Create a `ValueToken`. Value tokens can only have their value set in the same in
 otherwise it throws `NullInjectorError`.
 
 ```ts
-const Count = ValueToken("COUNT", { value: 0 }) // <- default is optional
+const Count = new ValueToken("COUNT", { value: 0 }) // <- default is optional
 
 function create() {
    provide(Count, { value: 10 })
