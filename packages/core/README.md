@@ -280,7 +280,7 @@ behavior).
 function create() {
    const ping = inject(PingService)
    const untilDestroy = subscribe() // cancels when view is destroyed
-   const state = Value<State>()
+   const state = use<State>()
 
    subscribe(interval(1000), () => {
       subscribe(ping.pong(), state, untilDestroy)
