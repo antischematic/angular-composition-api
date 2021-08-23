@@ -257,12 +257,12 @@ const firstName = use("John")
 const lastName = use("Smith")
 
 subscribe(() => {
-   console.log(`Full name: ${get(firstName)} ${lastName.value}`)
+   console.log(`Full name: ${firstName()} ${lastName.value}`)
 })
 ```
 
 In both of the examples the observer is only called when `firstName`
-is updated. Dependencies are tracked based on calls to `get`. To read a `Value` without marking it as a dependency, use
+is updated. Dependencies are tracked based on calls to its getter function. To read a `Value` without marking it as a dependency, use
 the `value` property accessor.
 
 **Abort Signals**
