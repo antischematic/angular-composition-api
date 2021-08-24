@@ -1,104 +1,100 @@
-import { CommonModule } from '@angular/common';
-import {Component, Directive, ErrorHandler, Input, NgModule} from '@angular/core';
-import { CreateTodo, LoadTodosById } from './api.service';
-import { Todo, TodoModule } from './todo.component';
-import { State } from './state';
-import { get, Inject, Select, set, Subscribe, Value} from "@mmuscat/angular-composition-api";
-
+import { CommonModule } from "@angular/common"
+import { Component, ErrorHandler, NgModule } from "@angular/core"
+import { CreateTodo, LoadTodosById } from "./api.service"
+import { Todo, TodoModule } from "./todo.component"
+import {
+   inject,
+   markDirty,
+   subscribe,
+   use,
+   ViewDef,
+} from "@mmuscat/angular-composition-api"
 
 function trackById(index: number, value: any) {
-    return value?.id ?? index;
+   return value?.id ?? index
 }
 
-@Directive()
-class Props {
-    @Input()
-    userId = Value('');
+function todoList() {
+   const userId = use(""),
+      todos = use<Todo[]>([]),
+      creating = use<Todo | null>(null),
+      loadTodosById = inject(LoadTodosById),
+      createTodo = inject(CreateTodo),
+      error = inject(ErrorHandler)
+   const changesCount = use(0)
 
-    static create = create;
+   subscribe(userId, (value) => {
+      subscribe(loadTodosById(value), {
+         next: todos,
+         complete() {
+            creating(null)
+         },
+      })
+   })
+
+   subscribe(createTodo, ({ value, type }) => {
+      switch (type) {
+         case "request": {
+            console.log("create todo", value)
+            creating(value)
+            break
+         }
+         case "response": {
+            console.log("todo created!", value)
+            markDirty(userId)
+            break
+         }
+      }
+   })
+
+   subscribe(todos, () => {
+      changesCount(changesCount() + 1)
+   })
+
+   subscribe(todos, () => {
+      console.log("todos changed!", todos())
+      console.log("change count:", changesCount.value)
+      creating.next(null)
+   })
+
+   function explode() {
+      error.handleError(new Error("Boom!"))
+   }
+
+   function toggleAll() {
+      const done = todos().some((todo) => !todo.done)
+      todos(todos().map((todo) => ({ ...todo, done })))
+   }
+
+   function todoChange(value: Todo) {
+      todos(
+         todos().map((todo) => ({
+            ...(todo.id === value.id ? value : todo),
+         })),
+      )
+   }
+
+   return {
+      todos,
+      createTodo,
+      creating,
+      explode,
+      id: trackById,
+      toggleAll,
+      todoChange,
+   }
 }
 
 @Component({
-    selector: 'app-todo-list',
-    templateUrl: './todo-list.component.html',
-    providers: [CreateTodo, LoadTodosById]
+   selector: "app-todo-list",
+   templateUrl: "./todo-list.component.html",
+   providers: [CreateTodo, LoadTodosById],
 })
-export class TodoListComponent extends State(Props) {
-    toggleAll() {
-        const done = this.todos.some(todo => !todo.done);
-        this.todos = this.todos.map(todo => ({ ...todo, done }));
-    }
-    todoChange(value: Todo) {
-        this.todos = this.todos.map(todo => ({
-            ...(todo.id === value.id ? value : todo)
-        }));
-    }
-}
-
-function create({ userId }: Props) {
-    const loadTodosById = Inject(LoadTodosById),
-        setUserId = set(userId),
-        todos = Value<Todo>([]),
-        setTodos = set(todos),
-        createTodo = Inject(CreateTodo),
-        creating = Value<Todo | null>(null),
-        setCreating = set(creating),
-        error = Inject(ErrorHandler);
-
-    let count = 0
-    const changeCount = Select(todos, (val) => count++)
-    const setChangeCount = set(changeCount)
-
-    Subscribe(userId, value => {
-        Subscribe(loadTodosById(value), {
-            next: setTodos,
-            complete() {
-                setCreating(null)
-            }
-        });
-    });
-
-    Subscribe(createTodo, ({ value, type }) => {
-        switch (type) {
-            case 'request': {
-                console.log('create todo', value);
-                setCreating(value);
-                break
-            }
-            case 'response': {
-                console.log('todo created!', value);
-                setUserId(userId);
-                break
-            }
-        }
-    });
-    Subscribe(todos, () => {
-        setChangeCount(get(changeCount) + 1)
-    })
-
-    Subscribe(() => {
-        console.log('todos changed!', get(todos))
-        console.log('change count:', changeCount.value)
-        creating.next(null)
-    });
-
-    function explode() {
-        error.handleError(new Error("Boom!"))
-    }
-
-
-    return {
-        todos,
-        createTodo,
-        creating,
-        explode,
-        id: trackById
-    };
-}
+export class TodoList extends ViewDef(todoList) {}
 
 @NgModule({
-    imports: [CommonModule, TodoModule],
-    declarations: [TodoListComponent],
-    exports: [TodoListComponent]
+   imports: [CommonModule, TodoModule],
+   declarations: [TodoList],
+   exports: [TodoList],
 })
 export class TodoListModule {}

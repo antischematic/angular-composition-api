@@ -10,13 +10,18 @@ import {
    subscribe,
    ViewDef,
 } from "./core"
-import {Component, Injectable, InjectionToken, Type,} from "@angular/core"
-import {ComponentFixture, fakeAsync, TestBed, tick,} from "@angular/core/testing"
-import {timer} from "rxjs"
-import {checkPhase} from "./interfaces"
-import {use} from "./common"
-import objectContaining = jasmine.objectContaining;
-import createSpy = jasmine.createSpy;
+import { Component, Injectable, InjectionToken, Type } from "@angular/core"
+import {
+   ComponentFixture,
+   fakeAsync,
+   TestBed,
+   tick,
+} from "@angular/core/testing"
+import { timer } from "rxjs"
+import { checkPhase } from "./interfaces"
+import { use } from "./common"
+import objectContaining = jasmine.objectContaining
+import createSpy = jasmine.createSpy
 
 export function configureTest<T>(View: Type<T>): () => ComponentFixture<T> {
    TestBed.configureTestingModule({
@@ -107,7 +112,7 @@ describe("View", () => {
          const count = subject
          addEffect(count, spy)
          return {
-            count
+            count,
          }
       }
       @Component({ template: `{{ count }}` })
@@ -210,12 +215,12 @@ describe("Context API", () => {
          })
 
          return {
-            value
+            value,
          }
       }
 
       @Component({
-         template: `{{ value[0] }}`
+         template: `{{ value[0] }}`,
       })
       class Test extends ViewDef(create) {}
 
@@ -225,7 +230,7 @@ describe("Context API", () => {
       tick(1000)
 
       expect(view.componentInstance.value).toEqual([10])
-      expect(view.debugElement.nativeElement.textContent).toBe('10')
+      expect(view.debugElement.nativeElement.textContent).toBe("10")
    }))
 })
 

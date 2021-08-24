@@ -1,4 +1,10 @@
-import {BehaviorSubject, Observable, PartialObserver, Subscribable, TeardownLogic,} from "rxjs"
+import {
+   BehaviorSubject,
+   Observable,
+   PartialObserver,
+   Subscribable,
+   TeardownLogic,
+} from "rxjs"
 import {
    ContentChild,
    ContentChildren,
@@ -18,9 +24,9 @@ import {
    UnsubscribeSignal,
    Value,
 } from "./interfaces"
-import {isEmitter, isObserver, isSignal, track} from "./utils"
-import {Subscription} from "rxjs/internal/Subscription"
-import {addEffect} from "./core";
+import { isEmitter, isObserver, isSignal, isValue, track } from "./utils"
+import { Subscription } from "rxjs/internal/Subscription"
+import { addEffect } from "./core"
 
 export class QueryListSubject extends Observable<any> {
    next(value: QueryList<any>) {
@@ -130,7 +136,12 @@ function isQuery(value: any) {
 }
 
 function isSource(value: any) {
-   return typeof value === "object" && value !== null && "next" in value  && typeof value["next"] === "function"
+   return (
+      typeof value === "object" &&
+      value !== null &&
+      "next" in value &&
+      typeof value["next"] === "function"
+   )
 }
 
 export function use<T>(value: QueryListType): ReadonlyValue<QueryList<T>>
@@ -149,10 +160,10 @@ export function use(value?: any): unknown {
       }
       return createValue(new BehaviorSubject(void 0), phase)
    }
-   if (isEmitter(value)) {
+   if (isValue(value) || typeof value === "function") {
       return createEmitter(value)
    }
-   if(isSource(value)) {
+   if (isSource(value)) {
       return createValue(value, 0)
    }
    return createValue(new BehaviorSubject(value))

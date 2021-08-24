@@ -21,7 +21,8 @@ import {
    Subject,
    Subscribable,
    Subscription,
-   TeardownLogic, Unsubscribable,
+   TeardownLogic,
+   Unsubscribable,
 } from "rxjs"
 import {
    UnsubscribeSignal,
@@ -38,6 +39,7 @@ import {
    isValue,
    addSignal,
    isObject,
+   isEmitter,
 } from "./utils"
 import { distinctUntilChanged, skip, switchMap } from "rxjs/operators"
 import { ValueGetterSetter, ValueToken } from "./provider"
@@ -190,11 +192,7 @@ function setup(injector: Injector, stateFactory?: () => {}) {
    if (stateFactory) {
       const state = stateFactory()
       for (const [key, value] of Object.entries(state)) {
-         if (value instanceof EventEmitter) {
-            context[key] = function (event: any) {
-               value.emit(event)
-            }
-         } else if (isCheckSubject(value)) {
+         if (isCheckSubject(value)) {
             context[key] = value.value
             createBinding(context, key, value, scheduler)
          } else {
@@ -357,7 +355,11 @@ export class EffectObserver<T> {
    subscribe() {
       const { source } = this
       let subscription
-      if (typeof source === "function" && !isValue(source)) {
+      if (
+         typeof source === "function" &&
+         !isEmitter(source) &&
+         !isValue(source)
+      ) {
          const { injector, errorHandler, scheduler } = this
          const fn = () =>
             runInContext(

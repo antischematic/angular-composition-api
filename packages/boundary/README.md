@@ -20,15 +20,17 @@ yarn add @mmuscat/angular-error-boundary
 Add global styles for `ng-cloak` to hide content when fallback is shown.
 
 **styles.css**
+
 ```css
 .ng-cloak {
-    display: none;
+   display: none;
 }
 ```
 
 Add `BoundaryModule` to your `NgModule` imports to enable error boundaries.
 
 **my.module.ts**
+
 ```ts
 @NgModule({
     imports: [BoundaryModule],
@@ -41,12 +43,11 @@ export class MyModule {}
 Add error boundaries to your components.
 
 **my.component.html**
+
 ```html
 <error-boundary>
-    <my-widget *catchError></my-widget>
-    <div fallback>
-        Something went wrong
-    </div>
+   <my-widget *catchError></my-widget>
+   <div fallback>Something went wrong</div>
 </error-boundary>
 ```
 
@@ -62,15 +63,15 @@ Calls to the `handleError` method are intercepted by the nearest error boundary.
 
 ```ts
 class AsyncComponent {
-    value
-    constructor(api: ApiService, errorHandler: ErrorHandler) {
-        this.value = api.thatMaybeFailsAfterSomeTime().pipe(
-            catchError((error) => {
-                errorHandler.handleError(error)
-                return EMPTY
-            })
-        )
-    }
+   value
+   constructor(api: ApiService, errorHandler: ErrorHandler) {
+      this.value = api.thatMaybeFailsAfterSomeTime().pipe(
+         catchError((error) => {
+            errorHandler.handleError(error)
+            return EMPTY
+         }),
+      )
+   }
 }
 ```
 
@@ -96,22 +97,21 @@ dismiss the error state and re-create the embedded view
 
 ```ts
 interface ErrorBoundaryEvent {
-    closed: boolean
-    error: unknown
-    reset(): void
+   closed: boolean
+   error: unknown
+   reset(): void
 }
 ```
 
 **examples:**
+
 ```html
 <error-boundary (error)="handleError($event)" #boundary="errorBoundary">
-    <maybe-throws *catchError></maybe-throws>
-    <div fallback>
-        <p>Uh oh... Something happened.</p>
-        <button (click)="boundary.reset()">
-            Start again
-        </button>
-    </div>
+   <maybe-throws *catchError></maybe-throws>
+   <div fallback>
+      <p>Uh oh... Something happened.</p>
+      <button (click)="boundary.reset()">Start again</button>
+   </div>
 </error-boundary>
 ```
 
@@ -120,14 +120,14 @@ interface ErrorBoundaryEvent {
 **selector:** `[catchError]`
 
 Catches and funnels errors that occur during change detection to the nearest
-`ErrorBoundary`. Does *not* catch errors for:
+`ErrorBoundary`. Does _not_ catch errors for:
 
-- Component/Directive constructors
-- Event handlers
-- Asynchronous code (e.g. setTimeout or requestAnimationFrame callbacks)
-- Async pipe
-- Server side rendering
-- Errors thrown in the error boundary itself 
+-  Component/Directive constructors
+-  Event handlers
+-  Asynchronous code (e.g. setTimeout or requestAnimationFrame callbacks)
+-  Async pipe
+-  Server side rendering
+-  Errors thrown in the error boundary itself
 
 Each error boundary can only have one `catchError` as a direct descendant.
 
@@ -155,7 +155,7 @@ With DOM element
 <!-- or -->
 
 <error-boundary>
-    <div fallback>An error has occurred</div>
+   <div fallback>An error has occurred</div>
 </error-boundary>
 ```
 
@@ -168,7 +168,7 @@ With `ng-template`
 <!-- or -->
 
 <error-boundary>
-    <ng-template fallback>An error has occurred.</ng-template>
+   <ng-template fallback>An error has occurred.</ng-template>
 </error-boundary>
 ```
 
@@ -180,7 +180,7 @@ With component
 <!-- or -->
 
 <error-boundary>
-    <my-custom-error fallback></my-custom-error>
+   <my-custom-error fallback></my-custom-error>
 </error-boundary>
 ```
 
@@ -190,7 +190,7 @@ With component
 
 Hides components and displays a `fallback` until all components have resolved
 "cloaked" data sources. Cloaked data sources are observables that has been wrapped by
- `CloakBoundary`. Any component in the `ng-cloak` tree can mark data as cloaked, which
+`CloakBoundary`. Any component in the `ng-cloak` tree can mark data as cloaked, which
 will hide the entire tree from display until all cloaked data has resolved. The lead time
 and trailing time for showing/hiding content can be configured with the `NG_CLOAK_CONFIG`
 provider.
@@ -201,9 +201,9 @@ Each cloak boundary can only have one `fallback` as a direct descendant.
 
 ```html
 <error-boundary>
-    <ng-cloak *catchError>
-        <my-brand></my-brand>
-    </ng-cloak>
+   <ng-cloak *catchError>
+      <my-brand></my-brand>
+   </ng-cloak>
 </error-boundary>
 ```
 
@@ -211,11 +211,12 @@ Each cloak boundary can only have one `fallback` as a direct descendant.
 
 **What's the difference between NgCloak and Suspense?**
 
-- We wrap observables in a `CloakBoundary` instead of throwing them.
-- Components templates are always rendered, giving child components a chance to load data before the
-  parent has finished resolving.
-- Components are hidden with the `ng-cloak` class instead of unmounting them, unless an
-  error occurs.
+-  We wrap observables in a `CloakBoundary` instead of throwing them.
+-  Components templates are always rendered, giving child components a chance to load data before the
+   parent has finished resolving.
+-  Components are hidden with the `ng-cloak` class instead of unmounting them, unless an
+   error occurs.
+
 ---
 
 ### CloakBoundary
@@ -224,7 +225,7 @@ An injectable service with a single method: **cloak**
 
 ```ts
 interface CloakBoundary {
- cloak<T>(source: Observable<T>): Observable<T>
+   cloak<T>(source: Observable<T>): Observable<T>
 }
 ```
 
@@ -241,17 +242,13 @@ In this example, the component is cloaked/hidden for 2 seconds, then is displaye
 
 ```ts
 @Component({
-    template: `
-        <p>{{ values | async | json }}</p>
-    `
+   template: ` <p>{{ values | async | json }}</p> `,
 })
 class MyComponent {
-    values
-    constructor(boundary: CloakBoundary) {
-        this.values = boundary.cloak(timer(2000)).pipe(
-            map(() => [1, 2, 3])
-        )
-    }
+   values
+   constructor(boundary: CloakBoundary) {
+      this.values = boundary.cloak(timer(2000)).pipe(map(() => [1, 2, 3]))
+   }
 }
 ```
 
@@ -262,12 +259,12 @@ Provide this value to configure the `leading` and `trailing` delay when a
 
 ```ts
 export interface CloakConfig {
-    leading: number
-    trailing: number
+   leading: number
+   trailing: number
 }
 
 DEFAULT_CLOAK_CONFIG = {
-    leading: 0,
-    trailing: 1000
+   leading: 0,
+   trailing: 1000,
 }
 ```

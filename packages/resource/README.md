@@ -20,23 +20,22 @@ yarn add @mmuscat/angular-resource
 
 ```ts
 class Props {
-    static create() {
-        const user = Resource("/api/user", source)
-        return {
-            user
-        }
-    }
+   static create() {
+      const user = Resource("/api/user", source)
+      return {
+         user,
+      }
+   }
 }
 
 @Component({
-    template: `
-        <div *ngIf="user.error">Failed to load</div>
-        <div *ngIf="user.pending">Loading...</div>
-        <div *ngIf="user.value">hello {user.value.name}!</div>
-    `
+   template: `
+      <div *ngIf="user.error">Failed to load</div>
+      <div *ngIf="user.pending">Loading...</div>
+      <div *ngIf="user.value">hello {user.value.name}!</div>
+   `,
 })
-export class Profile extends State(Props) {
-}
+export class Profile extends State(Props) {}
 ```
 
 ## Api Reference
@@ -50,17 +49,17 @@ not subscribed until there is at least one observer, and is disposed when there 
 
 ```ts
 function create() {
-    const user = Resource("/api/user", source)
+   const user = Resource("/api/user", source)
 
-    Subscribe(user, () => {
-        console.log(user.value)
-        console.log(user.pending)
-        console.log(user.error)
-    })
+   Subscribe(user, () => {
+      console.log(user.value)
+      console.log(user.pending)
+      console.log(user.error)
+   })
 
-    return {
-        user
-    }
+   return {
+      user,
+   }
 }
 ```
 
@@ -68,30 +67,31 @@ Usage with params
 
 ```ts
 function source(url: string) {
-    const http = Inject(HttpClient)
-    return switchMap((params) => http.get(url, {
-        params
-    }))
+   const http = Inject(HttpClient)
+   return switchMap((params) =>
+      http.get(url, {
+         params,
+      }),
+   )
 }
-
 
 class Props {
-    userId = Value<string>()
-    static create = create
+   userId = Value<string>()
+   static create = create
 }
 
-function create({userId}: Props) {
-    const user = Resource(["/api/user", {userId}], source)
+function create({ userId }: Props) {
+   const user = Resource(["/api/user", { userId }], source)
 
-    Subscribe(user, () => {
-        console.log(user.value)
-        console.log(user.pending)
-        console.log(user.error)
-    })
+   Subscribe(user, () => {
+      console.log(user.value)
+      console.log(user.pending)
+      console.log(user.error)
+   })
 
-    return {
-        user
-    }
+   return {
+      user,
+   }
 }
 ```
 
@@ -100,14 +100,14 @@ function create({userId}: Props) {
 Invalidates the resource cache and replays its last action. TBD.
 
 ```ts
-function create({userId}: Props) {
-    const user = Resource(["/api/user", userId], source)
+function create({ userId }: Props) {
+   const user = Resource(["/api/user", userId], source)
 
-    user.mutate()
+   user.mutate()
 
-    return {
-        user
-    }
+   return {
+      user,
+   }
 }
 ```
 
@@ -121,14 +121,14 @@ A global function that will invalidate all active resources that match the given
 invalidated resource's last action. TBD.
 
 ```ts
-function create({userId}: Props) {
-    const user = Resource(["/api/user", userId], source)
+function create({ userId }: Props) {
+   const user = Resource(["/api/user", userId], source)
 
-    mutate("/api/user")
+   mutate("/api/user")
 
-    return {
-        user
-    }
+   return {
+      user,
+   }
 }
 ```
 
@@ -139,11 +139,11 @@ until at least one value has emitted. When used with reactive params, the cloak 
 change, unless the value is already cached.
 
 ```ts
-function create({userId}: Props) {
-    const user = Resource(["/api/user", userId], source, {cloak: true})
+function create({ userId }: Props) {
+   const user = Resource(["/api/user", userId], source, { cloak: true })
 
-    return {
-        user
-    }
+   return {
+      user,
+   }
 }
 ```

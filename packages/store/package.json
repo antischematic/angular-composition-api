@@ -1,22 +1,30 @@
 {
-  "name": "@mmuscat/angular-actions",
-  "description": "A delightfully concise (1kb) redux store for Angular applications.",
-  "license": "MIT",
-  "homepage": "https://github.com/mmuscat/angular-composition-api/tree/master/packages/store",
-  "repository": "https://github.com/mmuscat/angular-composition-api",
-  "keywords": ["Angular", "RxJS", "Store", "Redux", "Effects", "Actions", "Angular Composition API"],
-  "version": "0.1200.0-next.0",
-  "peerDependencies": {
-    "@angular/common": "^12.0.0",
-    "@angular/core": "^12.0.0",
-    "@mmuscat/angular-composition-api": "^0.1200.0-next.4"
-  },
-  "peerDependenciesMeta": {
-    "@mmuscat/angular-composition-api": {
-      "optional": true
-    }
-  },
-  "dependencies": {
-    "tslib": "^2.1.0"
-  }
+   "name": "@mmuscat/angular-actions",
+   "description": "A delightfully concise (1kb) redux store for Angular applications.",
+   "license": "MIT",
+   "homepage": "https://github.com/mmuscat/angular-composition-api/tree/master/packages/store",
+   "repository": "https://github.com/mmuscat/angular-composition-api",
+   "keywords": [
+      "Angular",
+      "RxJS",
+      "Store",
+      "Redux",
+      "Effects",
+      "Actions",
+      "Angular Composition API"
+   ],
+   "version": "0.1200.0-next.0",
+   "peerDependencies": {
+      "@angular/common": "^12.0.0",
+      "@angular/core": "^12.0.0",
+      "@mmuscat/angular-composition-api": "^0.1200.0-next.4"
+   },
+   "peerDependenciesMeta": {
+      "@mmuscat/angular-composition-api": {
+         "optional": true
+      }
+   },
+   "dependencies": {
+      "tslib": "^2.1.0"
+   }
 }

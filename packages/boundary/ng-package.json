@@ -1,8 +1,8 @@
 {
-  "$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
-  "dest": "../../dist/boundary",
-  "lib": {
-    "entryFile": "src/public-api.ts",
-    "umdId": "@mmuscat/angular-composition-api"
-  }
+   "$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
+   "dest": "../../dist/boundary",
+   "lib": {
+      "entryFile": "src/public-api.ts",
+      "umdId": "@mmuscat/angular-composition-api"
+   }
 }

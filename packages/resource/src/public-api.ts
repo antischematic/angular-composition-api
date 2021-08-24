@@ -2,4 +2,4 @@
  * Public API Surface of resource
  */
 
-export * from './resource'
+export * from "./resource"

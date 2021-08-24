@@ -1,5 +1,5 @@
-import {subscribe, use} from "./common"
-import {map, materialize, mergeMap} from "rxjs/operators"
+import { subscribe, use } from "./common"
+import { map, materialize, mergeMap } from "rxjs/operators"
 import {
    Component,
    ContentChild,
@@ -10,14 +10,19 @@ import {
    ViewChild,
    ViewChildren,
 } from "@angular/core"
-import {Value} from "./interfaces";
-import {EffectObserver, inject, Service, ViewDef} from "./core";
-import {defer, interval, merge, of, throwError} from "rxjs";
-import {discardPeriodicTasks, fakeAsync, TestBed, tick} from "@angular/core/testing";
-import {Subscription} from "rxjs/internal/Subscription";
-import {configureTest, defineService} from "./core.spec";
-import createSpy = jasmine.createSpy;
-import objectContaining = jasmine.objectContaining;
+import { Value } from "./interfaces"
+import { EffectObserver, inject, Service, ViewDef } from "./core"
+import { defer, interval, merge, of, throwError } from "rxjs"
+import {
+   discardPeriodicTasks,
+   fakeAsync,
+   TestBed,
+   tick,
+} from "@angular/core/testing"
+import { Subscription } from "rxjs/internal/Subscription"
+import { configureTest, defineService } from "./core.spec"
+import createSpy = jasmine.createSpy
+import objectContaining = jasmine.objectContaining
 
 describe("use", () => {
    describe("value", () => {

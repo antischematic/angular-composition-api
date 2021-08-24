@@ -1,5 +1,5 @@
-import {select} from "./select";
-import {use} from "./common";
+import { select } from "./select"
+import { use } from "./common"
 import createSpy = jasmine.createSpy
 
 describe("select", () => {

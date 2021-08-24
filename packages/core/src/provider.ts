@@ -1,14 +1,15 @@
 import {
    Injectable,
    InjectFlags,
-   InjectionToken, Type,
+   InjectionToken,
+   Type,
    ɵɵdirectiveInject as directiveInject,
-} from "@angular/core";
+} from "@angular/core"
 
 export type ValueToken<T> = Type<T> & { __ng_value_token: true }
 
 export interface ValueTokenStatic {
-   new<T>(name: string, value: T): ValueToken<T>
+   new <T>(name: string, value: T): ValueToken<T>
 }
 
 export class ValueGetterSetter<T> {
@@ -23,7 +24,10 @@ export class ValueGetterSetter<T> {
 
 function createValueToken<T>(name: string): ValueToken<T>
 function createValueToken<T>(name: string, defaultValue: T): ValueToken<T>
-function createValueToken(name: string, defaultValue?: unknown): ValueToken<any> {
+function createValueToken(
+   name: string,
+   defaultValue?: unknown,
+): ValueToken<any> {
    @Injectable({ providedIn: "root" })
    class ValueToken {
       static overriddenName = name
