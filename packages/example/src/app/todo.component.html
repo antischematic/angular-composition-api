@@ -7,6 +7,7 @@
    />
 </label>
 &nbsp;
+<!-- prettier-ignore -->
 <div
    class="text"
    contenteditable
@@ -15,9 +16,7 @@
       editText(textContent.textContent!.trim()); $event.preventDefault()
    "
    #textContent
->
-   {{ text }}
-</div>
+>{{ text }}</div>
 
 <style>
    :host {
@@ -34,7 +33,7 @@
    }
 
    .text:empty:before {
-      content: attr(data-placeholder);
+      content: "attr(data-placeholder)";
       opacity: 0.6;
    }
 </style>
