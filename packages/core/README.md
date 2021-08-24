@@ -17,7 +17,7 @@ yarn add @mmuscat/angular-composition-api
 ```
 
 ```ts
-function create() {
+function setup() {
    const [count, countChange] = use(0)
    return {
       count,
@@ -29,7 +29,7 @@ function create() {
    inputs: ["count"],
    outputs: ["countChange"],
 })
-export class MyComponent extends ViewDef(create) {}
+export class MyComponent extends ViewDef(setup) {}
 ```
 
 ## Example
@@ -41,7 +41,7 @@ View [Todo List](https://stackblitz.com/edit/angular-composition-api) on Stackbl
 ### Component
 
 ```ts
-function create() {
+function counter() {
    const [count, countChange] = use(0)
    const increment = use<void>(Function)
    const disabled = use(false)
@@ -68,7 +68,7 @@ function create() {
    inputs: ["count", "disabled"],
    outputs: ["countChange"],
 })
-export class Counter extends ViewDef(create) {}
+export class Counter extends ViewDef(counter) {}
 ```
 
 ### Service
@@ -79,8 +79,10 @@ function todosByUserId() {
    const getTodosUserById = use<string>(Function)
    const todos = use<Todo[]>()
    const error = use<Error>()
-   const loadUser = user.pipe(
-      switchMap(() => http.get(`//example.com/api/v1/todo?userId=${userId}`)),
+   const loadUser = getTodosUserById.pipe(
+      switchMap((userId) => http.get(`//example.com/api/v1/todo?userId=${userId}`).pipe(
+         materialize()
+      )),
    )
 
    subscribe(loadUser, {
@@ -99,9 +101,9 @@ export const TodosByUserId = Service(todosByUserId, {
    providedIn: "root", // defaults to null
 })
 
-function create() {
+function todos() {
    const userId = use("me")
-   const [todos, getTodosByUserId] = inject(TodosByUserId)
+   const { todos, getTodosByUserId } = inject(TodosByUserId)
 
    subscribe(userId, getTodosByUserId)
 
@@ -113,8 +115,9 @@ function create() {
 
 @Component({
    providers: [TodosByUserId], // optional if provided in module
+   inputs: ["userId"]
 })
-export class Todos extends ViewDef(create) {}
+export class Todos extends ViewDef(todos) {}
 ```
 
 ## Api Reference
@@ -123,7 +126,7 @@ export class Todos extends ViewDef(create) {}
 
 #### ViewDef
 
-Creates a context-aware class from a factory function. Values returned from this function are merged with the base class.
+Creates a context-aware class from a setup function. Values returned from this function are merged with the base class.
 `Value` types are unwrapped in the final class and template view, eg. `Value<number>` becomes `number`.
 
 **Change Detection**
@@ -165,13 +168,13 @@ Components and directives that extend `ViewDef` and provide the
 
 #### Service
 
-Creates a context-aware, tree-shakable service from the provided factory function. If the
+Creates a context-aware, tree-shakable service from the provided setup function. If the
 `providedIn` option is set to null, or omitted, you must provide the service in a `NgModule`,
 `Directive` or `Component`. Start or retrieve the service with `inject`.
 
 #### Provide
 
-Allows `ViewDef` to declare and set `ValueToken` providers inside its `create` factory.
+Allows `ViewDef` to declare and set `ValueToken` providers inside its setup function.
 
 ```ts
 const Token = new ValueToken("TOKEN")
@@ -199,7 +202,7 @@ otherwise it throws `NullInjectorError`.
 ```ts
 const Count = new ValueToken("COUNT", { value: 0 }) // <- default is optional
 
-function create() {
+function parent() {
    provide(Count, { value: 10 })
 }
 
@@ -207,14 +210,14 @@ function create() {
    selector: "parent",
    providers: [Count], // <- important
 })
-export class Parent extends ViewDef(create) {}
+export class Parent extends ViewDef(parent) {}
 ```
 
 Inject the `ValueToken` from a child context. Throws `EmptyValueError` if no value or default
 has been set.
 
 ```ts
-function create() {
+function child() {
    const count = inject(Count)
    return {
       count,
@@ -222,7 +225,7 @@ function create() {
 }
 
 @Component({ selector: "child" })
-export class Child extends ViewDef(create) {}
+export class Child extends ViewDef(child) {}
 ```
 
 #### Inject
@@ -277,7 +280,7 @@ For example, you can use `UnsubscribeSignal` to merge inner streams instead of s
 behavior).
 
 ```ts
-function create() {
+function pinger() {
    const ping = inject(PingService)
    const untilDestroy = subscribe() // cancels when view is destroyed
    const state = use<State>()
@@ -292,7 +295,7 @@ function create() {
 }
 
 @Component()
-export class Pinger extends ViewDef(create) {}
+export class Pinger extends ViewDef(pinger) {}
 ```
 
 In this example, a new inner stream is created every second and will not be disposed even if it takes longer than 1
@@ -309,6 +312,16 @@ Creates a `Value`. Values are synced with the view during the `ngDoCheck` lifecy
 ```ts
 const num = use(0)
 const arr = use([])
+
+// get value
+num()
+num.value
+
+// set value
+num(10)
+
+// observe value
+subscribe(num, observer)
 ```
 
 #### Emitter
@@ -326,7 +339,7 @@ const increment = use<void>(Function)
 const add = use<number>(Function)
 const sum = use((num1, num2, num3) => num1 + num2 + num3)
 
-subscribe(sum, console.log)
+subscribe(sum, observer)
 
 countChange(count() + 1)
 increment()
@@ -336,7 +349,7 @@ sum(1, 2, 3)
 
 #### Query
 
-Creates a `Value` that will receive a `ContentChild` or `ViewChild`.
+Creates a `Value` that will receive a `ContentChild` or `ViewChild`. Queries are checked during the `ngDoCheck`, `ngAfterContentChecked` or `ngAfterViewChecked` lifecycle hook.
 
 ```ts
 function create() {
@@ -370,7 +383,7 @@ export class MyComponent extends ViewDef(create) {}
 #### QueryList
 
 Creates a `ReadonlyValue` that will receive a `QueryList` of `ContentChildren` or `ViewChildren`. Subscribes to the underlying query
-list when it becomes available.
+list when it becomes available. QueryLists are checked during the `ngAfterContentChecked` or `ngAfterViewChecked` lifecycle hook.
 
 ```ts
 function create() {
@@ -378,7 +391,7 @@ function create() {
    const viewChildren = use<TemplateRef<any>>(ViewChildren)
 
    subscribe(() => {
-      for (const child of contentChildren()) {
+      for (const child of contentChildren().toArray()) {
          console.log(child)
       }
    })
@@ -400,9 +413,9 @@ export class MyComponent extends ViewDef(create) {}
 
 #### Select
 
-Creates a new computed `Value` from a reactive observer, `Observable` or `BehaviorSubject`, with an optional `selector`.
+Computes a new `Value` from a reactive observer, `Observable` or `Value`, with an optional `selector` and initial value.
 
-With `BehaviorSubject`
+With `Value`
 
 ```ts
 const state = use({ count: 0 })
