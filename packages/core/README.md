@@ -76,24 +76,24 @@ export class Counter extends ViewDef(counter) {}
 ```ts
 function todosByUserId() {
    const http = inject(HttpClient)
-   const getTodosUserById = use<string>(Function)
+   const userId = use<string>(Function)
    const todos = use<Todo[]>()
    const error = use<Error>()
-   const loadUser = getTodosUserById.pipe(
-      switchMap((userId) => http.get(`//example.com/api/v1/todo?userId=${userId}`).pipe(
+   const todosResult = userId.pipe(
+      switchMap((value) => http.get(`//example.com/api/v1/todo?userId=${value}`).pipe(
          materialize()
       )),
    )
 
-   subscribe(loadUser, {
+   subscribe(todosResult, {
       next: todos,
       error,
    })
 
    return {
       todos,
-      getTodosUserById,
       error,
+      getTodosUserById: userId,
    }
 }
 
@@ -329,12 +329,6 @@ subscribe(num, observer)
 Creates an `Emitter` from a `Function` or `Value`.
 
 ```ts
-const count = use(0)
-const countChange = use(count)
-
-// shorthand syntax
-const [count, countChange] = use(0)
-
 const increment = use<void>(Function)
 const add = use<number>(Function)
 const sum = use((num1, num2, num3) => num1 + num2 + num3)
@@ -345,6 +339,39 @@ countChange(count() + 1)
 increment()
 add(1)
 sum(1, 2, 3)
+```
+
+When a `Value` is passed, calling the `Emitter` will also update the value.
+This is useful for creating two-way bindings.
+
+```ts
+const count = use(0)
+const countChange = use(count)
+```
+Shorthand syntax
+```ts
+const [count, countChange] = use(0)
+```
+Two-way binding example
+```ts
+function counter() {
+   const [count, countChange] = use(0)
+   
+   subscribe(interval(1000), () => {
+      countChange(count() + 1)
+   })
+   
+   return {
+      count,
+      countChange
+   }
+}
+
+@Component({
+   inputs: ["count"],
+   outputs: ["countChange"]
+})
+export class Counter extends ViewDef(counter) {}
 ```
 
 #### Query
