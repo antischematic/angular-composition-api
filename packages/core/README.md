@@ -352,7 +352,7 @@ sum(1, 2, 3)
 Creates a `Value` that will receive a `ContentChild` or `ViewChild`. Queries are checked during the `ngDoCheck`, `ngAfterContentChecked` or `ngAfterViewChecked` lifecycle hook.
 
 ```ts
-function create() {
+function setup() {
    const staticChild = use<TemplateRef<any>>()
    const contentChild = use<TemplateRef<any>>(ContentChild)
    const viewChild = use<TemplateRef<any>>(ViewChild)
@@ -377,7 +377,7 @@ function create() {
       viewChild: new ViewChild(TemplateRef),
    },
 })
-export class MyComponent extends ViewDef(create) {}
+export class MyComponent extends ViewDef(setup) {}
 ```
 
 #### QueryList
@@ -386,7 +386,7 @@ Creates a `ReadonlyValue` that will receive a `QueryList` of `ContentChildren` o
 list when it becomes available. QueryLists are checked during the `ngAfterContentChecked` or `ngAfterViewChecked` lifecycle hook.
 
 ```ts
-function create() {
+function setup() {
    const contentChildren = use<TemplateRef<any>>(ContentChildren)
    const viewChildren = use<TemplateRef<any>>(ViewChildren)
 
@@ -408,7 +408,7 @@ function create() {
       viewChildren: new ViewChildren(TemplateRef),
    },
 })
-export class MyComponent extends ViewDef(create) {}
+export class MyComponent extends ViewDef(setup) {}
 ```
 
 #### Select
