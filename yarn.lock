@@ -1253,6 +1253,20 @@
     merge-source-map "^1.1.0"
     schema-utils "^2.7.0"
 
+"@mmuscat/angular-composition-api@^0.1200.0-next.5":
+  version "0.1200.0-next.5"
+  resolved "https://registry.yarnpkg.com/@mmuscat/angular-composition-api/-/angular-composition-api-0.1200.0-next.5.tgz#e476408fe91f34197fb3783341d37abf6844138b"
+  integrity sha512-/EB72jG1ukQZJGFB+G8xKcu303+MN8NhBreR/KyRnw/mGRPl6HxRUkbMgWs3mqNJzw2Yx0OvmqsHGlzCb2dwgQ==
+  dependencies:
+    tslib "^2.1.0"
+
+"@mmuscat/angular-error-boundary@^0.1200.0-next.1":
+  version "0.1200.0-next.1"
+  resolved "https://registry.yarnpkg.com/@mmuscat/angular-error-boundary/-/angular-error-boundary-0.1200.0-next.1.tgz#9a820a22088447cf93c4d26848f14dfb174d19e3"
+  integrity sha512-YObgHiB52F8n7v1GGU8zs09oQ6GVm0WPwwOibckKRXbC285eACr1hrLe9fZAa4yLamRMGLXw8Uk2BqE22SdmjQ==
+  dependencies:
+    tslib "^2.1.0"
+
 "@ngtools/webpack@12.0.4":
   version "12.0.4"
   resolved "https://registry.yarnpkg.com/@ngtools/webpack/-/webpack-12.0.4.tgz#4c2cc2f19040e902582cadf092ce0743393f83a8"
