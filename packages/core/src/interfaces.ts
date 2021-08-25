@@ -36,7 +36,7 @@ export interface Context {
 }
 
 export interface CheckSubject<T> extends Subscribable<T> {
-   value: T
+   readonly value: T
    readonly [checkPhase]: CheckPhase
 }
 

@@ -144,14 +144,16 @@ function isSource(value: any) {
    )
 }
 
+
+export function use<T>(): Value<T | undefined>
 export function use<T>(value: QueryListType): ReadonlyValue<QueryList<T>>
 export function use<T>(value: QueryType): ReadonlyValue<T>
 export function use<T>(value: typeof Function): Emitter<T>
+export function use<T>(value: Value<T>): Emitter<T>
+export function use<T>(value: T): Value<T>
 export function use<T extends (...args: any[]) => any>(
    value: T,
 ): EmitterWithParams<T>
-export function use<T>(value: T): Value<T>
-export function use<T>(): Value<T | undefined>
 export function use(value?: any): unknown {
    if (isQuery(value)) {
       const phase = queryMap.get(value)!
