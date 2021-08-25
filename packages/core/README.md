@@ -34,9 +34,9 @@ export class MyComponent extends ViewDef(setup) {}
 
 ## Example
 
-### Application
+### Playground
 
-View [Todo List](https://stackblitz.com/edit/angular-composition-api) on Stackblitz
+[View on Stackblitz](https://stackblitz.com/edit/node-x8aq3m)
 
 ### Component
 
