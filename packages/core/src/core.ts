@@ -168,7 +168,7 @@ function isCheckSubject(value: any): value is CheckSubject<any> {
 function createBinding(context: any, key: any, value: any, scheduler: any) {
    const binding = new ContextBinding(context, key, value, scheduler)
    addCheck(value[checkPhase], binding)
-   addTeardown(value.subscribe(binding))
+   addEffect(value, binding)
 }
 
 function setup(injector: Injector, stateFactory?: () => {}) {
@@ -213,7 +213,7 @@ export function check(key: CheckPhase) {
 export function subscribe() {
    const { effects } = getContext()
    if (effects.size === 0) return
-   const list = Array.from(effects)
+   const list = Array.from(effects).reverse()
    effects.clear()
    for (const effect of list) {
       effect.subscribe()

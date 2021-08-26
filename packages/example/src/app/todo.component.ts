@@ -4,6 +4,7 @@ import {
    NgModule,
    Renderer2,
    ViewChild,
+   ViewChildren,
 } from "@angular/core"
 import { FormsModule } from "@angular/forms"
 import {
@@ -28,6 +29,7 @@ function create() {
    const saveTodo = use<Todo>(Function)
    const textEditor = use<ElementRef>(ViewChild)
    const renderer = inject(Renderer2)
+   const viewChildren = use<ElementRef>(ViewChildren)
 
    function setEditorText(value: string) {
       if (!textEditor.value) return
@@ -63,6 +65,12 @@ function create() {
 
    subscribe(text, setEditorText)
 
+   subscribe(() => {
+      for (const child of viewChildren()) {
+         console.log('viewChild', child)
+      }
+   })
+
    return {
       id,
       text,
@@ -73,6 +81,7 @@ function create() {
       toggleDone,
       setEditorText,
       editText,
+      viewChildren
    }
 }
 
@@ -84,6 +93,7 @@ function create() {
    providers: [DETACHED],
    queries: {
       textEditor: new ViewChild("textContent"),
+      viewChildren: new ViewChildren("textContent"),
    },
    host: {
       "[class.red]": "done",
