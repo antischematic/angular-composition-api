@@ -91,7 +91,7 @@ function createContext(
       error,
       subscription: new Subscription(),
       scheduler: scheduler!,
-      effects: new Set(),
+      effects: [],
       ...additionalContext,
    })
 }
@@ -168,10 +168,10 @@ function isCheckSubject(value: any): value is CheckSubject<any> {
 function createBinding(context: any, key: any, value: any, scheduler: any) {
    const binding = new ContextBinding(context, key, value, scheduler)
    addCheck(value[checkPhase], binding)
-   addEffect(value, binding)
+   addEffect(value, binding, void 0, true)
 }
 
-function setup(injector: Injector, stateFactory?: () => {}) {
+function setup(injector: Injector, stateFactory: () => {}) {
    const context: { [key: string]: any } = currentContext
    const error = injector.get(ErrorHandler)
    const scheduler = new Scheduler(
@@ -185,20 +185,18 @@ function setup(injector: Injector, stateFactory?: () => {}) {
       new Set(),
       new Set(),
    ])
-
-   if (stateFactory) {
-      const state = stateFactory()
-      for (const [key, value] of Object.entries(state)) {
-         if (isCheckSubject(value)) {
-            context[key] = value.value
-            createBinding(context, key, value, scheduler)
-         } else {
-            Object.defineProperty(
-               context,
-               key,
-               Object.getOwnPropertyDescriptor(state, key)!,
-            )
-         }
+   const { effects } = getContext()
+   const state = stateFactory()
+   for (const [key, value] of Object.entries(state)) {
+      if (isCheckSubject(value)) {
+         context[key] = value.value
+         createBinding(context, key, value, scheduler)
+      } else {
+         Object.defineProperty(
+            context,
+            key,
+            Object.getOwnPropertyDescriptor(state, key)!,
+         )
       }
    }
 }
@@ -212,9 +210,9 @@ export function check(key: CheckPhase) {
 
 export function subscribe() {
    const { effects } = getContext()
-   if (effects.size === 0) return
-   const list = Array.from(effects).reverse()
-   effects.clear()
+   if (effects.length === 0) return
+   const list = Array.from(effects)
+   effects.length = 0
    for (const effect of list) {
       effect.subscribe()
    }
@@ -238,6 +236,7 @@ export function addEffect<T>(
    source?: Subscribable<T> | (() => TeardownLogic),
    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
    signal?: UnsubscribeSignal,
+   prepend?: boolean
 ): Subscription | void {
    const subscription = new Subscription()
    if (!source) {
@@ -253,7 +252,11 @@ export function addEffect<T>(
       scheduler,
       signal,
    )
-   effects.add(effectObserver)
+   if (prepend) {
+      effects.unshift(effectObserver)
+   } else {
+      effects.push(effectObserver)
+   }
    if (signal) {
       addSignal(effectObserver, signal)
    } else if (signal !== null) {

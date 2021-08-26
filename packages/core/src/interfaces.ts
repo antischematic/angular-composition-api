@@ -28,7 +28,7 @@ export interface Context {
    injector: Injector
    error: ErrorHandler
    subscription: Subscription
-   effects: Set<EffectObserver<any>>
+   effects: EffectObserver<any>[]
    scheduler: any
    0: Set<Check>
    1: Set<Check>
