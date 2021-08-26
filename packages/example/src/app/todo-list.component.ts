@@ -53,8 +53,11 @@ function todoList() {
 
    subscribe(todos, () => {
       console.log("todos changed!", todos())
-      console.log("change count:", changesCount.value)
       creating.next(null)
+   })
+
+   subscribe(() => {
+      console.log("change count:", changesCount())
    })
 
    function explode() {

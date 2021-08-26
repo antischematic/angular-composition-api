@@ -1,7 +1,6 @@
 import {
    ChangeDetectorRef,
    ErrorHandler,
-   EventEmitter,
    inject as serviceInject,
    Injectable,
    InjectFlags,
@@ -16,7 +15,6 @@ import {
    BehaviorSubject,
    combineLatest,
    Notification,
-   Observable,
    PartialObserver,
    Subject,
    Subscribable,
@@ -25,21 +23,20 @@ import {
    Unsubscribable,
 } from "rxjs"
 import {
-   UnsubscribeSignal,
    checkPhase,
    CheckPhase,
    CheckSubject,
    Context,
+   UnsubscribeSignal,
    Value,
-   Emitter,
 } from "./interfaces"
 import {
+   addSignal,
    arrayCompare,
    computeValue,
-   isValue,
-   addSignal,
-   isObject,
    isEmitter,
+   isObject,
+   isValue,
 } from "./utils"
 import { distinctUntilChanged, skip, switchMap } from "rxjs/operators"
 import { ValueGetterSetter, ValueToken } from "./provider"
@@ -171,7 +168,7 @@ function isCheckSubject(value: any): value is CheckSubject<any> {
 function createBinding(context: any, key: any, value: any, scheduler: any) {
    const binding = new ContextBinding(context, key, value, scheduler)
    addCheck(value[checkPhase], binding)
-   addEffect(value, binding)
+   addTeardown(value.subscribe(binding))
 }
 
 function setup(injector: Injector, stateFactory?: () => {}) {

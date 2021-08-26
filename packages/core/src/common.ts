@@ -1,5 +1,6 @@
 import {
    BehaviorSubject,
+   observable,
    Observable,
    PartialObserver,
    Subscribable,
@@ -24,9 +25,9 @@ import {
    UnsubscribeSignal,
    Value,
 } from "./interfaces"
-import { isEmitter, isObserver, isSignal, isValue, track } from "./utils"
-import { Subscription } from "rxjs/internal/Subscription"
-import { addEffect } from "./core"
+import {isObserver, isSignal, isValue, track} from "./utils"
+import {Subscription} from "rxjs/internal/Subscription"
+import {addEffect} from "./core"
 
 export class QueryListSubject extends Observable<any> {
    next(value: QueryList<any>) {
@@ -56,6 +57,7 @@ function createQueryList<T>(phase: CheckPhase): ReadonlyValue<QueryList<T>> {
       nextValue!.changes.subscribe(getterSetter.source)
    }
    getterSetter.value = queryList
+   Object.defineProperty(getterSetter, observable, observableProperty)
    getterSetter.source = new QueryListSubject(queryList)
    getterSetter.next = getterSetter
    getterSetter.pipe = pipe
@@ -84,26 +86,33 @@ function* generator(this: Value<any>) {
 }
 
 function createValue<T>(source: BehaviorSubject<T>, phase = 0): Value<T> {
-   function getterOrSetter(this: Value<any>, nextValue?: T): T | void {
+   function getterSetter(this: Value<any>, nextValue?: T): T | void {
       if (arguments.length === 0) {
-         track(getterOrSetter as any)
-         return (<any>getterOrSetter).value
+         track(getterSetter as any)
+         return (<any>getterSetter).value
       }
-      getterOrSetter.source.next(nextValue!)
+      getterSetter.source.next(nextValue!)
    }
-   Object.defineProperty(getterOrSetter, "value", { get })
-   getterOrSetter.next = getterOrSetter
-   getterOrSetter.subscribe = sub
-   getterOrSetter.source = source
-   getterOrSetter.pipe = pipe
-   getterOrSetter[Symbol.iterator] = generator
-   getterOrSetter[checkPhase] = phase
-   getterOrSetter.__ng_value = true
-   return getterOrSetter as unknown as Value<T>
+   Object.defineProperty(getterSetter, observable, observableProperty)
+   Object.defineProperty(getterSetter, "value", { get })
+   getterSetter.next = getterSetter
+   getterSetter.subscribe = sub
+   getterSetter.source = source
+   getterSetter.pipe = pipe
+   getterSetter[Symbol.iterator] = generator
+   getterSetter[checkPhase] = phase
+   getterSetter.__ng_value = true
+   return getterSetter as unknown as Value<T>
 }
 
 function defaultFn(value: any) {
    return value
+}
+
+const observableProperty = {
+   value() {
+      return this
+   }
 }
 
 function createEmitter<T extends (...args: any[]) => any>(
@@ -115,6 +124,7 @@ function createEmitter<T extends (...args: any[]) => any>(
       next.source.next(fn(...args))
    }
 
+   Object.defineProperty(next, observable, observableProperty)
    next.source = new EventEmitter()
    next.subscribe = sub
    next.pipe = pipe
