@@ -185,8 +185,9 @@ function setup(injector: Injector, stateFactory: () => {}) {
       new Set(),
       new Set(),
    ])
-   const { effects } = getContext()
+
    const state = stateFactory()
+
    for (const [key, value] of Object.entries(state)) {
       if (isCheckSubject(value)) {
          context[key] = value.value
@@ -308,7 +309,7 @@ export class ComputedSubject<T> extends BehaviorSubject<T> {
    subscribe(observer?: any): Subscription {
       this.refs++
       if (this.refs === 1) {
-         this.subscription = this.changes.subscribe((v) => {
+         this.subscription = this.changes.subscribe(() => {
             const [value, deps] = computeValue(this.compute)
             this.deps.next(deps)
             this.next(value)
