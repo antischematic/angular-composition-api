@@ -55,7 +55,7 @@ function create() {
          done: done(),
       })
       if (resetOnSave()) {
-         setEditorText(text())
+         text('')
       } else {
          text(value)
       }

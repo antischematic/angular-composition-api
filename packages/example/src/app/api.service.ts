@@ -58,11 +58,10 @@ function createTodo() {
    const resource = use<ApiEvent<Todo, Todo>>(Function)
 
    subscribe(resource, (message) => {
-      if (!message) return
       if (message.type === "request") {
          const entity = {
-            id: database.length + 1,
             ...message.value,
+            id: database.length + 1,
          }
          database = database.concat(entity)
          subscribe(timer(250), () => {
