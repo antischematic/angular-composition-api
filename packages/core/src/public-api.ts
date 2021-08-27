@@ -10,6 +10,8 @@ export {
    DETACHED,
    ViewDef,
    markDirty,
+   Context,
+   Lifecycle,
 } from "./core"
 export { use, subscribe } from "./common"
 export {
@@ -24,4 +26,5 @@ export {
    EmitterWithParams,
 } from "./interfaces"
 export { select } from "./select"
-export { ValueToken, provide } from "./provider"
+export { ValueToken, provide, EmptyValueError } from "./provider"
+export { updateOn } from "./utils"

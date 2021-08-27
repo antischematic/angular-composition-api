@@ -24,7 +24,7 @@ export interface Check {
    check(): boolean
 }
 
-export interface Context {
+export interface CurrentContext {
    injector: Injector
    error: ErrorHandler
    subscription: Subscription
@@ -63,8 +63,9 @@ export type Value<T> = CheckSubject<T> & {
    readonly source: Subject<T>
    readonly pipe: Subject<T>["pipe"]
    readonly value: T
-   (): T
+   (mutate: (value: T) => any): void
    (value: T): void
+   (): T
    next(value: T): void
 } & [Value<T>, Emitter<T>]
 

@@ -80,9 +80,11 @@ function todosByUserId() {
    const todos = use<Todo[]>()
    const error = use<Error>()
    const todosResult = userId.pipe(
-      switchMap((value) => http.get(`//example.com/api/v1/todo?userId=${value}`).pipe(
-         materialize()
-      )),
+      switchMap((value) =>
+         http
+            .get(`//example.com/api/v1/todo?userId=${value}`)
+            .pipe(materialize()),
+      ),
    )
 
    subscribe(todosResult, {
@@ -115,7 +117,7 @@ function todos() {
 
 @Component({
    providers: [TodosByUserId], // optional if provided in module
-   inputs: ["userId"]
+   inputs: ["userId"],
 })
 export class Todos extends ViewDef(todos) {}
 ```
@@ -129,35 +131,62 @@ export class Todos extends ViewDef(todos) {}
 Creates a context-aware class from a setup function. Values returned from this function are merged with the base class.
 `Value` types are unwrapped in the final class and template view, eg. `Value<number>` becomes `number`.
 
+**Arguments**
+
+The setup function takes a single argument of `Context`.
+
+`markDirty` Marks the current view dirty and schedules change detection if it isn't already
+scheduled.
+
+`detectChanges` Immediately checks and updates the view if it's dirty.
+
+`subscribe` Subscribe to the lifecycle of the view. Useful for `beforeUpdate` and `afterUpdate`
+behaviour.
+
 **Change Detection**
 
 Change detection occurs in the following scenarios (assuming `OnPush`
 strategy):
 
 -  On first render.
--  When inputs or reactive state changes (ie. fields that implement `CheckSubject`).
+-  When inputs change.
 -  When an event binding emits (if zone.js is enabled).
--  When `subscribe` emits a value, after calling the observer.
--  When calling `markDirty`, either immediately or after a calling observer.
+-  When `subscribe` emits a value, after the observer is called.
+-  When reactive functions are called, after they have finished executing.
 
-Change detection might _not_ occur if:
+Functions returned from the setup function will also trigger change detection if they are
+a top-level field.
 
--  Reactive state is mutated outside a reactive context. For example, if you manually create a component and mutate a
+```ts
+function setup() {
+   const count = use(0)
+   function increment() {
+      count((val) => val + 1)
+   }
+   return {
+      count,
+      increment, // only top-level functions are reactive
+   }
+}
+```
+
+Change detection might _not_ occur:
+
+-  If you manually create a component and mutate a
    value, you must call `detectChanges` to propagate the change.
 
-Updates to reactive state are not always immediately reflected in the view. If you need an immediate update, inject
-the `ChangeDetectorRef` and call `detectChanges` after updating a value.
+Updates to reactive state are not immediately reflected in the view. If you need an immediate update, call `detectChanges` after updating a value.
 
 **Value mutation**
 
-When modifying mutable data structures we can let the change detector know to check the view.
+Reactive values can be mutated using a setter function.
 
 ```ts
 const values = use<number[]>([])
 const append = use<number>(Function)
 
 subscribe(append, (value) => {
-   markDirty(values).push(value)
+   values((val) => val.push(value))
 })
 ```
 
@@ -320,6 +349,9 @@ num.value
 // set value
 num(10)
 
+// mutate value
+arr((val) => val.push(10))
+
 // observe value
 subscribe(num, observer)
 ```
@@ -348,28 +380,32 @@ This is useful for creating two-way bindings.
 const count = use(0)
 const countChange = use(count)
 ```
+
 Shorthand syntax
+
 ```ts
 const [count, countChange] = use(0)
 ```
+
 Two-way binding example
+
 ```ts
 function counter() {
    const [count, countChange] = use(0)
-   
+
    subscribe(interval(1000), () => {
       countChange(count() + 1)
    })
-   
+
    return {
       count,
-      countChange
+      countChange,
    }
 }
 
 @Component({
    inputs: ["count"],
-   outputs: ["countChange"]
+   outputs: ["countChange"],
 })
 export class Counter extends ViewDef(counter) {}
 ```

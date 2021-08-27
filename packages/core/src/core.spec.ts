@@ -4,20 +4,21 @@ import {
    addTeardown,
    CallContextError,
    check,
+   EffectObserver,
+   getContext,
    inject,
-   markDirty,
    Service,
    subscribe,
    ViewDef,
 } from "./core"
-import { Component, Injectable, InjectionToken, Type } from "@angular/core"
 import {
-   ComponentFixture,
-   fakeAsync,
-   TestBed,
-   tick,
-} from "@angular/core/testing"
-import { timer } from "rxjs"
+   Component,
+   ErrorHandler,
+   Injectable,
+   InjectionToken,
+   Type,
+} from "@angular/core"
+import { ComponentFixture, TestBed } from "@angular/core/testing"
 import { checkPhase } from "./interfaces"
 import { use } from "./common"
 import objectContaining = jasmine.objectContaining
@@ -48,7 +49,7 @@ export function defineService<T>(
    }
 }
 
-describe("View", () => {
+describe("ViewDef", () => {
    it("should create", () => {
       function create() {
          return {}
@@ -110,7 +111,10 @@ describe("View", () => {
       const spy = createSpy()
       function create() {
          const count = subject
-         addEffect(count, spy)
+         const { injector, error, scheduler } = getContext()
+         addEffect(
+            new EffectObserver<any>(count, spy, error, injector, scheduler),
+         )
          return {
             count,
          }
@@ -132,6 +136,46 @@ describe("View", () => {
       expect(subject.value).toBe(10)
       expect(spy).toHaveBeenCalledWith(10)
       expect(spy).toHaveBeenCalledTimes(2)
+   })
+   it("should detect changes after calling returned functions", () => {
+      function create() {
+         const [count, countChange] = use(0)
+         function increment() {
+            countChange(count() + 1)
+            expect(view.debugElement.nativeElement.textContent).toBe(`0`)
+         }
+         return {
+            count,
+            increment,
+         }
+      }
+      @Component({ template: `{{ count }}` })
+      class Test extends ViewDef(create) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      view.detectChanges()
+      view.componentInstance.increment()
+      expect(view.componentInstance.count).toBe(1)
+      expect(view.debugElement.nativeElement.textContent).toBe(`1`)
+   })
+   it("should catch errors in returned functions", () => {
+      function create() {
+         function increment() {
+            throw new Error("Bogus")
+         }
+         return {
+            increment,
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(create) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      const error = TestBed.inject(ErrorHandler)
+      const spy = spyOn(error, "handleError")
+      view.detectChanges()
+      view.componentInstance.increment()
+      expect(spy).toHaveBeenCalledOnceWith(new Error("Bogus"))
    })
 })
 
@@ -206,16 +250,17 @@ describe("Context API", () => {
       expect(spy).toHaveBeenCalledTimes(3)
       expect(spy.calls.allArgs()).toEqual([[0], [1], [2]])
    })
-   it("should mark value dirty", fakeAsync(() => {
+   it("should update view when mutating value", () => {
       function create() {
          const value = use<number[]>([])
 
-         addEffect(timer(1000), () => {
-            markDirty(value).push(10)
-         })
+         function update() {
+            value((val) => val.push(10))
+         }
 
          return {
             value,
+            update,
          }
       }
 
@@ -227,11 +272,11 @@ describe("Context API", () => {
       const createView = configureTest(Test)
       const view = createView()
       view.detectChanges()
-      tick(1000)
+      view.componentInstance.update()
 
       expect(view.componentInstance.value).toEqual([10])
       expect(view.debugElement.nativeElement.textContent).toBe("10")
-   }))
+   })
 })
 
 describe("Inject", () => {

@@ -11,7 +11,14 @@ import {
    ViewChildren,
 } from "@angular/core"
 import { Value } from "./interfaces"
-import { EffectObserver, inject, Service, ViewDef } from "./core"
+import {
+   Context,
+   EffectObserver,
+   inject,
+   Lifecycle,
+   Service,
+   ViewDef,
+} from "./core"
 import { defer, interval, merge, of, throwError } from "rxjs"
 import {
    discardPeriodicTasks,
@@ -21,6 +28,7 @@ import {
 } from "@angular/core/testing"
 import { Subscription } from "rxjs/internal/Subscription"
 import { configureTest, defineService } from "./core.spec"
+import { updateOn } from "./utils"
 import createSpy = jasmine.createSpy
 import objectContaining = jasmine.objectContaining
 
@@ -562,4 +570,48 @@ describe("subscribe", () => {
       expect(spy).toHaveBeenCalledTimes(0)
       discardPeriodicTasks()
    }))
+
+   it("should emit before and after view updates", () => {
+      const count = use(0)
+      const spy = createSpy()
+      function create(context: Context) {
+         const beforeUpdate = count.pipe(
+            updateOn(Lifecycle.BeforeUpdate, context),
+         )
+         const afterUpdate = count.pipe(
+            updateOn(Lifecycle.AfterUpdate, context),
+         )
+         subscribe(afterUpdate, () => {
+            spy("spy3: " + count())
+         })
+         subscribe(beforeUpdate, () => {
+            spy("spy2: " + count())
+         })
+         subscribe(count, () => {
+            spy("spy1: " + count())
+         })
+         function update() {
+            count(10)
+         }
+         return {
+            count,
+            update,
+         }
+      }
+      @Component({ template: `{{ count }}` })
+      class Test extends ViewDef(create) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      view.detectChanges()
+      view.componentInstance.update()
+      expect(spy.calls.allArgs()).toEqual([
+         ["spy1: 0"],
+         ["spy2: 0"],
+         ["spy3: 0"],
+         ["spy1: 10"],
+         ["spy2: 10"],
+         ["spy3: 10"],
+      ])
+      expect(view.debugElement.nativeElement.textContent).toBe(`10`)
+   })
 })

@@ -6,6 +6,7 @@ import {
    InjectFlags,
    Injector,
    INJECTOR,
+   isDevMode,
    NgModuleRef,
    ProviderToken,
    Type,
@@ -15,6 +16,7 @@ import {
    BehaviorSubject,
    combineLatest,
    Notification,
+   Observable,
    PartialObserver,
    Subject,
    Subscribable,
@@ -26,7 +28,7 @@ import {
    checkPhase,
    CheckPhase,
    CheckSubject,
-   Context,
+   CurrentContext,
    UnsubscribeSignal,
    Value,
 } from "./interfaces"
@@ -42,7 +44,7 @@ import { distinctUntilChanged, skip, switchMap } from "rxjs/operators"
 import { ValueGetterSetter, ValueToken } from "./provider"
 
 let currentContext: any
-const contextMap = new WeakMap<{}, Context>()
+const contextMap = new WeakMap<{}, CurrentContext>()
 
 export function beginContext(value: any) {
    const previousContext = currentContext
@@ -107,13 +109,13 @@ class ContextBinding<T = any> {
    next(value: T[keyof T]) {
       const { context, scheduler } = this
       context[this.key] = value
-      scheduler.markForCheck()
+      scheduler.markDirty()
    }
    check() {
       const value = this.context[this.key]
       if (this.source.value !== value) {
+         this.scheduler.markDirty()
          this.source.next(value)
-         this.scheduler.markForCheck()
       }
    }
    constructor(
@@ -131,32 +133,51 @@ export const DETACHED = {
    useValue: true,
 }
 
-class Scheduler {
-   dirty: boolean
-   detach: Detach | null
-   detectChanges() {
-      if (this.dirty) {
-         this.dirty = false
+const dirty = new Set<Scheduler>()
+
+let id: number
+
+export class Scheduler extends Subject<any> {
+   private dirty: boolean
+   private readonly detach: Detach | null
+   detectChanges = (self = this) => {
+      if (self.dirty && !self.closed) {
+         self.dirty = false
+         dirty.delete(this)
          try {
-            this.ref.detectChanges()
+            self.next(Lifecycle.BeforeUpdate)
+            self.ref.detectChanges()
+            isDevMode() && self.ref.checkNoChanges()
+            self.next(Lifecycle.AfterUpdate)
          } catch (error) {
-            this.errorHandler.handleError(error)
+            self.errorHandler.handleError(error)
          }
       }
    }
-   markForCheck() {
+   markDirty = () => {
       this.dirty = true
+      dirty.add(this)
+      if (!currentContext) {
+         clearTimeout(id)
+         id = setTimeout(detectChanges)
+      }
    }
+   unsubscribe() {
+      dirty.delete(this)
+      super.unsubscribe()
+   }
+
    constructor(
       private ref: ChangeDetectorRef,
       private errorHandler: ErrorHandler,
       detach: Boolean | null,
    ) {
+      super()
       this.dirty = false
       this.detach = detach
       if (this.detach == true) {
          this.ref.detach()
-         this.markForCheck()
+         this.markDirty()
       }
    }
 }
@@ -165,13 +186,36 @@ function isCheckSubject(value: any): value is CheckSubject<any> {
    return (isObject(value) || isValue(value)) && checkPhase in value
 }
 
-function createBinding(context: any, key: any, value: any, scheduler: any) {
+function createBinding(context: any, key: any, value: any) {
+   const { scheduler } = getContext()
    const binding = new ContextBinding(context, key, value, scheduler)
    addCheck(value[checkPhase], binding)
-   addEffect(value, binding, void 0, true)
+   addTeardown(value.subscribe(binding))
 }
 
-function setup(injector: Injector, stateFactory: () => {}) {
+function createFunction(exec: Function, errorHandler: ErrorHandler) {
+   return function functionBinding(...args: any[]) {
+      try {
+         return exec(...args)
+      } catch (error) {
+         errorHandler.handleError(error)
+      } finally {
+         detectChanges()
+      }
+   }
+}
+
+export const enum Lifecycle {
+   BeforeUpdate = 1,
+   AfterUpdate = 2,
+}
+
+export interface Context extends Observable<Lifecycle> {
+   markDirty(): void
+   detectChanges(): void
+}
+
+function setup(injector: Injector, stateFactory: (context: Context) => {}) {
    const context: { [key: string]: any } = currentContext
    const error = injector.get(ErrorHandler)
    const scheduler = new Scheduler(
@@ -186,12 +230,14 @@ function setup(injector: Injector, stateFactory: () => {}) {
       new Set(),
    ])
 
-   const state = stateFactory()
+   const state = stateFactory(scheduler)
 
-   for (const [key, value] of Object.entries(state)) {
+   for (let [key, value] of Object.entries(state)) {
       if (isCheckSubject(value)) {
          context[key] = value.value
-         createBinding(context, key, value, scheduler)
+         createBinding(context, key, value)
+      } else if (typeof value === "function" && !isEmitter(value)) {
+         context[key] = createFunction(value, error)
       } else {
          Object.defineProperty(
             context,
@@ -201,10 +247,10 @@ function setup(injector: Injector, stateFactory: () => {}) {
       }
    }
 }
-const empty = [] as any[]
+
 export function check(key: CheckPhase) {
    const context = getContext()
-   for (const subject of context[key] ?? empty) {
+   for (const subject of context[key]) {
       subject.check()
    }
 }
@@ -237,15 +283,14 @@ export function addEffect<T>(
    source?: Subscribable<T> | (() => TeardownLogic),
    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
    signal?: UnsubscribeSignal,
-   prepend?: boolean
-): Subscription | void {
-   const subscription = new Subscription()
+): Unsubscribable | void {
    if (!source) {
+      const subscription = new Subscription()
       addTeardown(subscription)
       return subscription
    }
    const { effects, injector, error, scheduler } = getContext()
-   const effectObserver = new EffectObserver<T>(
+   const effect = new EffectObserver<T>(
       source,
       observer,
       error,
@@ -253,17 +298,13 @@ export function addEffect<T>(
       scheduler,
       signal,
    )
-   if (prepend) {
-      effects.unshift(effectObserver)
-   } else {
-      effects.push(effectObserver)
-   }
+   effects.push(effect)
    if (signal) {
-      addSignal(effectObserver, signal)
+      addSignal(effect, signal)
    } else if (signal !== null) {
-      addTeardown(subscription)
-      return subscription.add(effectObserver)
+      addTeardown(effect)
    }
+   return effect
 }
 
 function next(
@@ -271,19 +312,13 @@ function next(
    errorHandler: ErrorHandler,
    notification: Notification<any>,
    observer: any,
-   scheduler: Scheduler,
+   scheduler?: Scheduler,
    signal?: UnsubscribeSignal,
 ) {
    notification.accept(unsubscribe)
    createContext(currentContext, injector, errorHandler, scheduler)
    try {
-      let previous = checkValues
-      checkValues = new Set()
       const teardown = notification.accept(observer as any)
-      for (const value of checkValues) {
-         value(value.value)
-      }
-      checkValues = previous
       if (signal) {
          addSignal(teardown, signal)
       } else if (signal !== null) {
@@ -293,7 +328,15 @@ function next(
       errorHandler.handleError(error)
    }
    notification.accept(subscribe)
-   scheduler?.detectChanges()
+   detectChanges()
+}
+
+function detectChanges() {
+   const list = Array.from(dirty)
+   dirty.clear()
+   for (const scheduler of list) {
+      scheduler.detectChanges()
+   }
 }
 
 export class ComputedSubject<T> extends BehaviorSubject<T> {
@@ -412,7 +455,7 @@ export class EffectObserver<T> {
       private observer: any,
       private errorHandler: ErrorHandler,
       private injector: Injector,
-      private scheduler: Scheduler,
+      private scheduler?: Scheduler,
       private signal?: UnsubscribeSignal,
    ) {
       this.closed = false
@@ -431,6 +474,7 @@ export function decorate(create: any) {
       ngAfterViewChecked() {
          runInContext(this, check, 2)
          runInContext(this, subscribe)
+         detectChanges()
       }
       ngOnDestroy() {
          runInContext(this, unsubscribe)
@@ -479,14 +523,12 @@ export function inject<T>(
    return value
 }
 
-let checkValues = new Set<Value<any>>()
-
 export function markDirty<T>(value: Value<T>): T {
-   checkValues.add(value)
+   value(value.value)
    return value.value
 }
 
-export function ViewDef<T>(create: () => T): ViewDef<T> {
+export function ViewDef<T>(create: (context: Context) => T): ViewDef<T> {
    return decorate(create)
 }
 

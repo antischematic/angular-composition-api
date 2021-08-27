@@ -5,6 +5,7 @@ import {
    PartialObserver,
    Subscribable,
    TeardownLogic,
+   Unsubscribable,
 } from "rxjs"
 import {
    ContentChild,
@@ -25,9 +26,16 @@ import {
    UnsubscribeSignal,
    Value,
 } from "./interfaces"
-import {isObserver, isSignal, isValue, track} from "./utils"
-import {Subscription} from "rxjs/internal/Subscription"
-import {addEffect} from "./core"
+import { addSignal, isObserver, isSignal, isValue, track } from "./utils"
+import { Subscription } from "rxjs/internal/Subscription"
+import {
+   addEffect,
+   addTeardown,
+   EffectObserver,
+   getContext,
+   Lifecycle,
+} from "./core"
+import { filter, take } from "rxjs/operators"
 
 export class QueryListSubject extends Observable<any> {
    next(value: QueryList<any>) {
@@ -86,12 +94,17 @@ function* generator(this: Value<any>) {
 }
 
 function createValue<T>(source: BehaviorSubject<T>, phase = 0): Value<T> {
-   function getterSetter(this: Value<any>, nextValue?: T): T | void {
+   function getterSetter(this: Value<any>, nextValue?: any): T | void {
       if (arguments.length === 0) {
          track(getterSetter as any)
          return (<any>getterSetter).value
       }
-      getterSetter.source.next(nextValue!)
+      if (typeof nextValue === "function") {
+         nextValue((<any>getterSetter).value)
+         getterSetter.source.next((<any>getterSetter).value)
+      } else {
+         getterSetter.source.next(nextValue!)
+      }
    }
    Object.defineProperty(getterSetter, observable, observableProperty)
    Object.defineProperty(getterSetter, "value", { get })
@@ -112,7 +125,7 @@ function defaultFn(value: any) {
 const observableProperty = {
    value() {
       return this
-   }
+   },
 }
 
 function createEmitter<T extends (...args: any[]) => any>(
@@ -153,7 +166,6 @@ function isSource(value: any) {
       typeof value["next"] === "function"
    )
 }
-
 
 export function use<T>(): Value<T | undefined>
 export function use<T>(value: QueryListType): ReadonlyValue<QueryList<T>>
@@ -208,8 +220,15 @@ export function subscribe<T>(
       | ((value: T) => TeardownLogic)
       | UnsubscribeSignal,
    signal?: UnsubscribeSignal,
-): Subscription | void {
+): Unsubscribable | void {
    const observer = isObserver(observerOrSignal) ? observerOrSignal : void 0
    signal = isSignal(observerOrSignal) ? observerOrSignal : signal
+
+   if (!source) {
+      const subscription = new Subscription()
+      addTeardown(subscription)
+      return subscription
+   }
+
    return addEffect(source, observer, signal)
 }
