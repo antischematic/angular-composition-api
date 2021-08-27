@@ -173,9 +173,6 @@ export class Scheduler extends Subject<any> {
       detach: Boolean | null,
    ) {
       super()
-      this.subscribe = this.subscribe.bind(this)
-      this.detectChanges = this.detectChanges.bind(this)
-      this.markDirty = this.markDirty.bind(this)
       this.dirty = false
       this.detach = detach
       if (this.detach == true) {
