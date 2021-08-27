@@ -140,21 +140,21 @@ let id: number
 export class Scheduler extends Subject<any> {
    private dirty: boolean
    private readonly detach: Detach | null
-   detectChanges = (self = this) => {
-      if (self.dirty && !self.closed) {
-         self.dirty = false
+   detectChanges() {
+      if (this.dirty && !this.closed) {
+         this.dirty = false
          dirty.delete(this)
          try {
-            self.next(Lifecycle.BeforeUpdate)
-            self.ref.detectChanges()
-            isDevMode() && self.ref.checkNoChanges()
-            self.next(Lifecycle.AfterUpdate)
+            this.next(Lifecycle.BeforeUpdate)
+            this.ref.detectChanges()
+            isDevMode() && this.ref.checkNoChanges()
+            this.next(Lifecycle.AfterUpdate)
          } catch (error) {
-            self.errorHandler.handleError(error)
+            this.errorHandler.handleError(error)
          }
       }
    }
-   markDirty = () => {
+   markDirty() {
       this.dirty = true
       dirty.add(this)
       if (!currentContext) {
@@ -173,6 +173,9 @@ export class Scheduler extends Subject<any> {
       detach: Boolean | null,
    ) {
       super()
+      this.subscribe = this.subscribe.bind(this)
+      this.detectChanges = this.detectChanges.bind(this)
+      this.markDirty = this.markDirty.bind(this)
       this.dirty = false
       this.detach = detach
       if (this.detach == true) {
