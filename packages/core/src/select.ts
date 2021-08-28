@@ -3,9 +3,9 @@ import {
    PartialObserver,
    Subject,
    Subscribable,
+   Subscription,
    Unsubscribable,
 } from "rxjs"
-import { Subscription } from "rxjs/internal/Subscription"
 import { ComputedSubject } from "./core"
 import { Value } from "./interfaces"
 import { use } from "./common"

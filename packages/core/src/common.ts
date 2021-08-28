@@ -4,6 +4,7 @@ import {
    Observable,
    PartialObserver,
    Subscribable,
+   Subscription,
    TeardownLogic,
    Unsubscribable,
 } from "rxjs"
@@ -26,16 +27,8 @@ import {
    UnsubscribeSignal,
    Value,
 } from "./interfaces"
-import { addSignal, isObserver, isSignal, isValue, track } from "./utils"
-import { Subscription } from "rxjs/internal/Subscription"
-import {
-   addEffect,
-   addTeardown,
-   EffectObserver,
-   getContext,
-   Lifecycle,
-} from "./core"
-import { filter, take } from "rxjs/operators"
+import { isObserver, isSignal, isValue, track } from "./utils"
+import { addEffect, addTeardown } from "./core"
 
 export class QueryListSubject extends Observable<any> {
    next(value: QueryList<any>) {

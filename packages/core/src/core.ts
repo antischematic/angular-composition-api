@@ -1,6 +1,9 @@
 import {
-   AfterContentChecked, AfterViewChecked,
-   ChangeDetectorRef, DoCheck,
+   AfterContentChecked,
+   AfterViewChecked,
+   ChangeDetectorRef,
+   Directive,
+   DoCheck,
    ErrorHandler,
    inject as serviceInject,
    Injectable,
@@ -8,7 +11,8 @@ import {
    Injector,
    INJECTOR,
    isDevMode,
-   NgModuleRef, OnDestroy,
+   NgModuleRef,
+   OnDestroy,
    ProviderToken,
    Type,
    ɵɵdirectiveInject as directiveInject,
@@ -165,7 +169,7 @@ export class Scheduler extends Subject<any> {
 
    constructor(
       private ref: ChangeDetectorRef,
-      private errorHandler: ErrorHandler
+      private errorHandler: ErrorHandler,
    ) {
       super()
       this.dirty = false
@@ -209,10 +213,7 @@ export interface Context extends Observable<Lifecycle> {
 function setup(injector: Injector, stateFactory: (context: Context) => {}) {
    const context: { [key: string]: any } = currentContext
    const error = injector.get(ErrorHandler)
-   const scheduler = new Scheduler(
-      injector.get(ChangeDetectorRef),
-      error
-   )
+   const scheduler = new Scheduler(injector.get(ChangeDetectorRef), error)
 
    createContext(context, injector, error, scheduler, [
       new Set(),
@@ -455,7 +456,10 @@ export class EffectObserver<T> {
    }
 }
 
-class View implements DoCheck, AfterContentChecked, AfterViewChecked, OnDestroy {
+@Directive()
+class View
+   implements DoCheck, AfterContentChecked, AfterViewChecked, OnDestroy
+{
    ngDoCheck() {
       runInContext(this, check, 0)
    }
@@ -478,7 +482,7 @@ class View implements DoCheck, AfterContentChecked, AfterViewChecked, OnDestroy 
 export function decorate(create: any) {
    return class extends View {
       constructor() {
-         super(create);
+         super(create)
       }
    } as any
 }
@@ -505,7 +509,16 @@ export function Service<T>(
    }
    return Class as any
 }
-
+export function inject<T>(
+   token: ValueToken<T>,
+   notFoundValue?: T,
+   flags?: InjectFlags,
+): T
+export function inject<T>(
+   token: ProviderToken<T>,
+   notFoundValue?: T,
+   flags?: InjectFlags,
+): T
 export function inject<T>(
    token: ProviderToken<T> | ValueToken<T>,
    notFoundValue?: T,

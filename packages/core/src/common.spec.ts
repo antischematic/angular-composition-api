@@ -19,14 +19,13 @@ import {
    Service,
    ViewDef,
 } from "./core"
-import { defer, interval, merge, of, throwError } from "rxjs"
+import {defer, interval, merge, of, Subscription, throwError} from "rxjs"
 import {
    discardPeriodicTasks,
    fakeAsync,
    TestBed,
    tick,
 } from "@angular/core/testing"
-import { Subscription } from "rxjs/internal/Subscription"
 import { configureTest, defineService } from "./core.spec"
 import { updateOn } from "./utils"
 import createSpy = jasmine.createSpy

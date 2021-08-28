@@ -2,6 +2,7 @@
    "$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
    "dest": "../../dist/angular-composition-api",
    "lib": {
-      "entryFile": "src/public-api.ts"
+     "umdId": "mmuscatAngularCompositionApi",
+     "entryFile": "src/public-api.ts"
    }
 }
