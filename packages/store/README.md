@@ -33,8 +33,8 @@ export function getInitialState() {
 Create actions, with or without props.
 
 ```ts
-const Increment = Action("Increment")
-const IncrementBy = Action("Increment", props<{ by: number }>())
+const Increment = new Action("Increment")
+const IncrementBy = new Action("Increment", props<{ by: number }>())
 ```
 
 #### Reducers
@@ -42,10 +42,8 @@ const IncrementBy = Action("Increment", props<{ by: number }>())
 Create reducers. Reducers take a list of action reducers for producing the next state.
 
 ```ts
-const Count = Reducer<number>("count", [
-   Increment,
-   (state, action) => state + 1,
-])
+const Count = new Reducer<number>("count")
+   .add(Increment, (state, action) => state + 1)
 ```
 
 Create effects. Effects are factory functions that should return an `Observable`. Supports
