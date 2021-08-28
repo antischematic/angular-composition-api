@@ -46,10 +46,10 @@ const Count = new Reducer<number>("count")
    .add(Increment, (state, action) => state + 1)
 ```
 
+#### Effects
+
 Create effects. Effects are factory functions that should return an `Observable`. Supports
 dependency injection
-
-#### Effects
 
 ```ts
 function logCount() {
