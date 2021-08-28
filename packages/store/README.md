@@ -73,7 +73,7 @@ same module so that they are scoped correctly.
    imports: [
       StoreModule.config(getInitialState, {
          reducers: [Count],
-         effects: [logCount],
+         effects: [logCount, autoIncrement],
       }),
    ],
    providers: [Count], // Important! Required in feature store modules (ie. lazy loaded),
