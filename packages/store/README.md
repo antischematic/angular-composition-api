@@ -89,13 +89,14 @@ component so that they are scoped correctly.
 
 ```ts
 function setup() {
-   const count = inject(Count)
-   const increment = inject(Increment)
-
+   // must be declared before injecting reducers
    useStore(getInitialState, {
       reducers: [Count],
       effects: [logCount],
    })
+   
+   const count = inject(Count)
+   const increment = inject(Increment)
 
    return {
       count,
