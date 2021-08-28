@@ -1,19 +1,6 @@
-import {
-   Component,
-   ElementRef,
-   NgModule,
-   Renderer2,
-   ViewChild,
-   ViewChildren,
-} from "@angular/core"
-import { FormsModule } from "@angular/forms"
-import {
-   DETACHED,
-   inject,
-   subscribe,
-   use,
-   ViewDef,
-} from "@mmuscat/angular-composition-api"
+import {Component, ElementRef, NgModule, Renderer2, ViewChild, ViewChildren,} from "@angular/core"
+import {FormsModule} from "@angular/forms"
+import {inject, subscribe, use, ViewDef,} from "@mmuscat/angular-composition-api"
 
 export interface Todo {
    id?: number
@@ -90,7 +77,6 @@ function create() {
    templateUrl: "./todo.component.html",
    inputs: ["id", "text", "done", "resetOnSave"],
    outputs: ["saveTodo"],
-   providers: [DETACHED],
    queries: {
       textEditor: new ViewChild("textContent"),
       viewChildren: new ViewChildren("textContent"),

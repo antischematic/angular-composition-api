@@ -455,24 +455,30 @@ export class EffectObserver<T> {
    }
 }
 
+class View implements DoCheck, AfterContentChecked, AfterViewChecked, OnDestroy {
+   ngDoCheck() {
+      runInContext(this, check, 0)
+   }
+   ngAfterContentChecked() {
+      runInContext(this, check, 1)
+   }
+   ngAfterViewChecked() {
+      runInContext(this, check, 2)
+      runInContext(this, subscribe)
+      detectChanges()
+   }
+   ngOnDestroy() {
+      runInContext(this, unsubscribe)
+   }
+   constructor(create: any) {
+      runInContext(this, setup, directiveInject(INJECTOR), create)
+   }
+}
+
 export function decorate(create: any) {
-   return class implements DoCheck, AfterContentChecked, AfterViewChecked, OnDestroy {
-      ngDoCheck() {
-         runInContext(this, check, 0)
-      }
-      ngAfterContentChecked() {
-         runInContext(this, check, 1)
-      }
-      ngAfterViewChecked() {
-         runInContext(this, check, 2)
-         runInContext(this, subscribe)
-         detectChanges()
-      }
-      ngOnDestroy() {
-         runInContext(this, unsubscribe)
-      }
+   return class extends View {
       constructor() {
-         runInContext(this, setup, directiveInject(INJECTOR), create)
+         super(create);
       }
    } as any
 }
