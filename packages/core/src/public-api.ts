@@ -7,7 +7,6 @@ export {
    inject,
    CallContextError,
    decorate,
-   DETACHED,
    ViewDef,
    markDirty,
    Context,
