@@ -71,6 +71,7 @@ export class StoreModule implements OnDestroy {
       return {
          ngModule: StoreModule,
          providers: [
+            options.reducers,
             {
                provide: Store,
                useClass: Service(() => createStore(getInitialState, options)),

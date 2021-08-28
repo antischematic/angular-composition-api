@@ -76,8 +76,6 @@ same module so that they are scoped correctly.
          effects: [logCount, autoIncrement],
       }),
    ],
-   providers: [Count], // Important! Required in feature store modules (ie. lazy loaded),
-   // can be omitted in "root" module.
 })
 export class AppModule {}
 ```
