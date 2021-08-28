@@ -65,8 +65,7 @@ function autoIncrement() {
 
 #### Module Store
 
-Configure a store module. If the module is lazy loaded, you must also provide all reducers the
-same module so that they are scoped correctly.
+Configure a store module.
 
 ```ts
 @NgModule({
