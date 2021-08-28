@@ -1,6 +1,6 @@
 # Angular Actions
 
-A delightfully tiny (1kb) state library for Angular Composition API.
+A tiny (1kb) state management library for Angular Composition API.
 
 ## Quick Start
 

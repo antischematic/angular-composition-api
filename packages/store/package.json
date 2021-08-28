@@ -1,17 +1,19 @@
 {
    "name": "@mmuscat/angular-actions",
-   "description": "A delightfully concise (1kb) redux store for Angular applications.",
+   "description": "A tiny (1kb) state management library for Angular Composition API.",
    "license": "MIT",
    "homepage": "https://github.com/mmuscat/angular-composition-api/tree/master/packages/store",
    "repository": "https://github.com/mmuscat/angular-composition-api",
    "keywords": [
       "Angular",
+      "Angular Composition API",
+      "State",
+      "State Management",
       "RxJS",
       "Store",
       "Redux",
       "Effects",
-      "Actions",
-      "Angular Composition API"
+      "Actions"
    ],
    "version": "0.1200.0-next.1",
    "peerDependencies": {
