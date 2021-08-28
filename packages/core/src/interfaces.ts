@@ -1,5 +1,4 @@
 import {
-   AbstractType,
    ContentChild,
    ContentChildren,
    ErrorHandler,
@@ -9,19 +8,12 @@ import {
    ViewChild,
    ViewChildren,
 } from "@angular/core"
-import {
-   Observable,
-   PartialObserver,
-   Subject,
-   Subscribable,
-   Subscription,
-   SubscriptionLike,
-} from "rxjs"
+import { Observable, Subject, Subscribable, Subscription } from "rxjs"
 
 export const checkPhase = Symbol("checkPhase")
 
 export interface Check {
-   check(): boolean
+   check(): void
 }
 
 export interface CurrentContext {

@@ -1,6 +1,5 @@
 import {
    BehaviorSubject,
-   Observable,
    PartialObserver,
    Subject,
    Subscribable,

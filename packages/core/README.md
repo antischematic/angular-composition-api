@@ -190,11 +190,6 @@ subscribe(append, (value) => {
 })
 ```
 
-**Detached mode**
-
-Components and directives that extend `ViewDef` and provide the
-`DETACHED` token will have their `ChangeDetectorRef` detached from parent views.
-
 #### Service
 
 Creates a context-aware, tree-shakable service from the provided setup function. If the

@@ -1,5 +1,6 @@
 import {
-   ChangeDetectorRef,
+   AfterContentChecked, AfterViewChecked,
+   ChangeDetectorRef, DoCheck,
    ErrorHandler,
    inject as serviceInject,
    Injectable,
@@ -7,7 +8,7 @@ import {
    Injector,
    INJECTOR,
    isDevMode,
-   NgModuleRef,
+   NgModuleRef, OnDestroy,
    ProviderToken,
    Type,
    ɵɵdirectiveInject as directiveInject,
@@ -25,6 +26,7 @@ import {
    Unsubscribable,
 } from "rxjs"
 import {
+   Check,
    checkPhase,
    CheckPhase,
    CheckSubject,
@@ -105,7 +107,7 @@ function createService(context: {}, factory: any) {
    return value
 }
 
-class ContextBinding<T = any> {
+class ContextBinding<T = any> implements Check {
    next(value: T[keyof T]) {
       const { context, scheduler } = this
       context[this.key] = value
@@ -126,20 +128,12 @@ class ContextBinding<T = any> {
    ) {}
 }
 
-class Detach extends Boolean {}
-
-export const DETACHED = {
-   provide: Detach,
-   useValue: true,
-}
-
 const dirty = new Set<Scheduler>()
 
 let id: number
 
 export class Scheduler extends Subject<any> {
    private dirty: boolean
-   private readonly detach: Detach | null
    detectChanges() {
       if (this.dirty && !this.closed) {
          this.dirty = false
@@ -155,6 +149,7 @@ export class Scheduler extends Subject<any> {
       }
    }
    markDirty() {
+      if (this.closed) return
       this.dirty = true
       dirty.add(this)
       if (!currentContext) {
@@ -164,21 +159,17 @@ export class Scheduler extends Subject<any> {
    }
    unsubscribe() {
       dirty.delete(this)
+      super.complete()
       super.unsubscribe()
    }
 
    constructor(
       private ref: ChangeDetectorRef,
-      private errorHandler: ErrorHandler,
-      detach: Boolean | null,
+      private errorHandler: ErrorHandler
    ) {
       super()
       this.dirty = false
-      this.detach = detach
-      if (this.detach == true) {
-         this.ref.detach()
-         this.markDirty()
-      }
+      this.ref.detach()
    }
 }
 
@@ -220,8 +211,7 @@ function setup(injector: Injector, stateFactory: (context: Context) => {}) {
    const error = injector.get(ErrorHandler)
    const scheduler = new Scheduler(
       injector.get(ChangeDetectorRef),
-      error,
-      directiveInject(Detach, InjectFlags.Self | InjectFlags.Optional),
+      error
    )
 
    createContext(context, injector, error, scheduler, [
@@ -246,6 +236,8 @@ function setup(injector: Injector, stateFactory: (context: Context) => {}) {
          )
       }
    }
+
+   addTeardown(scheduler)
 }
 
 export function check(key: CheckPhase) {
@@ -464,7 +456,7 @@ export class EffectObserver<T> {
 }
 
 export function decorate(create: any) {
-   return class {
+   return class implements DoCheck, AfterContentChecked, AfterViewChecked, OnDestroy {
       ngDoCheck() {
          runInContext(this, check, 0)
       }
