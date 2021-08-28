@@ -1,4 +1,11 @@
-import { ModuleWithProviders, NgModule, OnDestroy, Type } from "@angular/core"
+import {
+   ErrorHandler,
+   isDevMode,
+   ModuleWithProviders,
+   NgModule,
+   OnDestroy,
+   Type
+} from "@angular/core"
 import {
    inject,
    provide,
@@ -8,7 +15,7 @@ import {
    use,
 } from "@mmuscat/angular-composition-api"
 import { Action, ActionCreator } from "./action"
-import { merge, Subscription } from "rxjs"
+import {merge, Notification, Subscription} from "rxjs"
 
 export abstract class Store {
    abstract unsubscribe(): void
@@ -29,12 +36,26 @@ class ActionObserver<T extends Action<any>> {
    ) {}
 }
 
+class EffectObserver {
+   next(value: any) {
+      if (value instanceof Notification && value.kind === "E") {
+         this.error(value.error)
+      }
+   }
+   error(error: unknown) {
+      isDevMode() && console.warn(`Unhandled error in effect "${this.name}"`)
+      this.errorHandler.handleError(error)
+   }
+   constructor(private name: string, private errorHandler: ErrorHandler) {}
+}
+
 function createStore(
    getInitialState: () => any,
    { reducers, effects }: StoreOptions,
 ): Store {
    const sink = new Subscription()
    const initialState = getInitialState()
+   const errorHandler = inject(ErrorHandler)
    for (const reducer of <any>reducers) {
       for (const [action, reduce] of reducer.reducers) {
          const actionTypes = (
@@ -50,7 +71,7 @@ function createStore(
    }
 
    for (const effect of effects ?? []) {
-      sink.add(effect().subscribe())
+      sink.add(effect().subscribe(new EffectObserver(effect.name, errorHandler)))
    }
 
    function unsubscribe() {

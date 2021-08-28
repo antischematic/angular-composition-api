@@ -42,8 +42,10 @@ const IncrementBy = new Action("Increment", props<{ by: number }>())
 Create reducers. Reducers take a list of action reducers for producing the next state.
 
 ```ts
-const Count = new Reducer<number>("count")
-   .add(Increment, (state, action) => state + 1)
+const Count = new Reducer<number>("count").add(
+   Increment,
+   (state, action) => state + 1,
+)
 ```
 
 #### Effects
@@ -60,6 +62,29 @@ function logCount() {
 function autoIncrement() {
    const increment = inject(Increment)
    return interval(1000).pipe(tap(increment))
+}
+```
+
+**Error Recovery**
+
+Effects will stop running by default when an error occurs. To prevent this from happening,
+handle the error using `catchError` or another retry strategy. If you just want errors to be
+reported while keeping an effect running, return a materialized stream from an error-producing
+inner observable.
+
+```ts
+function effectWithErrors() {
+   const http = inject(HttpClient)
+   const source = inject(Count)
+   const result = inject(ResultAction)
+   return source.pipe(
+      switchMap((count) =>
+         http.post("url", { count }).pipe(
+            map(result),
+            materialize(), // should be placed on an inner stream
+         ),
+      ),
+   )
 }
 ```
 
@@ -91,7 +116,7 @@ function setup() {
       reducers: [Count],
       effects: [logCount],
    })
-   
+
    const count = inject(Count)
    const increment = inject(Increment)
 
