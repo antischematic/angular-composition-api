@@ -1,18 +1,10 @@
-/*
- * Public API Surface of store
- */
-
 export {
-   ActionFactory,
-   ActionUnion,
-   Effect,
-   useEffects,
+   ActionCreatorWithProps,
+   VoidActionCreator,
+   ActionCreator,
    Action,
-   kindOf,
-   action,
-   Store,
-   StoreSubject,
-   EffectHandler,
    props,
-} from "./store"
-export { UseEffects } from "./context"
+   ActionPropsFactory
+} from "./action"
+export { Reducer } from "./reducer"
+export { StoreModule, Store, StoreOptions, useStore } from "./store"

@@ -1,6 +1,6 @@
 # Angular Actions
 
-A delightfully concise (1kb) redux store for Angular applications.
+A delightfully tiny (1kb) state library for Angular Composition API.
 
 ## Quick Start
 
@@ -18,251 +18,191 @@ yarn add @mmuscat/angular-actions
 
 ### Create a store
 
-Define some actions
+Define initial state factory. Supports dependency injection.
+
+```ts
+export function getInitialState() {
+   return {
+      count: 0,
+   }
+}
+```
+
+#### Actions
+
+Create actions, with or without props.
 
 ```ts
 const Increment = Action("Increment")
-const actions = [CreateTodo]
+const IncrementBy = Action("Increment", props<{ by: number }>())
 ```
 
-Define the action union type for your reducer
+#### Reducers
+
+Create reducers. Reducers take a list of action reducers for producing the next state.
 
 ```ts
-type Actions = ActionUnion<typeof actions>
+const Count = Reducer<number>("count", [
+   Increment,
+   (state, action) => state + 1,
+])
 ```
 
-Create the reducer
+Create effects. Effects are factory functions that should return an `Observable`. Supports
+dependency injection
+
+#### Effects
 
 ```ts
-function reducer(state: number, action: Actions) {
-   switch (action.kind) {
-      case Increment.kind: {
-         return state + 1
-      }
-   }
-   return state
+function logCount() {
+   const count = inject(Count)
+   return count.pipe(tap(console.log))
+}
+
+function autoIncrement() {
+   const increment = inject(Increment)
+   return interval(1000).pipe(tap(increment))
 }
 ```
 
-Configure a store in your directive, component or service.
+#### Module Store
+
+Configure a store module. If the module is lazy loaded, you must also provide all reducers the
+same module so that they are scoped correctly.
 
 ```ts
-function create() {
-   const state = Value(0)
-   const store = Store(reducer, state, actions)
+@NgModule({
+   imports: [
+      StoreModule.config(getInitialState, {
+         reducers: [Count],
+         effects: [logCount],
+      }),
+   ],
+   providers: [Count], // Important! Required in feature store modules (ie. lazy loaded),
+   // can be omitted in "root" module.
+})
+export class AppModule {}
+```
 
-   Subscribe(state, (value) => {
-      console.log("state changed!", value)
+#### Component Store
+
+Use a store that is scoped to the component. You must also provide all reducers in the same
+component so that they are scoped correctly.
+
+```ts
+function setup() {
+   const count = inject(Count)
+   const increment = inject(Increment)
+
+   useStore(getInitialState, {
+      reducers: [Count],
+      effects: [logCount],
    })
 
-   function increment() {
-      store.action.Increment()
-   }
-
    return {
-      state,
+      count,
       increment,
    }
 }
-```
 
-### Use effects
-
-Define some actions
-
-```ts
-const AddTodo = Action("AddTodo", props<Todo>())
-const AddTodoDone = Action("AddTodoDone", props<Todo>())
-const AddTodoError = Action("AddTodoError", props<any>())
-
-const actions = [AddTodo, AddTodoDone, AddTodoError]
-```
-
-Create some effects
-
-```ts
-const addTodo = Effect(AddTodo, (state: StateRef<Todo[]>) => {
-   const http = Inject(HttpClient)
-
-   return mergeMap((todo) => {
-      http
-         .post(`//example.com/api/v1/todo`, todo)
-         .pipe(action(AddTodoDone, AddTodoError))
-   })
+@Component({
+   providers: [Count], // Required!
 })
-
-const effects = [addTodo]
-```
-
-Use effects with a store
-
-```ts
-function reducer(state: Todo[], action: Actions) {
-   switch (action.kind) {
-      case AddTodoDone.kind: {
-         return state.concat(action.data)
-      }
-   }
-   return state
-}
-
-function create() {
-   const initialState = Value<Todo>([])
-   const store = Store(reducer, initialState, actions)
-
-   UseEffects(store, effects)
-
-   return store
-}
+export class MyComponent extends ViewDef(setup) {}
 ```
 
 ## API Reference
 
 ### Action
 
-Creates an action factory of a `kind`, with or without data.
+Creates an injectable `Emitter` that will emit actions of a given `kind`, with or without data.
 
 ```ts
-const Reload = Action("Reload")
-const SaveTodo = Action("SaveTodo", props<Todo>())
+const Increment = new Action("Increment")
+const SaveTodo = new Action("SaveTodo", props<Todo>())
 ```
 
-### Effect
-
-Creates an effect factory. Effects can return an `OperatorFunction` or an `Observable` of actions to
-be dispatched to `Store`. Receives the store's `Value` as an argument.
-
-With `Observable`
+Actions can be injected inside the setup function of a `ViewDef` or `Service` factory. This
+returns an `Emitter` that be used to dispatch or listen to events.
 
 ```ts
-const effect = Effect((state: ValueSubject<any>) => {
-   return of(Increment())
-})
-```
+function setup() {
+   const increment = inject(Increment)
 
-With `OperatorFunction`
+   subscribe(increment, ({ kind }) => {
+      console.log(kind) // "Increment"
+   })
 
-```ts
-const effect = Effect((state: ValueSubject<any>) => {
-   return mergeMap((action: Action) => of(Increment()))
-})
-```
+   setTimeout(increment, 1000)
 
-With action filter
-
-```ts
-const effect = Effect(Increment, (state: ValueSubject<any>) => {
-   return mergeMap((action) => of(Multiply(action.data)))
-})
-```
-
-**Dependency Injection**
-
-Use `Inject` from [Angular Composition API](https://github.com/mmuscat/angular-composition-api/tree/master/packages/core#Inject) to get dependencies inside your effects.
-
-```ts
-import { Inject } from "@mmuscat/angular-composition-api"
-
-const effect = Effect((state: ValueSubject<any>) => {
-   const http = Inject(HttpClient)
-   return http.get("//example.com/api/v1/todos").pipe(action(TodosLoaded))
-})
-```
-
-If using effects without Angular Composition API, get dependencies with `inject`
-instead.
-
-```ts
-import { inject } from "@angular/core"
-
-const effect = Effect((state: ValueSubject<any>) => {
-   const http = inject(HttpClient)
-   return http.get("//example.com/api/v1/todos").pipe(action(TodosLoaded))
-})
-```
-
-### Store
-
-Takes a `reducer`, a `value` and an `actions` array. Returns a store
-that emits actions dispatched to it _after_ the state has been updated. Actions are also mapped to an `action` key as bound
-functions that will emit actions of its kind when invoked.
-
-```ts
-const Increment = Action("Increment")
-const actions = [Increment]
-function reducer(state: number, action) {
-   return state
+   return {
+      increment,
+   }
 }
-const state = Value(0)
-const store = Store(reducer, state, actions)
+
+@Component()
+export class MyComponent extends ViewDef(setup) {}
 ```
 
-Dispatch an action
+### Reducer
+
+Creates an injectable `Value` that reduces actions to produce a new state. The state of the
+reducer is hydrated using the object key of the same name returned by `getInitialState`.
 
 ```ts
-store.next(Increment())
+function getInitialState() {
+   return {
+      count: 0, // object key must match reducer name
+   }
+}
+
+const Count = new Reducer("count") // reducer name must match object
+   .add(Increment, (state, action) => state + 1)
+// .add(OtherAction, (state, action) => etc)
 ```
 
-or
+You can also supply a list of actions to a single reducer.
 
 ```ts
-store.action.Increment()
+const Increment = new Action("Increment", props<{ by: number }>())
+const Add = new Action("Add", props<{ by: number }>())
+
+const Count = new Reducer(count).add(
+   [Increment, Add],
+   (state, action) => state + action.by,
+)
 ```
 
-### UseEffects
-
-Run an array of `effects` against actions emitted by a `Store`.
-
-```ts
-UseEffects(store, effects)
-```
-
-Effects can also be used without [Angular Composition API](https://github.com/mmuscat/angular-composition-api/tree/master/packages/core)
-by calling `useEffects` instead. Note the additional `injector` argument. You must dispose the
-returned subscription to stop running effects.
+Reducers can be injected inside the setup function of a `ViewDef` or `Service` factory. This
+returns a `Value` that be used to get, set or observe state changes.
 
 ```ts
-const subscription = useEffects(store, effects, injector)
-```
+function setup() {
+   const count = inject(Count)
 
-### kindOf
+   subscribe(() => {
+      console.log(count()) // 0
+   })
 
-An `OperatorFunction` that filters a stream of `Action` to the
-actions listed in its arguments.
+   return {
+      count,
+   }
+}
 
-```ts
-const increment = store.pipe(kindOf(Increment))
-```
-
-### action
-
-An `OperatorFunction` that maps a stream of data to the given `action`,
-optionally catching and mapping errors to the provided `errorAction`.
-
-```ts
-import { throwError } from "rxjs"
-
-const Increment = Action("Increment", props<number>())
-const IncrementTooHigh = Action("IncrementTooHigh")
-
-of(10, 20, 30)
-   .pipe(
-      switchMap((data) => (data > 15 ? throwError() : of(data))),
-      action(Increment, IncrementTooHigh),
-   )
-   .subscribe(store)
+@Component()
+export class MyComponent extends ViewDef(setup) {}
 ```
 
 ### props
 
-Returns a typed function for producing `data` on an `Action`.
+Returns a typed function for producing `data` on an `Action`. Data
 
 ```ts
-const Increment = Action("Increment", props<number>())
+const Increment = Action("Increment", props<{ by: number }>())
 ```
 
 Which is equivalent to
 
 ```ts
-const Increment = Action("Increment", (value: number) => value)
+const Increment = Action("Increment", (data: { by: number }) => data)
 ```
