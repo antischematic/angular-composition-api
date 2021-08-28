@@ -1,9 +1,11 @@
 import { ModuleWithProviders, NgModule, OnDestroy, Type } from "@angular/core"
 import {
    inject,
+   provide,
    Value,
    Service,
    subscribe,
+   use,
 } from "@mmuscat/angular-composition-api"
 import { Action, ActionCreator } from "./action"
 import { merge, Subscription } from "rxjs"
@@ -39,8 +41,8 @@ function createStore(
             Array.isArray(action) ? action : [action]
          ) as Type<ActionCreator<any, any>>[]
          const actions = actionTypes.map((action) => inject(action))
+         provide(reducer, use(initialState[reducer.overriddenName]))
          const state: Value<any> = inject(reducer)
-         state(initialState[reducer.overriddenName])
          sink.add(
             merge(...actions).subscribe(new ActionObserver(state, reduce)),
          )

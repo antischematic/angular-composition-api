@@ -1,4 +1,4 @@
-import { use, Value, ValueToken } from "@mmuscat/angular-composition-api"
+import { Value, ValueToken } from "@mmuscat/angular-composition-api"
 import { ActionCreator } from "./action"
 import { Observable } from "rxjs"
 
@@ -33,7 +33,7 @@ function add(this: { reducers: any[] }, action: any, reduce: any) {
 }
 
 function createReducer(name: string) {
-   const token = new ValueToken(name, use())
+   const token = new ValueToken(name)
    Object.defineProperty(token, "reducers", { value: [] })
    Object.defineProperty(token, "add", { value: add })
    return token

@@ -1,9 +1,11 @@
-import { Action, ActionCreator, ActionCreatorWithProps, props } from "./action"
+import { Action, ActionCreatorWithProps, props } from "./action"
 import {
    inject,
-   ViewDef,
-   Value,
+   provide,
    subscribe,
+   Value,
+   ViewDef,
+   use
 } from "@mmuscat/angular-composition-api"
 import { Component, ModuleWithProviders, Type } from "@angular/core"
 import {
@@ -13,18 +15,19 @@ import {
    TestBed,
    tick,
 } from "@angular/core/testing"
-import createSpy = jasmine.createSpy
 import { Reducer } from "./reducer"
 import { Store, StoreModule } from "./store"
 import { ValueToken } from "../../core/src/provider"
 import { tap } from "rxjs/operators"
 import { interval } from "rxjs"
+import createSpy = jasmine.createSpy
 
 describe("Store", () => {})
 
-function createTestView<T>(View: Type<T>): ComponentFixture<T> {
+function createTestView<T>(View: Type<T>, providers?: Type<any>[]): ComponentFixture<T> {
    @Component({
       template: ``,
+      providers
    })
    class Test extends (View as any) {}
    TestBed.configureTestingModule({
@@ -118,21 +121,23 @@ describe("Reducer", () => {
       expect((<any>Count).reducers[0]).toEqual([[Increment], reducer])
    })
    it("should inject state", () => {
-      const Count = new Reducer<Value<number>>("count")
+      const Count = new Reducer<number>("count")
       function setup() {
+         provide(Count, use(0))
          const count = inject(Count)
          return {
             count,
          }
       }
-      const view = createTestView(ViewDef(setup))
+      const view = createTestView(ViewDef(setup), [Count])
       expect(view.componentInstance).toEqual(
-         jasmine.objectContaining({ count: undefined }),
+         jasmine.objectContaining({ count: 0 }),
       )
    })
    it("should observe state", () => {
       const Count = new Reducer<number>("count")
       function setup() {
+         provide(Count, use(0))
          const count = inject(Count)
 
          subscribe(count, spy)
@@ -142,11 +147,11 @@ describe("Reducer", () => {
          }
       }
       const spy = createSpy()
-      const view = createTestView(ViewDef(setup))
+      const view = createTestView(ViewDef(setup), [Count])
       view.detectChanges()
       view.componentInstance.count = 10
       view.detectChanges()
-      expect(spy).toHaveBeenCalledWith(undefined)
+      expect(spy).toHaveBeenCalledWith(0)
       expect(spy).toHaveBeenCalledWith(10)
    })
 })
