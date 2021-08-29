@@ -90,15 +90,23 @@ function effectWithErrors() {
 
 #### Module Store
 
-Configure a store module.
+Create a Store. 
+
+```ts
+const AppStore = new Store("AppStore", {
+   state: getInitialState,
+   reducers: [Count],
+   effects: [logCount, autoIncrement],
+})
+```
+
+Provide the store to root module. Additional stores can be configured
+for each lazy loaded module. Effects will run immediately on bootstrap.
 
 ```ts
 @NgModule({
    imports: [
-      StoreModule.config(getInitialState, {
-         reducers: [Count],
-         effects: [logCount, autoIncrement],
-      }),
+      StoreModule.config(AppStore),
    ],
 })
 export class AppModule {}
@@ -106,14 +114,24 @@ export class AppModule {}
 
 #### Component Store
 
-Use a store that is scoped to the component. You must also provide all reducers in the same
-component so that they are scoped correctly.
+Create a Store.
+
+```ts
+const MyStore = new Store("MyStore", {
+   state: getInitialState,
+   reducers: [Count],
+   effects: [logCount, autoIncrement],
+})
+```
+
+Provide and use the store in a component. Effects won't run until the
+store is injected.
 
 ```ts
 function setup() {
    const store = inject(MyStore)
-   const count = store(Count)
-   const increment = store(Increment)
+   const count = store(Count) // get value from store
+   const increment = store(Increment) // get dispatcher from store
 
    return {
       count,
@@ -122,9 +140,21 @@ function setup() {
 }
 
 @Component({
-   providers: [Count], // Required!
+   providers: [MyStore.Provider],
 })
 export class MyComponent extends ViewDef(setup) {}
+```
+
+**Important: A note about dependency injection**
+
+You must use the store's injector to retrieve actions and values.
+
+```ts
+const count = inject(Count) // don't do this!
+```
+```ts
+const store = inject(MyStore) // inject store first
+const count = store(Count) // this will be the correct instance
 ```
 
 ## API Reference
@@ -214,11 +244,11 @@ export class MyComponent extends ViewDef(setup) {}
 Returns a typed function for producing `data` on an `Action`. Data
 
 ```ts
-const Increment = Action("Increment", props<{ by: number }>())
+const Increment = new Action("Increment", props<{ by: number }>())
 ```
 
 Which is equivalent to
 
 ```ts
-const Increment = Action("Increment", (data: { by: number }) => data)
+const Increment = new Action("Increment", (data: { by: number }) => data)
 ```
