@@ -4,7 +4,11 @@ import { Component, DebugElement } from "@angular/core"
 import { By } from "@angular/platform-browser"
 import { inject, ViewDef } from "./core"
 
-const Value = new ValueToken("Value", 0)
+const Value = new ValueToken("Value", {
+   factory() {
+      return 0
+   }
+})
 
 @Component({
    selector: "parent",
@@ -37,7 +41,11 @@ class GrandChild extends ViewDef(() => {
 
 describe("provide", () => {
    it("should create", () => {
-      expect(() => new ValueToken("Value", 0)).not.toThrow()
+      expect(() => new ValueToken("Value", {
+         factory() {
+            return 0
+         }
+      })).not.toThrow()
    })
    it("should provide a value", () => {
       function test() {

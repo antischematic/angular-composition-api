@@ -16,33 +16,42 @@ export class EmptyValueError extends Error {
 
 export interface ValueTokenStatic {
    new <T>(name: string): ValueToken<T>
-   new <T>(name: string, value: T): ValueToken<T>
+   new <T>(name: string, options?: { factory: () => T }): ValueToken<T>
 }
 
 export class ValueGetterSetter<T extends any> {
+   private value?: T
+   private hasValue: boolean
    set(value: T) {
+      this.hasValue = true
       this.value = value
    }
    get() {
-      if (this.value === EmptyValueError) {
+      if (this.hasValue) {
+         return this.value
+      } else if (this.options) {
+         this.set(this.options.factory())
+         return this.value
+      } else {
          throw new EmptyValueError(this.name)
       }
-      return this.value
    }
-   constructor(private name: string, private value: T) {}
+   constructor(private name: string, private options?: { factory: () => T }) {
+      this.hasValue = false
+   }
 }
 
 function createValueToken<T>(name: string): ValueToken<T>
-function createValueToken<T>(name: string, defaultValue: T): ValueToken<T>
+function createValueToken<T>(name: string, options?: { factory: () => T }): ValueToken<T>
 function createValueToken(
    name: string,
-   defaultValue: unknown = EmptyValueError,
+   options?: { factory: () => any },
 ): ValueToken<any> {
    @Injectable({ providedIn: "root" })
    class ValueToken {
       static overriddenName = name
       constructor() {
-         return new ValueGetterSetter(name, defaultValue)
+         return new ValueGetterSetter(name, options)
       }
    }
    return ValueToken as any

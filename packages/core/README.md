@@ -221,13 +221,18 @@ Example
 ```
 
 Create a `ValueToken`. Value tokens can only have their value set in the same injector context they are provided in,
-otherwise it throws `NullInjectorError`.
+otherwise it throws `R3InjectorError`.
 
 ```ts
-const Count = new ValueToken("COUNT", { value: 0 }) // <- default is optional
+const Count = new ValueToken("COUNT", {
+   // default factory is optional
+   factory() {
+      return 0
+   }
+})
 
 function parent() {
-   provide(Count, { value: 10 })
+   provide(Count, 10)
 }
 
 @Component({
@@ -237,8 +242,7 @@ function parent() {
 export class Parent extends ViewDef(parent) {}
 ```
 
-Inject the `ValueToken` from a child context. Throws `EmptyValueError` if no value or default
-has been set.
+Inject the `ValueToken` from a child context. Throws `EmptyValueError` if no value has been set.
 
 ```ts
 function child() {
