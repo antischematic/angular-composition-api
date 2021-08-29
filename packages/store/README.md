@@ -4,13 +4,13 @@ A tiny (1kb) state management library for Angular Composition API.
 
 ## Quick Start
 
-[Install via NPM](https://www.npmjs.com/package/@mmuscat/angular-composition-api)
+[Install via NPM](https://www.npmjs.com/package/@mmuscat/angular-actions)
 
 ```bash
 npm install @mmuscat/angular-actions
 ```
 
-[Install via Yarn](https://yarnpkg.com/package/@mmuscat/angular-composition-api)
+[Install via Yarn](https://yarnpkg.com/package/@mmuscat/angular-actions)
 
 ```bash
 yarn add @mmuscat/angular-actions
