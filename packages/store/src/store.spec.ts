@@ -1,4 +1,4 @@
-import { Action, ActionCreatorWithProps, props } from "./action"
+import { Action, DispatchActionWithProps, props } from "./action"
 import {
    inject,
    provide,
@@ -7,7 +7,7 @@ import {
    ViewDef,
    use
 } from "@mmuscat/angular-composition-api"
-import { Component, ModuleWithProviders, Type } from "@angular/core"
+import {Component, ModuleWithProviders, NgModuleRef, Type} from "@angular/core"
 import {
    ComponentFixture,
    discardPeriodicTasks,
@@ -16,7 +16,7 @@ import {
    tick,
 } from "@angular/core/testing"
 import { Reducer } from "./reducer"
-import { Store, StoreModule } from "./store"
+import {Store, StoreFactory, StoreModule} from "./store"
 import { ValueToken } from "../../core/src/provider"
 import { tap } from "rxjs/operators"
 import { interval } from "rxjs"
@@ -157,13 +157,14 @@ describe("Reducer", () => {
 })
 
 describe("Store", () => {
-   let Increment: ValueToken<ActionCreatorWithProps<any, any>>
-   let Count: ValueToken<Value<number>>
+   let Increment: ValueToken<DispatchActionWithProps<any, any>>
+   let Count: Reducer<number>
    function getInitialState() {
       return {
          count: 10,
       }
    }
+   let TestStore: StoreFactory
    let module: ModuleWithProviders<any>
    let log: Function
 
@@ -181,27 +182,29 @@ describe("Store", () => {
       log = () => {}
       Increment = new Action("Increment")
       Count = new Reducer<number>("count").add(Increment, (state) => state + 1)
-      module = StoreModule.config(getInitialState, {
+      TestStore = new Store("Store", {
+         state: getInitialState,
          reducers: [Count],
          effects: [logCount, autoIncrement],
       })
+      module = StoreModule.config(TestStore)
       TestBed.configureTestingModule({
          imports: [module],
       })
    })
 
    it("should create", () => {
-      expect(TestBed.inject(Store)).toBeTruthy()
+      expect(TestBed.inject(TestStore)).toBeTruthy()
    })
 
    it("should get initial state", () => {
-      TestBed.inject(Store)
-      const count = TestBed.inject(Count).get()
+      const store: Store = TestBed.inject(TestStore)
+      const count = store(Count)
       expect(count.value).toBe(10)
    })
 
    it("should reduce actions", () => {
-      TestBed.inject(Store)
+      const store: Store = TestBed.inject(TestStore)
       const count = TestBed.inject(Count).get()
       const increment = TestBed.inject(Increment).get()
       increment()
@@ -210,7 +213,7 @@ describe("Store", () => {
 
    it("should run effects", fakeAsync(() => {
       const spy = (log = createSpy())
-      TestBed.inject(Store)
+      TestBed.inject(TestStore)
       const count = TestBed.inject(Count).get()
       tick(10000)
       expect(spy).toHaveBeenCalledWith(10)
@@ -218,4 +221,53 @@ describe("Store", () => {
       expect(count.value).toBe(20)
       discardPeriodicTasks()
    }))
+
+   it("should create component store", () => {
+      const MyStore = new Store("MyStore", {
+         state() {
+            return {
+               count: 0
+            }
+         },
+         reducers: [Count]
+      })
+      const spy = createSpy()
+
+      function setup() {
+         const store = inject(MyStore)
+         const count = store(Count)
+         const increment = store(Increment)
+         const moduleStore = inject(TestStore)
+         const moduleCount = moduleStore(Count)
+         const moduleIncrement = moduleStore(Increment)
+
+         moduleIncrement.subscribe(spy)
+
+         return {
+            count,
+            increment,
+            moduleCount
+         }
+      }
+
+      @Component({
+         template: ``,
+         providers: [MyStore.Provider]
+      })
+      class MyComp extends ViewDef(setup) {}
+
+      TestBed.configureTestingModule({
+         declarations: [MyComp]
+      })
+
+      const view = TestBed.createComponent(MyComp)
+
+      expect(view.componentInstance.count).toBe(0)
+      view.detectChanges()
+      view.componentInstance.increment()
+      expect(view.componentInstance.count).toBe(1)
+      expect(view.componentInstance.moduleCount).toBe(10)
+      expect(spy).not.toHaveBeenCalled()
+      view.destroy()
+   })
 })
