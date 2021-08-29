@@ -1,16 +1,17 @@
 import { Value, ValueToken } from "@mmuscat/angular-composition-api"
-import { ActionCreator } from "./action"
+import { ActionDispatcher } from "./action"
 import { Observable } from "rxjs"
 
-interface Reducer<T> extends ValueToken<Value<T>> {
-   add<U extends ValueToken<ActionCreator<any, any>>[]>(
+export interface Reducer<T> extends ValueToken<Value<T>> {
+   reducers: [ActionDispatcher<any, any> | ActionDispatcher<any, any>[], StateReducer<any, any>][]
+   add<U extends ValueToken<ActionDispatcher<any, any>>[]>(
       action: U,
       reduce: StateReducer<
          T,
          InstanceType<U[number]> extends Observable<infer R> ? R : never
       >,
    ): Reducer<T>
-   add<U extends ValueToken<ActionCreator<any, any>>>(
+   add<U extends ValueToken<ActionDispatcher<any, any>>>(
       action: U,
       reduce: StateReducer<
          T,
@@ -23,7 +24,7 @@ interface ReducerStatic {
    new <T>(name: string): Reducer<T>
 }
 
-interface StateReducer<T, U> {
+export interface StateReducer<T, U> {
    (state: T, action: U): T
 }
 

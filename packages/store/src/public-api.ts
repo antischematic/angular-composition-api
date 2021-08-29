@@ -1,10 +1,10 @@
 export {
-   ActionCreatorWithProps,
-   VoidActionCreator,
-   ActionCreator,
+   DispatchActionWithProps,
+   DispatchAction,
+   ActionDispatcher,
    Action,
    props,
    ActionPropsFactory
 } from "./action"
 export { Reducer } from "./reducer"
-export { StoreModule, Store, StoreOptions, useStore } from "./store"
+export { StoreModule, Store, StoreOptions } from "./store"

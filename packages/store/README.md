@@ -111,14 +111,9 @@ component so that they are scoped correctly.
 
 ```ts
 function setup() {
-   // must be declared before injecting reducers
-   useStore(getInitialState, {
-      reducers: [Count],
-      effects: [logCount],
-   })
-
-   const count = inject(Count)
-   const increment = inject(Increment)
+   const store = inject(MyStore)
+   const count = store(Count)
+   const increment = store(Increment)
 
    return {
       count,

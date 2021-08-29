@@ -5,13 +5,13 @@ export type Action<T extends string, U extends {} = {}> = U & {
    readonly kind: T
 }
 
-export interface VoidActionCreator<T extends string>
+export interface DispatchAction<T extends string>
    extends Observable<Action<T>> {
    (): void
    readonly kind: string
 }
 
-export interface ActionCreatorWithProps<
+export interface DispatchActionWithProps<
    T extends string,
    U extends ActionPropsFactory<any, any>,
 > extends Observable<Action<T, ReturnType<U>>> {
@@ -19,17 +19,17 @@ export interface ActionCreatorWithProps<
    readonly kind: string
 }
 
-export type ActionCreator<
+export type ActionDispatcher<
    T extends string,
    U extends ActionPropsFactory<any, any>,
-> = VoidActionCreator<T> | ActionCreatorWithProps<T, U>
+> = DispatchAction<T> | DispatchActionWithProps<T, U>
 
 interface ActionStatic {
    new <T extends string, U extends ActionPropsFactory<any, any>>(
       kind: T,
       factory: U,
-   ): ValueToken<ActionCreatorWithProps<T, U>>
-   new <T extends string>(kind: T): ValueToken<VoidActionCreator<T>>
+   ): ValueToken<DispatchActionWithProps<T, U>>
+   new <T extends string>(kind: T): ValueToken<DispatchAction<T>>
 }
 
 export type ActionPropsFactory<TParams extends any[], TReturn extends {}> = (
@@ -40,20 +40,24 @@ function defaultFactory() {
    return {}
 }
 
-function createAction(
+function createActionFactory(
    kind: string,
    factory: (...args: any[]) => {} = defaultFactory,
 ) {
-   const dispatch = use((...args: any[]) => {
+   function createAction(...args: any[]) {
       return {
          ...factory(...args),
          kind,
       }
+   }
+   return new ValueToken(kind, {
+      factory() {
+         return use(createAction)
+      }
    })
-   return new ValueToken(kind, dispatch)
 }
 
-export const Action: ActionStatic = createAction as any
+export const Action: ActionStatic = createActionFactory as any
 
 export function props<T extends {}>(): ActionPropsFactory<[T], T> {
    return function (value) {
