@@ -4,7 +4,14 @@ export {
    ActionDispatcher,
    Action,
    props,
-   ActionPropsFactory
+   ActionPropsFactory,
 } from "./action"
-export { Reducer } from "./reducer"
-export { StoreModule, Store, StoreOptions } from "./store"
+export { Reducer, StateReducer } from "./reducer"
+export {
+   StoreModule,
+   Store,
+   StoreOptions,
+   StoreFactory,
+   StateFactory,
+   EffectFactory,
+} from "./store"

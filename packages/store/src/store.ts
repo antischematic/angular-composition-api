@@ -16,10 +16,10 @@ import {
    subscribe,
    use,
    Value,
+   ValueToken,
 } from "@mmuscat/angular-composition-api"
 import { Action, ActionDispatcher } from "./action"
 import { merge, Notification, Observable } from "rxjs"
-import { ValueToken } from "../../core/src/provider"
 import { Reducer } from "./reducer"
 
 export interface Store {

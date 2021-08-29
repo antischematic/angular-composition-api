@@ -1,10 +1,4 @@
-import {
-   Injectable,
-   InjectFlags,
-   InjectionToken,
-   Type,
-   ɵɵdirectiveInject as directiveInject,
-} from "@angular/core"
+import {Injectable, InjectFlags, Type, ɵɵdirectiveInject as directiveInject,} from "@angular/core"
 
 export type ValueToken<T> = Type<T> & { __ng_value_token: true }
 

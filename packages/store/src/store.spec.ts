@@ -3,11 +3,11 @@ import {
    inject,
    provide,
    subscribe,
-   Value,
+   use,
    ViewDef,
-   use
+   ValueToken,
 } from "@mmuscat/angular-composition-api"
-import {Component, ModuleWithProviders, NgModuleRef, Type} from "@angular/core"
+import { Component, ModuleWithProviders, Type } from "@angular/core"
 import {
    ComponentFixture,
    discardPeriodicTasks,
@@ -16,18 +16,20 @@ import {
    tick,
 } from "@angular/core/testing"
 import { Reducer } from "./reducer"
-import {Store, StoreFactory, StoreModule} from "./store"
-import { ValueToken } from "../../core/src/provider"
+import { Store, StoreFactory, StoreModule } from "./store"
 import { tap } from "rxjs/operators"
 import { interval } from "rxjs"
 import createSpy = jasmine.createSpy
 
 describe("Store", () => {})
 
-function createTestView<T>(View: Type<T>, providers?: Type<any>[]): ComponentFixture<T> {
+function createTestView<T>(
+   View: Type<T>,
+   providers?: Type<any>[],
+): ComponentFixture<T> {
    @Component({
       template: ``,
-      providers
+      providers,
    })
    class Test extends (View as any) {}
    TestBed.configureTestingModule({
@@ -226,10 +228,10 @@ describe("Store", () => {
       const MyStore = new Store("MyStore", {
          state() {
             return {
-               count: 0
+               count: 0,
             }
          },
-         reducers: [Count]
+         reducers: [Count],
       })
       const spy = createSpy()
 
@@ -246,18 +248,18 @@ describe("Store", () => {
          return {
             count,
             increment,
-            moduleCount
+            moduleCount,
          }
       }
 
       @Component({
          template: ``,
-         providers: [MyStore.Provider]
+         providers: [MyStore.Provider],
       })
       class MyComp extends ViewDef(setup) {}
 
       TestBed.configureTestingModule({
-         declarations: [MyComp]
+         declarations: [MyComp],
       })
 
       const view = TestBed.createComponent(MyComp)
