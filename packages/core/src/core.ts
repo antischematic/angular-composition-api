@@ -489,6 +489,8 @@ export function decorate(create: any) {
 
 export type ProvidedIn = Type<any> | "root" | "platform" | "any" | null
 
+const serviceMap = new Map
+
 export function Service<T>(
    factory: () => T,
    options?: { providedIn: ProvidedIn },
@@ -497,14 +499,17 @@ export function Service<T>(
    class Class {
       static overriddenName = factory.name
       ngOnDestroy() {
-         runInContext(this, unsubscribe)
+         runInContext(serviceMap.get(this) ?? this, unsubscribe)
+         serviceMap.delete(this)
       }
       constructor() {
          serviceInject(
             NgModuleRef,
             InjectFlags.Self | InjectFlags.Optional,
          )?.onDestroy(() => this.ngOnDestroy())
-         return createService(this, factory)
+         const value = createService(this, factory)
+         serviceMap.set(value, this)
+         return value
       }
    }
    return Class as any
