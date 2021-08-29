@@ -51,16 +51,16 @@ const Count = new Reducer<number>("count").add(
 #### Effects
 
 Create effects. Effects are factory functions that should return an `Observable`. Supports
-dependency injection
+dependency injection. Effects will receive the store injector as an argument.
 
 ```ts
-function logCount() {
-   const count = inject(Count)
+function logCount(store: Store) {
+   const count = store(Count)
    return count.pipe(tap(console.log))
 }
 
-function autoIncrement() {
-   const increment = inject(Increment)
+function autoIncrement(store: Store) {
+   const increment = store(Increment)
    return interval(1000).pipe(tap(increment))
 }
 ```
@@ -73,10 +73,10 @@ reported while keeping an effect running, return a materialized stream from an e
 inner observable.
 
 ```ts
-function effectWithErrors() {
+function effectWithErrors(store: Store) {
    const http = inject(HttpClient)
-   const source = inject(Count)
-   const result = inject(ResultAction)
+   const source = store(Count)
+   const result = store(ResultAction)
    return source.pipe(
       switchMap((count) =>
          http.post("url", { count }).pipe(
@@ -173,7 +173,8 @@ returns an `Emitter` that be used to dispatch or listen to events.
 
 ```ts
 function setup() {
-   const increment = inject(Increment)
+   const store = inject(MyStore)
+   const increment = store(Increment)
 
    subscribe(increment, ({ kind }) => {
       console.log(kind) // "Increment"
@@ -224,7 +225,8 @@ returns a `Value` that be used to get, set or observe state changes.
 
 ```ts
 function setup() {
-   const count = inject(Count)
+   const store = inject(MyStore)
+   const count = store(Count)
 
    subscribe(() => {
       console.log(count()) // 0
