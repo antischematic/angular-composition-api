@@ -26,7 +26,7 @@ export interface Store {
    <T>(token: ValueToken<T>): T
 }
 
-export type EffectFactory = () => Observable<any>
+export type EffectFactory = (store: Store) => Observable<any> | void
 
 export interface StoreOptions {
    state: StateFactory
@@ -78,7 +78,7 @@ function createStore({ reducers, effects, state }: StoreOptions): Store {
 
    for (const effect of effects ?? []) {
       sink.add(
-         effect().subscribe(new EffectObserver(effect.name, errorHandler)),
+         effect(store).subscribe?.(new EffectObserver(effect.name, errorHandler)),
       )
    }
 
