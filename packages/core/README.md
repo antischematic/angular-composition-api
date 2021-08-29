@@ -4,13 +4,13 @@ A lightweight (3kb) library for writing functional Angular applications.
 
 ## Quick Start
 
-Install with NPM
+[Install via NPM](https://www.npmjs.com/package/@mmuscat/angular-composition-api)
 
 ```bash
 npm install @mmuscat/angular-composition-api
 ```
 
-Install with Yarn
+[Install via Yarn](https://yarnpkg.com/package/@mmuscat/angular-composition-api)
 
 ```bash
 yarn add @mmuscat/angular-composition-api
