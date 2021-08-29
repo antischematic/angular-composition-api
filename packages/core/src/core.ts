@@ -489,7 +489,7 @@ export function decorate(create: any) {
 
 export type ProvidedIn = Type<any> | "root" | "platform" | "any" | null
 
-const serviceMap = new Map
+const serviceMap = new Map()
 
 export function Service<T>(
    factory: () => T,

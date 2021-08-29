@@ -228,7 +228,7 @@ const Count = new ValueToken("COUNT", {
    // default factory is optional
    factory() {
       return 0
-   }
+   },
 })
 
 function parent() {

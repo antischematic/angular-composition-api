@@ -7,7 +7,7 @@ import { inject, ViewDef } from "./core"
 const Value = new ValueToken("Value", {
    factory() {
       return 0
-   }
+   },
 })
 
 @Component({
@@ -41,11 +41,14 @@ class GrandChild extends ViewDef(() => {
 
 describe("provide", () => {
    it("should create", () => {
-      expect(() => new ValueToken("Value", {
-         factory() {
-            return 0
-         }
-      })).not.toThrow()
+      expect(
+         () =>
+            new ValueToken("Value", {
+               factory() {
+                  return 0
+               },
+            }),
+      ).not.toThrow()
    })
    it("should provide a value", () => {
       function test() {

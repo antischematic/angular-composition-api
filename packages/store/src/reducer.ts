@@ -3,7 +3,10 @@ import { ActionDispatcher } from "./action"
 import { Observable } from "rxjs"
 
 export interface Reducer<T> extends ValueToken<Value<T>> {
-   reducers: [ActionDispatcher<any, any> | ActionDispatcher<any, any>[], StateReducer<any, any>][]
+   reducers: [
+      ActionDispatcher<any, any> | ActionDispatcher<any, any>[],
+      StateReducer<any, any>,
+   ][]
    add<U extends ValueToken<ActionDispatcher<any, any>>[]>(
       action: U,
       reduce: StateReducer<

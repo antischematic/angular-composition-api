@@ -19,7 +19,7 @@ import {
    Service,
    ViewDef,
 } from "./core"
-import {defer, interval, merge, of, Subscription, throwError} from "rxjs"
+import { defer, interval, merge, of, Subscription, throwError } from "rxjs"
 import {
    discardPeriodicTasks,
    fakeAsync,

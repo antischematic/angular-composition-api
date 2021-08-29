@@ -53,7 +53,7 @@ function createActionFactory(
    return new ValueToken(kind, {
       factory() {
          return use(createAction)
-      }
+      },
    })
 }
 

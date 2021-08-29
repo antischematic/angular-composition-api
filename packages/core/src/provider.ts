@@ -1,4 +1,9 @@
-import {Injectable, InjectFlags, Type, ɵɵdirectiveInject as directiveInject,} from "@angular/core"
+import {
+   Injectable,
+   InjectFlags,
+   Type,
+   ɵɵdirectiveInject as directiveInject,
+} from "@angular/core"
 
 export type ValueToken<T> = Type<T> & { __ng_value_token: true }
 
@@ -36,7 +41,10 @@ export class ValueGetterSetter<T extends any> {
 }
 
 function createValueToken<T>(name: string): ValueToken<T>
-function createValueToken<T>(name: string, options?: { factory: () => T }): ValueToken<T>
+function createValueToken<T>(
+   name: string,
+   options?: { factory: () => T },
+): ValueToken<T>
 function createValueToken(
    name: string,
    options?: { factory: () => any },
