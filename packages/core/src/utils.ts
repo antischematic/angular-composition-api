@@ -1,18 +1,13 @@
 import {
    BehaviorSubject,
-   MonoTypeOperatorFunction,
    NextObserver,
-   Observable,
    PartialObserver,
-   Subscribable,
    Subscription,
    SubscriptionLike,
    Unsubscribable,
 } from "rxjs"
-import { EventEmitter } from "@angular/core"
-import { UnsubscribeSignal, Value } from "./interfaces"
-import { audit, filter, sample } from "rxjs/operators"
-import { getContext, Scheduler, Lifecycle } from "./core"
+import {EventEmitter} from "@angular/core"
+import {UnsubscribeSignal, Value} from "./interfaces"
 
 let previous: Set<any>
 let deps: Set<any>
@@ -121,14 +116,4 @@ export function isObserver(
    return (observer && "next" in observer) || typeof observer === "function"
       ? observer
       : void 0
-}
-
-export function updateOn<T>(
-   lifecycle: Lifecycle,
-   scheduler: Observable<Lifecycle>,
-): MonoTypeOperatorFunction<T> {
-   const selector = scheduler.pipe(filter((value) => value === lifecycle))
-   return function (source) {
-      return source.pipe(audit(() => selector))
-   }
 }

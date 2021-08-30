@@ -10,7 +10,6 @@ export {
    ViewDef,
    markDirty,
    Context,
-   Lifecycle,
 } from "./core"
 export { use, subscribe } from "./common"
 export {
@@ -26,4 +25,3 @@ export {
 } from "./interfaces"
 export { select } from "./select"
 export { ValueToken, provide, EmptyValueError } from "./provider"
-export { updateOn } from "./utils"

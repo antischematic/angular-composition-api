@@ -1,5 +1,5 @@
 import { subscribe, use } from "./common"
-import { map, materialize, mergeMap } from "rxjs/operators"
+import {auditTime, map, materialize, mergeMap} from "rxjs/operators"
 import {
    Component,
    ContentChild,
@@ -15,7 +15,6 @@ import {
    Context,
    EffectObserver,
    inject,
-   Lifecycle,
    Service,
    ViewDef,
 } from "./core"
@@ -27,7 +26,6 @@ import {
    tick,
 } from "@angular/core/testing"
 import { configureTest, defineService } from "./core.spec"
-import { updateOn } from "./utils"
 import createSpy = jasmine.createSpy
 import objectContaining = jasmine.objectContaining
 
@@ -575,10 +573,10 @@ describe("subscribe", () => {
       const spy = createSpy()
       function create(context: Context) {
          const beforeUpdate = count.pipe(
-            updateOn(Lifecycle.BeforeUpdate, context),
+            auditTime(0, context),
          )
          const afterUpdate = count.pipe(
-            updateOn(Lifecycle.AfterUpdate, context),
+            auditTime(1, context),
          )
          subscribe(afterUpdate, () => {
             spy("spy3: " + count())

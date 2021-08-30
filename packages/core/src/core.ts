@@ -22,7 +22,7 @@ import {
    combineLatest,
    Notification,
    Observable,
-   PartialObserver,
+   PartialObserver, SchedulerAction, SchedulerLike,
    Subject,
    Subscribable,
    Subscription,
@@ -129,22 +129,52 @@ const dirty = new Set<Scheduler>()
 
 let id: number
 
-export class Scheduler extends Subject<any> {
+class Action<T> extends Subscription implements SchedulerAction<T> {
+   delay?: number
+   state: any
+   schedule(state?: any, delay?: number): Subscription {
+      this.state = state
+      this.delay = delay
+      this.scheduler.enqueue(this)
+      return this
+   }
+
+   execute(state: any) {
+      if (this.closed) {
+         return new Error('executing a cancelled action');
+      }
+      try {
+         this.work(state)
+      } catch (error) {
+         return error
+      }
+   }
+
+   constructor(private scheduler: Scheduler, private work: (this: Action<any>, state?: T) => void) {
+      super();
+   }
+}
+
+export class Scheduler extends Subject<any> implements SchedulerLike {
    private dirty: boolean
+   actions: Action<any>[] = []
+
    detectChanges() {
       if (this.dirty && !this.closed) {
          this.dirty = false
          dirty.delete(this)
          try {
-            this.next(Lifecycle.BeforeUpdate)
+            this.flush(true)
             this.ref.detectChanges()
             isDevMode() && this.ref.checkNoChanges()
-            this.next(Lifecycle.AfterUpdate)
+            this.flush(false)
+            this.actions.length = 0
          } catch (error) {
             this.errorHandler.handleError(error)
          }
       }
    }
+
    markDirty() {
       if (this.closed) return
       this.dirty = true
@@ -154,6 +184,7 @@ export class Scheduler extends Subject<any> {
          id = setTimeout(detectChanges)
       }
    }
+
    unsubscribe() {
       dirty.delete(this)
       super.complete()
@@ -167,6 +198,35 @@ export class Scheduler extends Subject<any> {
       super()
       this.dirty = false
       this.ref.detach()
+   }
+
+   now(): number {
+      return Date.now();
+   }
+
+   enqueue(action: Action<any>) {
+      this.actions.push(action)
+   }
+
+   flush(before: boolean) {
+      let action
+      let error
+      const actions = this.actions.filter((action) => before ? (action.delay === 0 || !action.delay) : (action.delay! > 0))
+      while ((action = actions.shift()!)) {
+         if ((error = action.execute(action.state))) {
+            break;
+         }
+      }
+      if (error) {
+         while ((action = actions.shift()!)) {
+            action.unsubscribe();
+         }
+         throw error;
+      }
+   }
+
+   schedule<T>(work: (this: Action<T>, state?: T) => void, delay?: number, state?: T): Subscription {
+      return new Action(this, work).schedule(state, delay)
    }
 }
 
@@ -193,12 +253,7 @@ function createFunction(exec: Function, errorHandler: ErrorHandler) {
    }
 }
 
-export const enum Lifecycle {
-   BeforeUpdate = 1,
-   AfterUpdate = 2,
-}
-
-export interface Context extends Observable<Lifecycle> {
+export interface Context extends SchedulerLike {
    markDirty(): void
    detectChanges(): void
 }
@@ -467,15 +522,13 @@ class View
    ngOnDestroy() {
       runInContext(this, unsubscribe)
    }
-   constructor(create: any) {
-      runInContext(this, setup, directiveInject(INJECTOR), create)
-   }
 }
 
 export function decorate(create: any) {
    return class extends View {
       constructor() {
-         super(create)
+         super()
+         runInContext(this, setup, directiveInject(INJECTOR), create)
       }
    } as any
 }

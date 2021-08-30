@@ -133,15 +133,14 @@ Creates a context-aware class from a setup function. Values returned from this f
 
 **Arguments**
 
-The setup function takes a single argument of `Context`.
+The setup function takes a single argument of `Context` that implements the `SchedulerLike` interface.
 
 `markDirty` Marks the current view dirty and schedules change detection if it isn't already
 scheduled.
 
 `detectChanges` Immediately checks and updates the view if it's dirty.
 
-`subscribe` Subscribe to the lifecycle of the view. Useful for `beforeUpdate` and `afterUpdate`
-behaviour.
+`schedule` Used to schedule observable notifications to be emitted before or after the view has updated.
 
 **Change Detection**
 
@@ -330,6 +329,34 @@ In this example, a new inner stream is created every second and will not be disp
 second to complete. If the view is destroyed, then all remaining streams are unsubscribed.
 
 ---
+
+**View Scheduler**
+
+The context can be used to control how observable notifications are delivered to observers. Used with an operator such
+as `auditTime`, you can debounce changes until props change, before or after the DOM is updated. Pass `0` to emit before an update, 
+and `1` to emit after an update.
+
+```ts
+function setup(context: Context) {
+   const count = use(0)
+   const beforeUpdate = scheduled(count, context)
+   const afterUpdate = count.pipe(
+      auditTime(1, context) // pass 0 for before update
+   )
+
+   subscribe(beforeUpdate, (value) => {
+      // executes when props change, before the dom is updated
+   })
+
+   subscribe(afterUpdate, (value) => {
+      // executes when props change, after the dom is updated
+   })
+   
+   return {
+      count
+   }
+}
+```
 
 ### Use API
 
