@@ -4,8 +4,9 @@ import {
    provide,
    subscribe,
    use,
-   ViewDef,
+   Value,
    ValueToken,
+   ViewDef,
 } from "@mmuscat/angular-composition-api"
 import { Component, ModuleWithProviders, Type } from "@angular/core"
 import {
@@ -16,7 +17,7 @@ import {
    tick,
 } from "@angular/core/testing"
 import { Reducer } from "./reducer"
-import { Store, StoreFactory, StoreModule } from "./store"
+import { Store, StoreModule } from "./store"
 import { tap } from "rxjs/operators"
 import { interval } from "rxjs"
 import createSpy = jasmine.createSpy
@@ -25,11 +26,11 @@ describe("Store", () => {})
 
 function createTestView<T>(
    View: Type<T>,
-   providers?: Type<any>[],
+   providers?: ValueToken<any>[],
 ): ComponentFixture<T> {
    @Component({
       template: ``,
-      providers,
+      providers: providers?.map((provider) => provider.Provider),
    })
    class Test extends (View as any) {}
    TestBed.configureTestingModule({
@@ -117,10 +118,14 @@ describe("Reducer", () => {
    })
    it("should add reducers", () => {
       const Increment = new Action("Increment")
-      const reducer = (state: any, action: any) => state + 1
-      const Count = new Reducer("count").add([Increment], reducer)
-      expect((<any>Count).reducers.length).toBe(1)
-      expect((<any>Count).reducers[0]).toEqual([[Increment], reducer])
+      const reduce = (state: any, action: any) => state + 1
+      const Count = new Reducer("count", (reducer) => {
+         reducer.add([Increment], reduce)
+         return reducer
+      })
+      const reducer = TestBed.inject(Count) as any
+      expect(reducer.reducers.length).toBe(1)
+      expect(reducer.reducers[0]).toEqual([[Increment], reduce])
    })
    it("should inject state", () => {
       const Count = new Reducer<number>("count")
@@ -160,30 +165,32 @@ describe("Reducer", () => {
 
 describe("Store", () => {
    let Increment: ValueToken<DispatchActionWithProps<any, any>>
-   let Count: Reducer<number>
+   let Count: ValueToken<Value<number>>
    function getInitialState() {
       return {
          count: 10,
       }
    }
-   let TestStore: StoreFactory
+   let TestStore: ValueToken<Store>
    let module: ModuleWithProviders<any>
    let log: Function
 
-   function logCount() {
-      const count = inject(Count)
+   function logCount(store: Store) {
+      const count = store(Count)
       return count.pipe(tap((value) => log(value)))
    }
 
-   function autoIncrement() {
-      const increment = inject(Increment)
+   function autoIncrement(store: Store) {
+      const increment = store(Increment)
       return interval(1000).pipe(tap(increment))
    }
 
    beforeEach(() => {
       log = () => {}
       Increment = new Action("Increment")
-      Count = new Reducer<number>("count").add(Increment, (state) => state + 1)
+      Count = new Reducer<number>("count", (reducer) =>
+         reducer.add(Increment, (state) => state + 1),
+      )
       TestStore = new Store("Store", {
          state: getInitialState,
          reducers: [Count],
@@ -207,16 +214,16 @@ describe("Store", () => {
 
    it("should reduce actions", () => {
       const store: Store = TestBed.inject(TestStore)
-      const count = TestBed.inject(Count).get()
-      const increment = TestBed.inject(Increment).get()
+      const count = store(Count) as Value<any>
+      const increment = store(Increment) as Function
       increment()
       expect(count.value).toBe(11)
    })
 
    it("should run effects", fakeAsync(() => {
       const spy = (log = createSpy())
-      TestBed.inject(TestStore)
-      const count = TestBed.inject(Count).get()
+      const store: Store = TestBed.inject(TestStore)
+      const count = store(Count) as Value<any>
       tick(10000)
       expect(spy).toHaveBeenCalledWith(10)
       expect(spy).toHaveBeenCalledWith(20)

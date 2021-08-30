@@ -39,12 +39,11 @@ const IncrementBy = new Action("Increment", props<{ by: number }>())
 
 #### Reducers
 
-Create reducers. Reducers take a list of action reducers for producing the next state.
+Create reducers. A list of action reducers can be added for producing the next state. Supports dependency injection.
 
 ```ts
-const Count = new Reducer<number>("count").add(
-   Increment,
-   (state, action) => state + 1,
+const Count = new Reducer<number>("count", (reducer) =>
+   reducer.add(Increment, (state, action) => state + 1),
 )
 ```
 
@@ -90,7 +89,7 @@ function effectWithErrors(store: Store) {
 
 #### Module Store
 
-Create a Store. 
+Create a Store.
 
 ```ts
 const AppStore = new Store("AppStore", {
@@ -105,9 +104,7 @@ for each lazy loaded module. Effects will run immediately on bootstrap.
 
 ```ts
 @NgModule({
-   imports: [
-      StoreModule.config(AppStore),
-   ],
+   imports: [StoreModule.config(AppStore)],
 })
 export class AppModule {}
 ```
@@ -152,6 +149,7 @@ You must use the store's injector to retrieve actions and values.
 ```ts
 const count = inject(Count) // don't do this!
 ```
+
 ```ts
 const store = inject(MyStore) // inject store first
 const count = store(Count) // this will be the correct instance
@@ -199,13 +197,15 @@ reducer is hydrated using the object key of the same name returned by `getInitia
 ```ts
 function getInitialState() {
    return {
-      count: 0, // object key must match reducer name
+      count: 0, // state key must match reducer name
    }
 }
 
-const Count = new Reducer("count") // reducer name must match object
-   .add(Increment, (state, action) => state + 1)
-// .add(OtherAction, (state, action) => etc)
+const Count = new Reducer(
+   "count", // reducer name must match state key
+   (reducer) => reducer.add(Increment, (state, action) => state + 1),
+   // .add(OtherAction, (state, action) => etc)
+)
 ```
 
 You can also supply a list of actions to a single reducer.
@@ -214,9 +214,8 @@ You can also supply a list of actions to a single reducer.
 const Increment = new Action("Increment", props<{ by: number }>())
 const Add = new Action("Add", props<{ by: number }>())
 
-const Count = new Reducer(count).add(
-   [Increment, Add],
-   (state, action) => state + action.by,
+const Count = new Reducer(count, (reducer) =>
+   reducer.add([Increment, Add], (state, action) => state + action.by),
 )
 ```
 

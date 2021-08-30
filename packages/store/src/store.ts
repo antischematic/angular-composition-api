@@ -2,7 +2,6 @@ import {
    ErrorHandler,
    Inject,
    InjectionToken,
-   INJECTOR,
    isDevMode,
    ModuleWithProviders,
    NgModule,
@@ -11,7 +10,6 @@ import {
 } from "@angular/core"
 import {
    inject,
-   provide,
    Service,
    subscribe,
    use,
@@ -20,7 +18,6 @@ import {
 } from "@mmuscat/angular-composition-api"
 import { Action, ActionDispatcher } from "./action"
 import { merge, Notification, Observable } from "rxjs"
-import { Reducer } from "./reducer"
 
 export interface Store {
    <T>(token: ValueToken<T>): T
@@ -30,7 +27,7 @@ export type EffectFactory = (store: Store) => Observable<any> | void
 
 export interface StoreOptions {
    state: StateFactory
-   reducers: Reducer<any>[]
+   reducers: ValueToken<any>[]
    effects?: EffectFactory[]
 }
 
@@ -57,33 +54,48 @@ class EffectObserver {
    constructor(private name: string, private errorHandler: ErrorHandler) {}
 }
 
-function createStore({ reducers, effects, state }: StoreOptions): Store {
+function createStore(
+   name: string,
+   { reducers, effects, state }: StoreOptions,
+): Store {
    const sink = subscribe()
    const initialState = state()
    const errorHandler = inject(ErrorHandler)
-   const injector = inject(INJECTOR)
+   const injector = new Map()
    for (const reducer of <any>reducers) {
-      for (const [action, reduce] of reducer.reducers) {
+      for (const [action, reduce] of (<any>inject(reducer)).reducers) {
+         let actions: any[] = []
          const actionTypes = (
             Array.isArray(action) ? action : [action]
          ) as Type<ActionDispatcher<any, any>>[]
-         const actions = actionTypes.map((action) => inject(action))
-         provide(reducer, use(initialState[reducer.overriddenName]))
-         const state: Value<any> = inject(reducer)
+         for (const action of actionTypes) {
+            if (!injector.has(action)) {
+               const emitter = use(inject(action))
+               injector.set(action, emitter)
+               actions.push(emitter)
+            }
+         }
+         const state = use(initialState[reducer.overriddenName])
+         injector.set(reducer, state)
          sink.add(
-            merge(...actions).subscribe(new ActionObserver(state, reduce)),
+            merge(...actions).subscribe(
+               new ActionObserver(state, reduce) as any,
+            ),
          )
       }
    }
 
    for (const effect of effects ?? []) {
       sink.add(
-         effect(store).subscribe?.(new EffectObserver(effect.name, errorHandler)),
+         effect(store)?.subscribe(new EffectObserver(effect.name, errorHandler)),
       )
    }
 
    function store(token: ValueToken<any>) {
-      return injector.get(token).get()
+      if (injector.has(token)) {
+         return injector.get(token)
+      }
+      throw new Error(`No provider found for ${token} in store ${name}`)
    }
 
    return store
@@ -93,27 +105,22 @@ const STORE = new InjectionToken("STORE")
 
 function createStoreProvider(name: string, options: StoreOptions) {
    function Store() {
-      return createStore(options)
+      return createStore(name, options)
    }
    Store.overriddenName = name
    Store.Provider = [
       { provide: Store, useClass: Service(Store) },
-      options.reducers,
-      options.reducers.map(({ reducers }) =>
-         reducers.map(([actions]) => actions),
-      ),
+      options.reducers.map((reducer) => reducer.Provider),
    ]
    return Store
 }
 
 export type StateFactory = () => { [key: string]: any }
 
-export interface StoreFactory extends ValueToken<Store> {
-   readonly Provider: any[]
-}
+export type StoreFactory = ValueToken<Store>
 
 interface StoreStatic {
-   new (name: string, options: StoreOptions): StoreFactory
+   new (name: string, options: StoreOptions): ValueToken<Store>
 }
 
 export const Store: StoreStatic = createStoreProvider as any
