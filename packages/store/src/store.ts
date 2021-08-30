@@ -86,9 +86,12 @@ function createStore(
    }
 
    for (const effect of effects ?? []) {
-      sink.add(
-         effect(store)?.subscribe(new EffectObserver(effect.name, errorHandler)),
-      )
+      const source = effect(store)
+      if (source) {
+         sink.add(
+            source.subscribe(new EffectObserver(effect.name, errorHandler)),
+         )
+      }
    }
 
    function store(token: ValueToken<any>) {
