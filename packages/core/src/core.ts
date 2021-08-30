@@ -38,16 +38,9 @@ import {
    UnsubscribeSignal,
    Value,
 } from "./interfaces"
-import {
-   addSignal,
-   arrayCompare,
-   computeValue,
-   isEmitter,
-   isObject,
-   isValue,
-} from "./utils"
-import { distinctUntilChanged, skip, switchMap } from "rxjs/operators"
-import { ValueGetterSetter, ValueToken } from "./provider"
+import {addSignal, arrayCompare, computeValue, isEmitter, isObject, isValue,} from "./utils"
+import {distinctUntilChanged, skip, switchMap} from "rxjs/operators"
+import {ValueToken} from "./provider"
 
 let currentContext: any
 const contextMap = new WeakMap<{}, CurrentContext>()
@@ -514,6 +507,7 @@ export function Service<T>(
    }
    return Class as any
 }
+
 export function inject<T>(
    token: ValueToken<T>,
    notFoundValue?: T,
@@ -533,9 +527,6 @@ export function inject<T>(
    const previous = beginContext(void 0)
    const value = injector.get(token, notFoundValue, flags)
    endContext(previous)
-   if (value instanceof ValueGetterSetter) {
-      return value.get()
-   }
    return value
 }
 

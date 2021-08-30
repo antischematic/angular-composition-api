@@ -10,16 +10,17 @@ const Value = new ValueToken("Value", {
    },
 })
 
+function setup() {
+   provide(Value, 10)
+   return {}
+}
+
 @Component({
    selector: "parent",
    template: `<child></child>`,
-   providers: [Value],
+   providers: [Value.Provider],
 })
-class Parent {
-   constructor() {
-      provide(Value, 10)
-   }
-}
+class Parent extends ViewDef<any>(setup) {}
 
 @Component({
    selector: "child",
@@ -66,7 +67,7 @@ describe("provide", () => {
 
       TestBed.inject(test)
       const value = TestBed.inject(Value)
-      expect(value.get()).toBe(10)
+      expect(value).toBe(10)
    })
    it("should resolve a value", () => {
       TestBed.configureTestingModule({

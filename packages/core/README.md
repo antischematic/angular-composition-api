@@ -237,7 +237,7 @@ function parent() {
 
 @Component({
    selector: "parent",
-   providers: [Count], // <- important
+   providers: [Count.Provider], // important
 })
 export class Parent extends ViewDef(parent) {}
 ```

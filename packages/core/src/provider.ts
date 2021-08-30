@@ -1,11 +1,10 @@
-import {
-   Injectable,
-   InjectFlags,
-   Type,
-   ɵɵdirectiveInject as directiveInject,
-} from "@angular/core"
+import {FactoryProvider, InjectionToken, Type, ɵɵdirectiveInject as inject} from "@angular/core"
+import {ProvidedIn} from "./core";
 
-export type ValueToken<T> = Type<T> & { __ng_value_token: true }
+export type ValueToken<T> = InjectionToken<T> & {
+   __ng_value_token: true
+   Provider: FactoryProvider[]
+}
 
 export class EmptyValueError extends Error {
    constructor(token: string) {
@@ -18,50 +17,58 @@ export interface ValueTokenStatic {
    new <T>(name: string, options?: { factory: () => T }): ValueToken<T>
 }
 
-export class ValueGetterSetter<T extends any> {
-   private value?: T
-   private hasValue: boolean
-   set(value: T) {
-      this.hasValue = true
-      this.value = value
-   }
-   get() {
-      if (this.hasValue) {
-         return this.value
-      } else if (this.options) {
-         this.set(this.options.factory())
-         return this.value
-      } else {
-         throw new EmptyValueError(this.name)
-      }
-   }
-   constructor(private name: string, private options?: { factory: () => T }) {
-      this.hasValue = false
-   }
+const valueMap = new WeakMap<{}, any>()
+
+function keygen() {
+   return {}
 }
 
 function createValueToken<T>(name: string): ValueToken<T>
 function createValueToken<T>(
    name: string,
-   options?: { factory: () => T },
+   options?: { factory: () => T, providedIn: ProvidedIn },
 ): ValueToken<T>
 function createValueToken(
    name: string,
-   options?: { factory: () => any },
+   options?: { factory: () => any, providedIn: ProvidedIn   },
 ): ValueToken<any> {
-   @Injectable({ providedIn: "root" })
-   class ValueToken {
-      static overriddenName = name
-      constructor() {
-         return new ValueGetterSetter(name, options)
+   const providedIn = options?.providedIn ?? "root"
+   const ValueToken = new InjectionToken(name, {
+      factory: get,
+      providedIn
+   }) as any
+   const Key = new InjectionToken(`keygen:${name}`, {
+      factory: keygen,
+      providedIn
+   })
+
+   function get() {
+      const key = inject(Key)
+      if (!valueMap.has(key)) {
+         if (options?.factory) {
+            provide(ValueToken, options.factory())
+         } else {
+            throw new EmptyValueError(name)
+         }
       }
+      return valueMap.get(key)
    }
-   return ValueToken as any
+
+   ValueToken.key = Key
+   ValueToken.__ng_value_token = true
+   ValueToken.overriddenName = name
+
+   ValueToken.Provider = [
+      { provide: ValueToken, useFactory: get },
+      { provide: Key, useFactory: keygen },
+   ]
+
+   return ValueToken
 }
 
 export const ValueToken: ValueTokenStatic = createValueToken as any
 
 export function provide<T>(token: ValueToken<T>, value: T): void {
-   const Value = directiveInject(token, InjectFlags.Self)
-   Value.set(value)
+   const key = inject((<any>token).key) as {}
+   valueMap.set(key, value)
 }
