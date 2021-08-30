@@ -27,8 +27,8 @@ import {
    UnsubscribeSignal,
    Value,
 } from "./interfaces"
-import { isObserver, isSignal, isValue, track } from "./utils"
-import { addEffect, addTeardown } from "./core"
+import {isObserver, isSignal, isValue, track} from "./utils"
+import {addEffect, addTeardown, onUpdate} from "./core"
 
 export class QueryListSubject extends Observable<any> {
    next(value: QueryList<any>) {
@@ -224,4 +224,12 @@ export function subscribe<T>(
    }
 
    return addEffect(source, observer, signal)
+}
+
+export function beforeUpdate() {
+   return onUpdate(0)
+}
+
+export function afterUpdate() {
+   return onUpdate(1)
 }

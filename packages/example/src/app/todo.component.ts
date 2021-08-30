@@ -1,14 +1,13 @@
 import {Component, ElementRef, NgModule, Renderer2, ViewChild, ViewChildren,} from "@angular/core"
 import {FormsModule} from "@angular/forms"
-import {inject, subscribe, use, ViewDef, Context } from "@mmuscat/angular-composition-api"
-import {interval, of, scheduled} from "rxjs";
-import {auditTime} from "rxjs/operators";
+import {Context, inject, subscribe, use, ViewDef} from "@mmuscat/angular-composition-api"
 
 export interface Todo {
    id?: number
    text: string
    done: boolean
 }
+
 
 function create(context: Context) {
    const id = use<number>()
@@ -19,12 +18,6 @@ function create(context: Context) {
    const textEditor = use<ElementRef>(ViewChild)
    const renderer = inject(Renderer2)
    const viewChildren = use<ElementRef>(ViewChildren)
-
-   subscribe(interval(1000).pipe(
-      auditTime(0, context)
-   ), (value) => {
-      console.log('interval', value)
-   })
 
    function setEditorText(value: string) {
       if (!textEditor.value) return

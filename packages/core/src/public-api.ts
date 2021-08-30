@@ -11,7 +11,7 @@ export {
    markDirty,
    Context,
 } from "./core"
-export { use, subscribe } from "./common"
+export { use, subscribe, beforeUpdate, afterUpdate } from "./common"
 export {
    CheckSubject,
    checkPhase,

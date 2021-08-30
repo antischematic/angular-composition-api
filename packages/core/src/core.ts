@@ -168,7 +168,7 @@ class Action<T> extends Subscription implements SchedulerAction<T> {
 
 export class Scheduler implements SchedulerLike {
    private dirty: boolean
-   actions: Action<any>[] = []
+   actions: Action<any>[][] = [[], []]
    closed: boolean
 
    detectChanges() {
@@ -176,11 +176,10 @@ export class Scheduler implements SchedulerLike {
          this.dirty = false
          dirty.delete(this)
          try {
-            this.flush(true)
+            this.flush(0)
             this.ref.detectChanges()
             isDevMode() && this.ref.checkNoChanges()
-            this.flush(false)
-            this.actions.length = 0
+            this.flush(1)
          } catch (error) {
             this.errorHandler.handleError(error)
          }
@@ -216,15 +215,14 @@ export class Scheduler implements SchedulerLike {
    }
 
    enqueue(action: Action<any>) {
-      this.actions.push(action)
+      this.actions[+(action.delay !== 0)].push(action)
    }
 
-   flush(before: boolean) {
+   flush(step: number) {
       let action
       let error
-      const actions = this.actions.filter((action) =>
-         before ? action.delay === 0 || !action.delay : action.delay! > 0,
-      )
+      const actions = this.actions[step].slice()
+      this.actions[step].length = 0
       while ((action = actions.shift()!)) {
          if ((error = action.execute(action.state))) {
             break
@@ -245,6 +243,17 @@ export class Scheduler implements SchedulerLike {
    ): Subscription {
       return new Action(this, work).schedule(state, delay)
    }
+}
+
+export function onUpdate(signal: 0 | 1) {
+   const subject = new Subject()
+   const context = getContext().scheduler
+   function action() {
+      subject.next()
+      context.schedule(action, signal)
+   }
+   action()
+   return subject
 }
 
 function isCheckSubject(value: any): value is CheckSubject<any> {

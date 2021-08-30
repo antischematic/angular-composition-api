@@ -500,6 +500,8 @@ function setup() {
 export class MyComponent extends ViewDef(setup) {}
 ```
 
+### Utilities
+
 #### Select
 
 Computes a new `Value` from a reactive observer, `Observable` or `Value`, with an optional `selector` and initial value.
@@ -526,4 +528,20 @@ With reactive observer
 ```ts
 const state = use({ count: 0 })
 const count = select(() => state().count)
+```
+
+#### beforeUpdate/afterUpdate
+
+For convenience, you can observe whenever any property on a `ViewDef` changes
+and react to it either before or after the DOM updates.
+
+```ts
+function setup() {
+   subscribe(beforeUpdate(), () => {
+      // when the view is about to update
+   })
+   subscribe(afterUpdate(), () => {
+      // after the view has updated
+   })
+}
 ```
