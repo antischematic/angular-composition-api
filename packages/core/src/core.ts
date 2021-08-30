@@ -21,8 +21,9 @@ import {
    BehaviorSubject,
    combineLatest,
    Notification,
-   Observable,
-   PartialObserver, SchedulerAction, SchedulerLike,
+   PartialObserver,
+   SchedulerAction,
+   SchedulerLike,
    Subject,
    Subscribable,
    Subscription,
@@ -38,9 +39,16 @@ import {
    UnsubscribeSignal,
    Value,
 } from "./interfaces"
-import {addSignal, arrayCompare, computeValue, isEmitter, isObject, isValue,} from "./utils"
-import {distinctUntilChanged, skip, switchMap} from "rxjs/operators"
-import {ValueToken} from "./provider"
+import {
+   addSignal,
+   arrayCompare,
+   computeValue,
+   isEmitter,
+   isObject,
+   isValue,
+} from "./utils"
+import { distinctUntilChanged, skip, switchMap } from "rxjs/operators"
+import { ValueToken } from "./provider"
 
 let currentContext: any
 const contextMap = new WeakMap<{}, CurrentContext>()
@@ -141,7 +149,7 @@ class Action<T> extends Subscription implements SchedulerAction<T> {
 
    execute(state: any) {
       if (this.closed) {
-         return new Error('executing a cancelled action');
+         return new Error("executing a cancelled action")
       }
       try {
          this.work(state)
@@ -150,14 +158,18 @@ class Action<T> extends Subscription implements SchedulerAction<T> {
       }
    }
 
-   constructor(private scheduler: Scheduler, private work: (this: Action<any>, state?: T) => void) {
-      super();
+   constructor(
+      private scheduler: Scheduler,
+      private work: (this: Action<any>, state?: T) => void,
+   ) {
+      super()
    }
 }
 
-export class Scheduler extends Subject<any> implements SchedulerLike {
+export class Scheduler implements SchedulerLike {
    private dirty: boolean
    actions: Action<any>[] = []
+   closed: boolean
 
    detectChanges() {
       if (this.dirty && !this.closed) {
@@ -186,22 +198,21 @@ export class Scheduler extends Subject<any> implements SchedulerLike {
    }
 
    unsubscribe() {
+      this.closed = true
       dirty.delete(this)
-      super.complete()
-      super.unsubscribe()
    }
 
    constructor(
       private ref: ChangeDetectorRef,
       private errorHandler: ErrorHandler,
    ) {
-      super()
       this.dirty = false
+      this.closed = false
       this.ref.detach()
    }
 
    now(): number {
-      return Date.now();
+      return Date.now()
    }
 
    enqueue(action: Action<any>) {
@@ -211,21 +222,27 @@ export class Scheduler extends Subject<any> implements SchedulerLike {
    flush(before: boolean) {
       let action
       let error
-      const actions = this.actions.filter((action) => before ? (action.delay === 0 || !action.delay) : (action.delay! > 0))
+      const actions = this.actions.filter((action) =>
+         before ? action.delay === 0 || !action.delay : action.delay! > 0,
+      )
       while ((action = actions.shift()!)) {
          if ((error = action.execute(action.state))) {
-            break;
+            break
          }
       }
       if (error) {
          while ((action = actions.shift()!)) {
-            action.unsubscribe();
+            action.unsubscribe()
          }
-         throw error;
+         throw error
       }
    }
 
-   schedule<T>(work: (this: Action<T>, state?: T) => void, delay?: number, state?: T): Subscription {
+   schedule<T>(
+      work: (this: Action<T>, state?: T) => void,
+      delay?: number,
+      state?: T,
+   ): Subscription {
       return new Action(this, work).schedule(state, delay)
    }
 }
