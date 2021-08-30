@@ -1,14 +1,15 @@
 import {
    BehaviorSubject,
    NextObserver,
-   PartialObserver, Subject,
+   PartialObserver,
+   Subject,
    Subscription,
    SubscriptionLike,
    Unsubscribable,
 } from "rxjs"
-import {EventEmitter} from "@angular/core"
-import {UnsubscribeSignal, Value} from "./interfaces"
-import {Context, getContext} from "./core";
+import { EventEmitter } from "@angular/core"
+import { UnsubscribeSignal, Value } from "./interfaces"
+import { Context } from "./core"
 
 let previous: Set<any>
 let deps: Set<any>
@@ -117,4 +118,22 @@ export function isObserver(
    return (observer && "next" in observer) || typeof observer === "function"
       ? observer
       : void 0
+}
+
+export function onUpdate(context: Context, signal: 0 | 1) {
+   const subject = new Subject()
+   function action() {
+      subject.next()
+      context.schedule(action, signal)
+   }
+   action()
+   return subject
+}
+
+export function beforeUpdate(context: Context) {
+   return onUpdate(context, 0)
+}
+
+export function afterUpdate(context: Context) {
+   return onUpdate(context, 1)
 }

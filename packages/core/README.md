@@ -536,11 +536,11 @@ For convenience, you can observe whenever any property on a `ViewDef` changes
 and react to it either before or after the DOM updates.
 
 ```ts
-function setup() {
-   subscribe(beforeUpdate(), () => {
+function setup(context) {
+   subscribe(beforeUpdate(context), () => {
       // when the view is about to update
    })
-   subscribe(afterUpdate(), () => {
+   subscribe(afterUpdate(context), () => {
       // after the view has updated
    })
 }

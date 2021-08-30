@@ -11,7 +11,7 @@ export {
    markDirty,
    Context,
 } from "./core"
-export { use, subscribe, beforeUpdate, afterUpdate } from "./common"
+export { use, subscribe } from "./common"
 export {
    CheckSubject,
    checkPhase,
@@ -25,3 +25,4 @@ export {
 } from "./interfaces"
 export { select } from "./select"
 export { ValueToken, provide, EmptyValueError } from "./provider"
+export { beforeUpdate, afterUpdate } from "./utils"

@@ -245,17 +245,6 @@ export class Scheduler implements SchedulerLike {
    }
 }
 
-export function onUpdate(signal: 0 | 1) {
-   const subject = new Subject()
-   const context = getContext().scheduler
-   function action() {
-      subject.next()
-      context.schedule(action, signal)
-   }
-   action()
-   return subject
-}
-
 function isCheckSubject(value: any): value is CheckSubject<any> {
    return (isObject(value) || isValue(value)) && checkPhase in value
 }
