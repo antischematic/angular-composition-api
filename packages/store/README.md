@@ -242,7 +242,7 @@ export class MyComponent extends ViewDef(setup) {}
 
 ### props
 
-Returns a typed function for producing `data` on an `Action`. Data
+Returns a typed function for producing `data` on an `Action`.
 
 ```ts
 const Increment = new Action("Increment", props<{ by: number }>())

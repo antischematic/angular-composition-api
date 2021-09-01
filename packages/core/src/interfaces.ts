@@ -50,16 +50,16 @@ export type State<T, U> = Type<
 
 export type UnsubscribeSignal = Subscription | AbortSignal | null
 
-export type Value<T> = CheckSubject<T> & {
+export type Value<T, U = T> = CheckSubject<T> & {
    readonly __ng_value: true
-   readonly source: Subject<T>
-   readonly pipe: Subject<T>["pipe"]
+   readonly source: Observable<T>
+   readonly pipe: Observable<T>["pipe"]
    readonly value: T
-   (mutate: (value: T) => any): void
-   (value: T): void
+   (mutate: (value: U) => any): void
+   (value: U): void
    (): T
    next(value: T): void
-} & [Value<T>, Emitter<T>]
+} & [Value<T, U>, Emitter<T>]
 
 export interface ReadonlyValue<T> extends CheckSubject<T> {
    readonly __ng_value: true
@@ -67,6 +67,11 @@ export interface ReadonlyValue<T> extends CheckSubject<T> {
    readonly pipe: Observable<T>["pipe"]
    readonly value: T
    (): T
+}
+
+export interface ValueAccessor<T, U> {
+   next(value: T): void
+   subscribe: Subscribable<U> | (() => U)
 }
 
 export interface EmitterWithParams<T extends (...args: any[]) => any>

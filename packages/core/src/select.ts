@@ -1,13 +1,13 @@
 import {
-   BehaviorSubject,
+   BehaviorSubject, Observable,
    PartialObserver,
    Subject,
-   Subscribable,
+   Subscribable, Subscriber,
    Subscription,
    Unsubscribable,
 } from "rxjs"
 import { ComputedSubject } from "./core"
-import { Value } from "./interfaces"
+import {Value, ValueAccessor} from "./interfaces"
 import { use } from "./common"
 import { isEmitter, isValue } from "./utils"
 
@@ -51,10 +51,15 @@ class SelectSubject<T, U> extends Subject<U | undefined> {
    }
 
    constructor(
-      source: Subscribable<T> | BehaviorSubject<T>,
+      source: Subscribable<T> | BehaviorSubject<T> | ValueAccessor<any, any>,
       selector?: (value?: T) => U,
       initialValue?: any,
    ) {
+      let next
+      if ("next" in source && !(source instanceof BehaviorSubject) && !isValue(source) && !isEmitter(source)) {
+         next = source.next
+         source = typeof source.subscribe === "function" ? new ComputedSubject(source.subscribe) : source
+      }
       if ("value" in source) {
          initialValue =
             typeof selector === "function"
@@ -64,13 +69,15 @@ class SelectSubject<T, U> extends Subject<U | undefined> {
          initialValue = typeof selector === "function" ? initialValue : selector
       }
       super()
+      this.next = next ?? this.next
       this.value = initialValue
-      this._source = source
+      this._source = source as Subscribable<T>
       this.selector = selector
       this.refs = 0
    }
 }
 
+export function select<T, U>(value: ValueAccessor<T, U>): Value<ValueAccessor<T, U>>
 export function select<T>(source: () => T): Value<T>
 export function select<T>(source: Value<T>): Value<T>
 export function select<T, U>(
@@ -97,7 +104,7 @@ export function select<T, U, V>(
    initialValue: V,
 ): Value<U | V>
 export function select<T, U>(
-   source: Subscribable<T> | (() => U),
+   source: Subscribable<T> | (() => U) | ValueAccessor<T, U>,
    selector?: (value: T) => U,
 ): Value<U> {
    if (typeof source === "function" && !isValue(source) && !isEmitter(source)) {

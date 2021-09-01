@@ -530,6 +530,28 @@ const state = use({ count: 0 })
 const count = select(() => state().count)
 ```
 
+**ValueAccessor**
+
+Select can also be used to delegate between separate read and write streams.
+
+```ts
+const count = use(0)
+const increment = use(Function)
+
+const delegate = select({
+   next: increment,
+   subscribe: () => count() + 1
+})
+
+subscribe(increment, () => count(count() + 1))
+
+// write value
+delegate.next()
+// read value
+delegate()
+delegate.value
+```
+
 #### beforeUpdate/afterUpdate
 
 For convenience, you can observe whenever any property on a `ViewDef` changes

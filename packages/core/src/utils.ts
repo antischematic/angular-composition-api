@@ -7,8 +7,7 @@ import {
    SubscriptionLike,
    Unsubscribable,
 } from "rxjs"
-import { EventEmitter } from "@angular/core"
-import { UnsubscribeSignal, Value } from "./interfaces"
+import {Emitter, UnsubscribeSignal, Value} from "./interfaces"
 import { Context } from "./core"
 
 let previous: Set<any>
@@ -79,10 +78,6 @@ export function set<T>(
    }
 }
 
-export function Emitter<T>(async?: boolean): EventEmitter<T> {
-   return new EventEmitter<T>(async)
-}
-
 export function addSignal(
    teardown: Unsubscribable | Function,
    abort: Subscription | AbortSignal,
@@ -96,7 +91,7 @@ export function addSignal(
    }
 }
 
-export function isEmitter(value: any) {
+export function isEmitter(value: any): value is Emitter<any> {
    return typeof value === "function" && "__ng_emitter" in value
 }
 
