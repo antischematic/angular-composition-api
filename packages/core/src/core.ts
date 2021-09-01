@@ -105,9 +105,15 @@ function createContext(
    })
 }
 
-function createService(context: {}, factory: any) {
+interface ServiceOptions {
+   name?: string
+   arguments?: any[]
+   providedIn: ProvidedIn
+}
+
+function createService(context: {}, factory: any, params: any[] = []) {
    createContext(context, serviceInject(INJECTOR), serviceInject(ErrorHandler))
-   const value = runInContext(context, factory)
+   const value = runInContext(context, factory, ...params)
    runInContext(context, subscribe)
    return value
 }
@@ -553,12 +559,12 @@ export type ProvidedIn = Type<any> | "root" | "platform" | "any" | null
 const serviceMap = new Map()
 
 export function Service<T>(
-   factory: () => T,
-   options?: { providedIn: ProvidedIn },
+   factory: (...params: any[]) => T,
+   options?: ServiceOptions,
 ): Type<T> {
    @Injectable({ providedIn: options?.providedIn ?? null })
    class Class {
-      static overriddenName = factory.name
+      static overriddenName = options?.name ?? factory.name
       ngOnDestroy() {
          runInContext(serviceMap.get(this) ?? this, unsubscribe)
          serviceMap.delete(this)
@@ -568,7 +574,7 @@ export function Service<T>(
             NgModuleRef,
             InjectFlags.Self | InjectFlags.Optional,
          )?.onDestroy(() => this.ngOnDestroy())
-         const value = createService(this, factory)
+         const value = createService(this, factory, options?.arguments)
          serviceMap.set(value, this)
          return value
       }

@@ -22,8 +22,6 @@ import { tap } from "rxjs/operators"
 import { interval } from "rxjs"
 import createSpy = jasmine.createSpy
 
-describe("Store", () => {})
-
 function createTestView<T>(
    View: Type<T>,
    providers?: ValueToken<any>[],
