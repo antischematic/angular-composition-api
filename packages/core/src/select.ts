@@ -77,7 +77,7 @@ class SelectSubject<T, U> extends Subject<U | undefined> {
    }
 }
 
-export function select<T, U>(value: ValueAccessor<T, U>): Value<ValueAccessor<T, U>>
+export function select<T, U>(value: ValueAccessor<T, U>): Value<T, U>
 export function select<T>(source: () => T): Value<T>
 export function select<T>(source: Value<T>): Value<T>
 export function select<T, U>(
