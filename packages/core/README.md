@@ -74,40 +74,26 @@ export class Counter extends ViewDef(counter) {}
 ### Service
 
 ```ts
-function todosByUserId() {
+function getTodosByUserId() {
    const http = inject(HttpClient)
-   const userId = use<string>(Function)
-   const todos = use<Todo[]>()
-   const error = use<Error>()
-   const todosResult = userId.pipe(
-      switchMap((value) =>
-         http
-            .get(`//example.com/api/v1/todo?userId=${value}`)
-            .pipe(materialize()),
-      ),
-   )
-
-   subscribe(todosResult, {
-      next: todos,
-      error,
-   })
-
-   return {
-      todos,
-      error,
-      getTodosUserById: userId,
+   return function (userId: string) {
+      return http.get(url, {
+         params: { userId },
+      })
    }
 }
 
-export const TodosByUserId = Service(todosByUserId, {
+export const GetTodosByUserId = new Service(getTodosByUserId, {
    providedIn: "root", // defaults to null
 })
 
 function todos() {
    const userId = use("me")
-   const { todos, getTodosByUserId } = inject(TodosByUserId)
+   const getTodosByUserId = inject(GetTodosByUserId)
+   const todos = use<Todos[]>([])
+   const result = userId.pipe(switchMap(getTodosByUserId))
 
-   subscribe(userId, getTodosByUserId)
+   subscribe(result, todos)
 
    return {
       userId,
@@ -116,7 +102,7 @@ function todos() {
 }
 
 @Component({
-   providers: [TodosByUserId], // optional if provided in module
+   providers: [GetTodosByUserId], // optional if provided in module
    inputs: ["userId"],
 })
 export class Todos extends ViewDef(todos) {}
@@ -194,6 +180,35 @@ subscribe(append, (value) => {
 Creates a context-aware, tree-shakable service from the provided setup function. If the
 `providedIn` option is set to null, or omitted, you must provide the service in a `NgModule`,
 `Directive` or `Component`. Start or retrieve the service with `inject`.
+
+```ts
+function setup(arg1, arg2, ...args) {
+   const http = inject(HttpClient)
+   const request = use<Request>(Function)
+   const response = use<Response>()
+   const api = select({
+      next: request,
+      subscribe: response
+   })
+
+   subscribe(request, (req) => {
+      subscribe(http.post(url, req), response)
+   })
+   
+   // return non-primitive value
+   return api
+}
+
+// without options
+const MyService = new Service(setup)
+
+// all options
+const MyService = new Service(setup, {
+   providedIn: "root",
+   name: "MyService",
+   arguments: [arg1, arg2, ...args],
+})
+```
 
 #### Provide
 
@@ -333,7 +348,7 @@ second to complete. If the view is destroyed, then all remaining streams are uns
 **View Scheduler**
 
 The context can be used to control how observable notifications are delivered to observers. Used with an operator such
-as `auditTime`, you can debounce changes until props change, before or after the DOM is updated. Pass `0` to emit before an update, 
+as `auditTime`, you can debounce changes until props change, before or after the DOM is updated. Pass `0` to emit before an update,
 and `1` to emit after an update.
 
 ```ts
@@ -341,7 +356,7 @@ function setup(context: Context) {
    const count = use(0)
    const beforeUpdate = scheduled(count, context)
    const afterUpdate = count.pipe(
-      auditTime(1, context) // pass 0 for before update
+      auditTime(1, context), // pass 0 for before update
    )
 
    subscribe(beforeUpdate, (value) => {
@@ -351,9 +366,9 @@ function setup(context: Context) {
    subscribe(afterUpdate, (value) => {
       // executes when props change, after the dom is updated
    })
-   
+
    return {
-      count
+      count,
    }
 }
 ```
@@ -540,7 +555,7 @@ const increment = use(Function)
 
 const delegate = select({
    next: increment,
-   subscribe: () => count() + 1
+   subscribe: () => count() + 1,
 })
 
 subscribe(increment, () => count(count() + 1))

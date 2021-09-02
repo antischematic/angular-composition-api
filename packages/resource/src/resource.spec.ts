@@ -2,9 +2,7 @@ import {Query} from "./resource";
 import {Component, Injectable, Type} from "@angular/core";
 import {ComponentFixture, fakeAsync, TestBed, tick} from "@angular/core/testing";
 import {inject, ViewDef} from "@mmuscat/angular-composition-api"
-import {HttpClient} from "@angular/common/http";
-import {HttpClientTestingModule, HttpTestingController} from "@angular/common/http/testing";
-import {Notification, of, Subject, timer} from "rxjs";
+import {of, Subject} from "rxjs";
 import {delay} from "rxjs/operators";
 
 function createTestView<T>(

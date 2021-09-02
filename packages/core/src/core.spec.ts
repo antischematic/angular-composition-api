@@ -182,7 +182,7 @@ describe("ViewDef", () => {
 describe("Service", () => {
    it("should create", () => {
       function factory() {}
-      const injectService = defineService(Service(factory), {
+      const injectService = defineService(new Service(factory), {
          configureTestingModule: true,
       })
       expect(injectService).not.toThrow()
@@ -190,13 +190,13 @@ describe("Service", () => {
    it("should create tree-shakable provider", () => {
       function factory() {}
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
       expect(injectService).not.toThrow()
    })
    it("should throw if not provided", () => {
       function factory() {}
-      const injectService = defineService(Service(factory))
+      const injectService = defineService(new Service(factory))
       expect(injectService).toThrow()
    })
    it("should equal factory return value when injected", () => {
@@ -204,7 +204,7 @@ describe("Service", () => {
          return [1, 2, 3]
       }
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
       expect(injectService()).toEqual([1, 2, 3])
    })
@@ -213,7 +213,7 @@ describe("Service", () => {
          return { count: 0 }
       }
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
       expect(injectService()).toEqual(injectService())
    })
@@ -300,7 +300,7 @@ describe("Inject", () => {
       }
 
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
 
       injectService()
@@ -313,7 +313,7 @@ describe("Inject", () => {
       }
 
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
 
       injectService()

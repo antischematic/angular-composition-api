@@ -40,7 +40,7 @@ function loadTodosById() {
    }
 }
 
-export const LoadTodosById = Service(loadTodosById, { providedIn: "root" })
+export const LoadTodosById = new Service(loadTodosById, { providedIn: "root" })
 
 interface Request<T> {
    type: "request"
@@ -75,4 +75,4 @@ function createTodo() {
    return resource
 }
 
-export const CreateTodo = Service(createTodo)
+export const CreateTodo = new Service(createTodo)

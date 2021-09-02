@@ -112,7 +112,7 @@ function createStoreProvider(name: string, options: StoreOptions) {
    }
    Store.overriddenName = name
    Store.Provider = [
-      { provide: Store, useClass: Service(Store) },
+      { provide: Store, useClass: new Service(Store) },
       options.reducers.map((reducer) => reducer.Provider),
    ]
    return Store

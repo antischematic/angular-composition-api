@@ -1,5 +1,5 @@
 import {Type} from "@angular/core";
-import {Service, subscribe, use, Value} from "@mmuscat/angular-composition-api";
+import {Service, subscribe, use, Value, select} from "@mmuscat/angular-composition-api";
 import {materialize, repeat, switchMap} from "rxjs/operators";
 import {Notification} from "rxjs";
 
@@ -52,7 +52,7 @@ function queryFactory(factory: () => () => Function, config?: any) {
 }
 
 function createQueryFactory(factory: () => Function, config?: any) {
-   return Service(queryFactory, {
+   return new Service(queryFactory, {
       providedIn: "root",
       name: factory.name,
       arguments: [factory, config]
@@ -60,3 +60,18 @@ function createQueryFactory(factory: () => Function, config?: any) {
 }
 
 export const Query: QueryStatic = createQueryFactory as any
+
+
+function mutateFactory() {
+   const subscribe = use()
+   const next = use<void>(Function)
+   const mutate = select({
+      next,
+      subscribe
+   })
+
+   subscribe(mutate)
+   mutate()
+
+   return mutate
+}

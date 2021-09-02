@@ -558,7 +558,7 @@ export type ProvidedIn = Type<any> | "root" | "platform" | "any" | null
 
 const serviceMap = new Map()
 
-export function Service<T>(
+function service<T>(
    factory: (...params: any[]) => T,
    options?: ServiceOptions,
 ): Type<T> {
@@ -581,6 +581,12 @@ export function Service<T>(
    }
    return Class as any
 }
+
+export interface ServiceStatic {
+   new<T>(factory: (...params: any[]) => T, options?: ServiceOptions,): Type<T>
+}
+
+export const Service: ServiceStatic = service as any
 
 export function inject<T>(
    token: ValueToken<T>,

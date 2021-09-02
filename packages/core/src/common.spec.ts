@@ -221,7 +221,7 @@ describe("subscribe", () => {
          return {}
       }
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
       injectService()
       expect(spy).toHaveBeenCalledTimes(1)
@@ -234,7 +234,7 @@ describe("subscribe", () => {
          return {}
       }
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
       injectService()
       expect(spy).toHaveBeenCalledTimes(1)
@@ -246,7 +246,7 @@ describe("subscribe", () => {
          return {}
       }
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
       injectService()
       expect(spy).toHaveBeenCalledTimes(0)
@@ -275,7 +275,7 @@ describe("subscribe", () => {
          return {}
       }
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
       injectService()
       expect(spy).toHaveBeenCalledTimes(2)
@@ -291,7 +291,7 @@ describe("subscribe", () => {
          return {}
       }
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
       injectService()
       expect(spy).toHaveBeenCalledTimes(1)
@@ -317,7 +317,7 @@ describe("subscribe", () => {
          return {}
       }
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
       injectService()
       expect(spy).toHaveBeenCalledTimes(1)
@@ -339,7 +339,7 @@ describe("subscribe", () => {
          return {}
       }
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
       injectService()
       expect(next).toHaveBeenCalledOnceWith(10)
@@ -357,7 +357,7 @@ describe("subscribe", () => {
          return {}
       }
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
       injectService()
       expect(error).toHaveBeenCalledTimes(3)
@@ -373,7 +373,7 @@ describe("subscribe", () => {
          return {}
       }
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
       injectService()
       expect(complete).toHaveBeenCalledTimes(4)
@@ -418,7 +418,7 @@ describe("subscribe", () => {
          ],
       })
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
       injectService()
       expect(handledError).toHaveBeenCalledOnceWith(new Error())
@@ -433,7 +433,7 @@ describe("subscribe", () => {
          return {}
       }
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
       injectService()
       expect(spy).toHaveBeenCalledTimes(1)
@@ -447,7 +447,7 @@ describe("subscribe", () => {
          return {}
       }
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
       injectService()
       expect(spy).toHaveBeenCalledTimes(2)
@@ -461,7 +461,7 @@ describe("subscribe", () => {
          return {}
       }
       const injectService = defineService(
-         Service(factory, { providedIn: "root" }),
+         new Service(factory, { providedIn: "root" }),
       )
       injectService()
       TestBed.inject(NgModuleRef).destroy()
@@ -473,7 +473,7 @@ describe("subscribe", () => {
       function factory() {
          subscribe(() => spy)
       }
-      const TestService = Service(factory, { providedIn: "root" })
+      const TestService = new Service(factory, { providedIn: "root" })
       defineService(TestService)
       function create() {
          inject(TestService)
