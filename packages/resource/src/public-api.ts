@@ -2,4 +2,11 @@
  * Public API Surface of resource
  */
 
-export * from "./resource"
+export {
+   ResourceNotification,
+   cancel,
+   Mutation,
+   Query,
+   QueryConfig,
+   invalidate,
+} from "./resource"

@@ -28,10 +28,11 @@ class SelectObserver {
    constructor(private subject: SelectSubject<any, any>) {}
 }
 
-class SelectSubject<T, U> extends Subject<U | undefined> {
+// todo: extract delegate behavior
+class SelectSubject<T, U> {
    value: U
    refs: number
-   _source: Subscribable<T>
+   subject: Subject<T>
    selector?: (value: T) => U
    subscription?: Unsubscribable
    subscribe(): Subscription
@@ -39,15 +40,25 @@ class SelectSubject<T, U> extends Subject<U | undefined> {
    subscribe(observer: PartialObserver<U>): Subscription
    subscribe(observer?: any): Subscription {
       if (this.refs === 0) {
-         this.subscription = this._source.subscribe(new SelectObserver(this))
+         this.subscription = this.subject.subscribe(new SelectObserver(this))
       }
       this.refs++
-      return super.subscribe(observer).add(() => {
+      return this.subject.subscribe(observer).add(() => {
          this.refs--
          if (this.refs === 0) {
             this.subscription?.unsubscribe()
          }
       })
+   }
+
+   next: (value: any) => void
+
+   error(error: any) {
+      this.subject.error?.(error)
+   }
+
+   complete() {
+      this.subject.complete?.()
    }
 
    constructor(
@@ -56,9 +67,16 @@ class SelectSubject<T, U> extends Subject<U | undefined> {
       initialValue?: any,
    ) {
       let next
+      let subscribe: any
       if ("next" in source && !(source instanceof BehaviorSubject) && !isValue(source) && !isEmitter(source)) {
          next = source.next
-         source = typeof source.subscribe === "function" ? new ComputedSubject(source.subscribe) : source
+         source = typeof source.subscribe === "function" && !isValue(source.subscribe) && !isEmitter(source.subscribe) ? new ComputedSubject(source.subscribe) : source.subscribe
+         Object.defineProperty(this, "value", {
+            get() {
+               return (<any>source).value
+            },
+            set(val) {}
+         })
       }
       if ("value" in source) {
          initialValue =
@@ -68,11 +86,12 @@ class SelectSubject<T, U> extends Subject<U | undefined> {
       } else {
          initialValue = typeof selector === "function" ? initialValue : selector
       }
-      super()
-      this.next = next ?? this.next
+
+      this.next = next ?? ((value) => this.subject.next(value))
       this.value = initialValue
-      this._source = source as Subscribable<T>
+      this.subject = source as Subject<any>
       this.selector = selector
+      this.subscribe = subscribe ?? this.subscribe
       this.refs = 0
    }
 }

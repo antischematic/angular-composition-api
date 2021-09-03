@@ -59,7 +59,7 @@ Usage
 ```ts
 function setup() {
    const userId = use("123")
-   const createTodo = inject(CreateTodo)
+   const [createTodoStatus, createTodo] = inject(CreateTodo)
    const getTodosByUserId = inject(GetTodosByUserId)
    const todos = getTodosByUserId(userId, {
       refetch: [createTodo],
@@ -69,6 +69,7 @@ function setup() {
    return {
       todos,
       createTodo,
+      createTodoStatus
    }
 }
 
@@ -92,3 +93,53 @@ TBD
 ### Mutation
 
 TBD
+
+### cancel
+
+Cancel pending queries
+
+```ts
+const getTodosByUserId = inject(GetTodosByUserId)
+const todos = getTodosByUserId(userId)
+
+cancel(todos)
+```
+
+Cancel pending mutations
+
+```ts
+const createTodo = inject(CreateTodo)
+
+createTodo(todo)
+
+cancel(createTodo)
+```
+
+### invalidate
+
+Invalidate a single query
+
+```ts
+const getTodosByUserId = inject(GetTodosByUserId)
+const todos = getTodosByUserId(userId)
+
+invalidate(todos)
+```
+
+Invalidate a single query with specific arguments
+
+```ts
+const getTodosByUserId = inject(GetTodosByUserId)
+const todos = getTodosByUserId(userId)
+
+invalidate(todos, "123")
+```
+
+Invalidate all queries by injection token
+
+```ts
+const getTodosByUserId = inject(GetTodosByUserId)
+const todos = getTodosByUserId(userId)
+
+invalidate(GetTodosByUserId)
+```

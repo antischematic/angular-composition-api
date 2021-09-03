@@ -1,9 +1,10 @@
-import {Query} from "./resource";
+import {invalidate, Mutation, Query, ResourceNotification} from "./resource";
 import {Component, Injectable, Type} from "@angular/core";
 import {ComponentFixture, fakeAsync, TestBed, tick} from "@angular/core/testing";
-import {inject, ViewDef} from "@mmuscat/angular-composition-api"
+import {inject, ViewDef, use} from "@mmuscat/angular-composition-api"
 import {of, Subject} from "rxjs";
 import {delay} from "rxjs/operators";
+import {HttpClient} from "@angular/common/http";
 
 function createTestView<T>(
    View: Type<T>,
@@ -69,18 +70,15 @@ describe("Resource Query", () => {
       }
       const TestQuery = new Query(query)
       const view = createTestView(ViewDef(setup))
-      expect(view.componentInstance.value).toEqual({
-         value: initialValue,
-         pending: false,
-         error: undefined
-      })
+      expect(view.componentInstance.value).toEqual(ResourceNotification.createNext(initialValue))
    })
-   it("should manually fetch a value", fakeAsync(() => {
+   it("should fetch a value", fakeAsync(() => {
       const initialValue = [] as any[]
       const expected = [1, 2, 3]
       function setup() {
          const testQuery = inject(TestQuery)
-         const [value, fetch] = testQuery({initialValue})
+         const fetch = use(Function)
+         const value = testQuery(fetch, {initialValue})
          return {
             value,
             fetch
@@ -88,21 +86,18 @@ describe("Resource Query", () => {
       }
       const TestQuery = new Query(query)
       const view = createTestView(ViewDef(setup))
+      view.detectChanges()
       view.componentInstance.fetch(expected)
       tick(1000)
-      expect(view.componentInstance.value).toEqual({
-         value: expected,
-         pending: false,
-         error: undefined
-      })
+      expect(view.componentInstance.value).toEqual(ResourceNotification.createNext(expected))
    }))
-   it("should fetch a value automatically", fakeAsync(() => {
+   it("should memoize fetch arguments", fakeAsync(() => {
       const initialValue = [] as any[]
       const expected = [1, 2, 3]
-      const args = new Subject()
       function setup() {
          const testQuery = inject(TestQuery)
-         const [value, fetch] = testQuery(args, {initialValue})
+         const fetch = use(Function)
+         const value = testQuery(fetch, {initialValue})
          return {
             value,
             fetch
@@ -110,15 +105,116 @@ describe("Resource Query", () => {
       }
       const TestQuery = new Query(query)
       const view = createTestView(ViewDef(setup))
-      args.next(expected)
+      view.detectChanges()
+      view.componentInstance.fetch(expected)
       tick(1000)
-      expect(view.componentInstance.value).toEqual({
-         value: expected,
-         pending: false,
-         error: undefined
-      })
+      expect(view.componentInstance.value).toEqual(ResourceNotification.createNext(expected))
+      view.componentInstance.fetch([4, 5, 6])
+      tick(1000)
+      expect(view.componentInstance.value).toEqual(ResourceNotification.createNext([4, 5, 6]))
+      view.componentInstance.fetch(expected)
+      // should update immediately
+      expect(view.componentInstance.value).toEqual(ResourceNotification.createNext(expected))
    }))
-   it("should memoize fetch arguments", () => {
-      // maybe next time!
+   it("should invalidate", fakeAsync(() => {
+      const initialValue = [] as any[]
+      const expected = [1, 2, 3]
+      function setup() {
+         const testQuery = inject(TestQuery)
+         const fetch = use(Function)
+         const value = testQuery(fetch, {initialValue})
+         function refetch() {
+            invalidate(value)
+         }
+         return {
+            value,
+            fetch,
+            refetch
+         }
+      }
+      const TestQuery = new Query(query)
+      const view = createTestView(ViewDef(setup))
+      view.detectChanges()
+      view.componentInstance.fetch(expected)
+      tick(1000)
+      expect(view.componentInstance.value).toEqual(ResourceNotification.createNext(expected))
+      view.componentInstance.refetch()
+      tick(1000)
+      expect(view.componentInstance.value).toEqual(ResourceNotification.createNext(expected))
+   }))
+   it("should invalidate all queries", fakeAsync(() => {
+      const initialValue = [] as any[]
+      const expected = [1, 2, 3]
+      function setup() {
+         const testQuery = inject(TestQuery)
+         const fetch = use(Function)
+         const value = testQuery(fetch, {initialValue})
+
+         return {
+            value,
+            fetch
+         }
+      }
+      const TestQuery = new Query(query)
+      const view = createTestView(ViewDef(setup))
+      view.detectChanges()
+      view.componentInstance.fetch(expected)
+      tick(1000)
+      expect(view.componentInstance.value).toEqual(ResourceNotification.createNext(expected))
+      invalidate(TestQuery)
+      tick(1000)
+      expect(view.componentInstance.value).toEqual(ResourceNotification.createNext(expected))
+   }))
+})
+
+function mutation() {
+   return function (args: any) {
+      return of(args).pipe(
+         delay(1000)
+      )
+   }
+}
+
+describe("Mutation", () => {
+
+   it("should create", () => {
+      function setup() {
+         const http = inject(HttpClient)
+         return function () {
+            return http.post('url', {})
+         }
+      }
+      expect(new Mutation(setup)).toBeTruthy()
    })
+   it("should have an initial value", () => {
+      const TestMutation = new Mutation(mutation)
+      function setup() {
+         const status = inject(TestMutation)
+         return {
+            status
+         }
+      }
+      const view = createTestView(ViewDef(setup))
+      view.detectChanges()
+      expect(view.componentInstance.status).toEqual(ResourceNotification.createNext(undefined))
+   })
+   it("should trigger mutation", fakeAsync(() => {
+      const expected = [1,2,3]
+      const TestMutation = new Mutation(mutation)
+      function setup() {
+         const [status, mutate] = inject(TestMutation)
+         function run(value: any) {
+            mutate(value)
+         }
+         return {
+            status,
+            mutate,
+         }
+      }
+      const view = createTestView(ViewDef(setup))
+      view.detectChanges()
+      view.componentInstance.mutate(expected)
+      tick(1000)
+      expect(view.componentInstance.status).toEqual(ResourceNotification.createComplete(expected))
+   }))
 })
