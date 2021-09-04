@@ -8,7 +8,7 @@ import {
    ViewChild,
    ViewChildren,
 } from "@angular/core"
-import { Observable, Subject, Subscribable, Subscription } from "rxjs"
+import {Observable, ObservableInput, Subject, Subscribable, Subscription} from "rxjs"
 
 export const checkPhase = Symbol("checkPhase")
 
@@ -50,16 +50,16 @@ export type State<T, U> = Type<
 
 export type UnsubscribeSignal = Subscription | AbortSignal | null
 
-export type Value<T, U = T> = CheckSubject<T> & {
+export type Value<T> = CheckSubject<T> & {
    readonly __ng_value: true
    readonly source: Observable<T>
    readonly pipe: Observable<T>["pipe"]
    readonly value: T
-   (mutate: (value: U) => any): void
-   (value: U): void
+   (mutate: (value: T) => any): void
+   (value: T): void
    (): T
    next(value: T): void
-} & [Value<T, U>, Emitter<T>]
+} & [Value<T>, Emitter<T>]
 
 export interface ReadonlyValue<T> extends CheckSubject<T> {
    readonly __ng_value: true
@@ -69,7 +69,7 @@ export interface ReadonlyValue<T> extends CheckSubject<T> {
    (): T
 }
 
-export interface ValueAccessor<T, U> {
+export interface ValueAccessorOptions<T, U> {
    next(value: T): void
    subscribe: Subscribable<U> | (() => U)
 }
@@ -83,7 +83,7 @@ export interface EmitterWithParams<T extends (...args: any[]) => any>
    next(value: ReturnType<T>): void
 }
 
-export interface Emitter<T> extends Subscribable<T> {
+export interface Emitter<T> extends Observable<T> {
    readonly __ng_emitter: true
    readonly source: Subject<T>
    readonly pipe: Subject<T>["pipe"]

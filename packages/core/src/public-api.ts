@@ -23,6 +23,6 @@ export {
    Emitter,
    EmitterWithParams,
 } from "./interfaces"
-export { select } from "./select"
+export { select, ValueAccessor } from "./select"
 export { ValueToken, provide, EmptyValueError } from "./provider"
 export { beforeUpdate, afterUpdate } from "./utils"

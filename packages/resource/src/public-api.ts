@@ -3,7 +3,7 @@
  */
 
 export {
-   ResourceNotification,
+   Resource,
    cancel,
    Mutation,
    Query,

@@ -1,69 +1,89 @@
-import {Injectable, Type} from "@angular/core"
-import {inject, select, Service, subscribe, use, Value} from "@mmuscat/angular-composition-api"
+import { Injectable, Type } from "@angular/core"
+import {
+   inject,
+   select,
+   Service,
+   subscribe,
+   use,
+   Value,
+   ValueAccessor,
+} from "@mmuscat/angular-composition-api"
 import {
    exhaust,
    filter,
    materialize,
    repeat,
-   sample, share,
+   sample,
    switchMap,
    takeUntil,
    tap,
 } from "rxjs/operators"
-import {merge, Notification, Observable, of, OperatorFunction, Subject,} from "rxjs"
+import {
+   merge,
+   NextObserver,
+   Notification,
+   Observable,
+   Observer,
+   of,
+   OperatorFunction,
+   Subject,
+} from "rxjs"
 
-interface QueryStatic {
-   new (factory: () => Function): Type<any>
+export interface QueryOptions<T> {
+   initialValue: T
+   refetch?: Observable<any>[]
 }
 
-export class ResourceNotification {
+export interface Query<T, U> {
+   (config: QueryOptions<T>): ValueAccessor<Resource<T>, U>
+   (
+      params: Observable<U> | Observable<U>[],
+      config: QueryOptions<T>,
+   ): ValueAccessor<Resource<T>, U>
+}
+
+interface QueryStatic {
+   new <T, U>(factory: () => (params: U) => Observable<T>): Type<Query<T, U>>
+}
+
+export class Resource<T> {
    static createPending(value: any) {
-      return new ResourceNotification(value, undefined, true, false)
+      return new Resource(value, undefined, true, false)
    }
    static createNext(value: any) {
-      return new ResourceNotification(value, undefined, false, false)
+      return new Resource(value, undefined, false, false)
    }
    static createError(value: any, error: any) {
-      return new ResourceNotification(value, error, false, true)
+      return new Resource(value, error, false, true)
    }
    static createComplete(value: any) {
-      return new ResourceNotification(value, undefined, false, true)
+      return new Resource(value, undefined, false, true)
    }
    constructor(
-      public value: any,
-      public error: any,
+      public value: T,
+      public error: unknown,
       public pending: boolean,
       public done: boolean,
    ) {}
 }
 
-class ResultObserver {
+class ResultObserver implements Observer<any> {
    next(value: any) {
-      this.value.next(ResourceNotification.createNext(value))
+      this.value.next(Resource.createNext(value))
    }
    error(error: any) {
-      this.value.next(
-         ResourceNotification.createError(
-            this.value.value.value,
-            error,
-         ),
-      )
+      this.value.next(Resource.createError(this.value.value.value, error))
    }
    complete() {
-      console.log('done???')
-      this.value.next(
-         ResourceNotification.createComplete(this.value.value.value),
-      )
+      this.value.next(Resource.createComplete(this.value.value.value))
       console.log(this.mutation.value)
    }
    constructor(private value: Value<any>, private mutation: any) {}
 }
 
-class PendingObserver {
+class PendingObserver implements NextObserver<any> {
    next() {
-      this.value.next(
-         ResourceNotification.createPending(this.value.value.value),
-      )
+      this.value.next(Resource.createPending(this.value.value.value))
    }
    constructor(private value: Value<any>) {}
 }
@@ -91,7 +111,11 @@ class Cache {
    subscribe() {
       return this
    }
-   constructor(private factory: (args: any) => Observable<any>, private cache: Map<any, any>, public unsubscribe: (this: Cache) => void) {}
+   constructor(
+      private factory: (args: any) => Observable<any>,
+      private cache: Map<any, any>,
+      public unsubscribe: (this: Cache) => void,
+   ) {}
 }
 
 const globalCache = new Map<Type<any>, Set<Cache>>()
@@ -114,13 +138,13 @@ class CacheFactory {
 }
 
 export interface QueryConfig {
-   operator?: OperatorFunction<any, any>
+   operator?: () => OperatorFunction<any, any>
 }
 
 function queryFactory(
    factory: () => (args: any) => Observable<any>,
    forwardRef: () => any,
-   config: any,
+   config: QueryConfig,
 ) {
    const cacheFactory = inject(CacheFactory)
    const queryFunction = factory()
@@ -128,7 +152,7 @@ function queryFactory(
    return function query(...params: any[]) {
       const args = params[params.length - 2]
       const options = params[params.length - 1]
-      const value = use(ResourceNotification.createNext(options.initialValue))
+      const value = use(Resource.createNext(options.initialValue))
       const query = select({
          next(valueOrCommand: any) {
             if (valueOrCommand instanceof Command) {
@@ -153,9 +177,7 @@ function queryFactory(
          subscribe: value,
       })
       const cache = cacheFactory.get(forwardRef(), queryFunction)
-      const operator: (
-         args: (args: any, index: number) => Observable<any>,
-      ) => OperatorFunction<any, any> = config?.operator ?? switchMap
+      const operator = config?.operator ?? switchMap
       const cancel = new Subject()
       const fetch = use((args: any, invalidate: any) => [
          args,
@@ -174,9 +196,7 @@ function queryFactory(
 
       if (options.refetch) {
          const signal = merge(...options.refetch).pipe(
-            filter((value) =>
-               value instanceof ResourceNotification ? value.done : true,
-            ),
+            filter((value) => (value instanceof Resource ? value.done : true)),
          )
          subscribe(fetch.pipe(sample(signal)), (params) => fetch(params, true))
       }
@@ -213,17 +233,14 @@ function throwInvalidCommand() {
 
 function mutateFactory(
    factory: () => (...args: any[]) => Observable<any>,
-   config: any,
+   config: MutationConfig,
 ) {
-   const operator: OperatorFunction<
-      Observable<Notification<any>>,
-      Notification<any>
-   > = config?.operator ?? exhaust()
+   const operator = config?.operator?.() ?? exhaust()
    const queue = use<Observable<Notification<any>>>(Function)
    const cancel = new Subject()
    const result = queue.pipe(operator)
    const createStream = factory()
-   const value = use(ResourceNotification.createNext(undefined))
+   const value = use(Resource.createNext(undefined))
    function mutate(params: any) {
       if (params instanceof Command) {
          switch (params.signal) {
@@ -246,16 +263,20 @@ function mutateFactory(
    return mutation
 }
 
+export interface MutationConfig {
+   operator?: () => OperatorFunction<Observable<any>, any>
+}
+
 export interface MutationStatic {
-   new (
-      factory: () => (...args: any) => Observable<any>,
-      config?: any,
-   ): Type<any>
+   new <T, U>(
+      factory: () => (params: U) => Observable<T>,
+      config?: MutationConfig,
+   ): Type<ValueAccessor<Resource<T>, U>>
 }
 
 function createMutationFactory(
    factory: () => (...args: any) => Observable<any>,
-   config: any,
+   config: MutationConfig,
 ) {
    return new Service(mutateFactory, {
       providedIn: "root",

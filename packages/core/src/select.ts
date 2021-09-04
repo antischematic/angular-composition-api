@@ -7,7 +7,7 @@ import {
    Unsubscribable,
 } from "rxjs"
 import { ComputedSubject } from "./core"
-import {Value, ValueAccessor} from "./interfaces"
+import {CheckSubject, Emitter, Value, ValueAccessorOptions} from "./interfaces"
 import { use } from "./common"
 import { isEmitter, isValue } from "./utils"
 
@@ -62,7 +62,7 @@ class SelectSubject<T, U> {
    }
 
    constructor(
-      source: Subscribable<T> | BehaviorSubject<T> | ValueAccessor<any, any>,
+      source: Subscribable<T> | BehaviorSubject<T> | ValueAccessorOptions<any, any>,
       selector?: (value?: T) => U,
       initialValue?: any,
    ) {
@@ -95,8 +95,18 @@ class SelectSubject<T, U> {
       this.refs = 0
    }
 }
+export type ValueAccessor<T, U> = CheckSubject<T> & {
+   readonly __ng_value: true
+   readonly source: Observable<T>
+   readonly pipe: Observable<T>["pipe"]
+   readonly value: T
+   (mutate: (value: U) => any): void
+   (value: U): void
+   (): T
+   next(value: T): void
+} & [Value<T>, Emitter<U>]
 
-export function select<T, U>(value: ValueAccessor<T, U>): Value<T, U>
+export function select<T, U>(value: ValueAccessorOptions<T, U>): ValueAccessor<T, U>
 export function select<T>(source: () => T): Value<T>
 export function select<T>(source: Value<T>): Value<T>
 export function select<T, U>(
@@ -123,7 +133,7 @@ export function select<T, U, V>(
    initialValue: V,
 ): Value<U | V>
 export function select<T, U>(
-   source: Subscribable<T> | (() => U) | ValueAccessor<T, U>,
+   source: Subscribable<T> | (() => U) | ValueAccessorOptions<T, U>,
    selector?: (value: T) => U,
 ): Value<U> {
    if (typeof source === "function" && !isValue(source) && !isEmitter(source)) {

@@ -66,7 +66,7 @@ function createQueryList<T>(phase: CheckPhase): ReadonlyValue<QueryList<T>> {
    getterSetter[checkPhase] = phase
    getterSetter.__ng_value = true
 
-   return getterSetter as ReadonlyValue<QueryList<T>>
+   return getterSetter as any
 }
 
 function sub(this: Value<any>, nextOrObserver: any) {
@@ -137,7 +137,7 @@ function createEmitter<T extends (...args: any[]) => any>(
    next.next = next
    next.__ng_emitter = true
 
-   return next as Emitter<T>
+   return next as any
 }
 
 const queryMap = new Map<Function, CheckPhase>([
