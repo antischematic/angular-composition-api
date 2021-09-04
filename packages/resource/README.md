@@ -4,7 +4,7 @@ Data fetching library for Angular Composition API.
 
 ## Quick Start
 
-Install via NPM
+[Install via NPM](https://www.npmjs.com/package/@mmuscat/angular-resource)
 
 ```bash
 
@@ -12,7 +12,7 @@ npm install @mmuscat/angular-resource
 
 ```
 
-Install via Yarn
+[Install via Yarn](https://yarnpkg.com/package/@mmuscat/angular-resource)
 
 ```bash
 
