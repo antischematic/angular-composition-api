@@ -1,0 +1,8 @@
+<app-dot *ngIf="isFinal; else triangles" [size]="targetSize" [x]="x - halfTargetSize"
+         [y]="y - halfTargetSize"></app-dot>
+
+<ng-template #triangles>
+   <app-triangle [s]="halfS" [x]="x" [y]="y - half2S"></app-triangle>
+   <app-triangle [s]="halfS" [x]="x - halfS" [y]="y + half2S"></app-triangle>
+   <app-triangle [s]="halfS" [x]="x + halfS" [y]="y + half2S"></app-triangle>
+</ng-template>

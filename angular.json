@@ -236,6 +236,104 @@
           }
         }
       }
+    },
+    "bench": {
+      "projectType": "application",
+      "schematics": {
+        "@schematics/angular:application": {
+          "strict": true
+        }
+      },
+      "root": "packages/bench",
+      "sourceRoot": "packages/bench/src",
+      "prefix": "app",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "outputPath": "dist/bench",
+            "index": "packages/bench/src/index.html",
+            "main": "packages/bench/src/main.ts",
+            "polyfills": "packages/bench/src/polyfills.ts",
+            "tsConfig": "packages/bench/tsconfig.app.json",
+            "assets": [
+              "packages/bench/src/favicon.ico",
+              "packages/bench/src/assets"
+            ],
+            "styles": [
+              "packages/bench/src/styles.css"
+            ],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kb",
+                  "maximumError": "1mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "4kb"
+                }
+              ],
+              "fileReplacements": [
+                {
+                  "replace": "packages/bench/src/environments/environment.ts",
+                  "with": "packages/bench/src/environments/environment.prod.ts"
+                }
+              ],
+              "outputHashing": "all"
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "browserTarget": "bench:build:production"
+            },
+            "development": {
+              "browserTarget": "bench:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "browserTarget": "bench:build"
+          }
+        },
+        "test": {
+          "builder": "@angular-devkit/build-angular:karma",
+          "options": {
+            "main": "packages/bench/src/test.ts",
+            "polyfills": "packages/bench/src/polyfills.ts",
+            "tsConfig": "packages/bench/tsconfig.spec.json",
+            "karmaConfig": "packages/bench/karma.conf.js",
+            "assets": [
+              "packages/bench/src/favicon.ico",
+              "packages/bench/src/assets"
+            ],
+            "styles": [
+              "packages/bench/src/styles.css"
+            ],
+            "scripts": []
+          }
+        }
+      }
     }
   },
   "defaultProject": "core"

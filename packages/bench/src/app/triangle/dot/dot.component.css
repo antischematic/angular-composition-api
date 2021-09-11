@@ -1,0 +1,14 @@
+:host {
+   position: absolute;
+   background: #CA0C34;
+   font: normal 15px sans-serif;
+   text-align: center;
+   cursor: pointer;
+   color: #fff;
+   display: block;
+}
+
+:host:hover {
+   background: #61dafb;
+   z-index: 1000;
+}
