@@ -1,13 +1,19 @@
 import {
-   BehaviorSubject, Observable,
+   BehaviorSubject,
+   Observable,
    PartialObserver,
    Subject,
-   Subscribable, Subscriber,
+   Subscribable,
    Subscription,
    Unsubscribable,
 } from "rxjs"
 import { ComputedSubject } from "./core"
-import {CheckSubject, Emitter, Value, ValueAccessorOptions} from "./interfaces"
+import {
+   CheckSubject,
+   Emitter,
+   Value,
+   ValueAccessorOptions,
+} from "./interfaces"
 import { use } from "./common"
 import { isEmitter, isValue } from "./utils"
 
@@ -62,20 +68,33 @@ class SelectSubject<T, U> {
    }
 
    constructor(
-      source: Subscribable<T> | BehaviorSubject<T> | ValueAccessorOptions<any, any>,
+      source:
+         | Subscribable<T>
+         | BehaviorSubject<T>
+         | ValueAccessorOptions<any, any>,
       selector?: (value?: T) => U,
       initialValue?: any,
    ) {
       let next
       let subscribe: any
-      if ("next" in source && !(source instanceof BehaviorSubject) && !isValue(source) && !isEmitter(source)) {
+      if (
+         "next" in source &&
+         !(source instanceof BehaviorSubject) &&
+         !isValue(source) &&
+         !isEmitter(source)
+      ) {
          next = source.next
-         source = typeof source.subscribe === "function" && !isValue(source.subscribe) && !isEmitter(source.subscribe) ? new ComputedSubject(source.subscribe) : source.subscribe
+         source =
+            typeof source.subscribe === "function" &&
+            !isValue(source.subscribe) &&
+            !isEmitter(source.subscribe)
+               ? new ComputedSubject(source.subscribe)
+               : source.subscribe
          Object.defineProperty(this, "value", {
             get() {
                return (<any>source).value
             },
-            set(val) {}
+            set(val) {},
          })
       }
       if ("value" in source) {
@@ -106,7 +125,9 @@ export type ValueAccessor<T, U> = CheckSubject<T> & {
    next(value: T): void
 } & [Value<T>, Emitter<U>]
 
-export function select<T, U>(value: ValueAccessorOptions<T, U>): ValueAccessor<T, U>
+export function select<T, U>(
+   value: ValueAccessorOptions<T, U>,
+): ValueAccessor<T, U>
 export function select<T>(source: () => T): Value<T>
 export function select<T>(source: Value<T>): Value<T>
 export function select<T, U>(

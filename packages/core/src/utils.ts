@@ -14,7 +14,7 @@ let previous: Set<any>
 let deps: Set<any>
 let tracking = false
 
-export function trackDeps<T>(fn: () => T): [T, Set<any>] {
+export function trackDeps<T>(fn: () => T): [T, any[]] {
    const flushed = new Set()
    tracking = true
    previous = deps
@@ -22,17 +22,15 @@ export function trackDeps<T>(fn: () => T): [T, Set<any>] {
    const value = fn()
    tracking = false
    deps = previous
-   return [value, flushed]
+   return [value, Array.from(flushed)]
 }
 
 export function computeValue<T>(compute: (value?: T) => T) {
    return trackDeps(compute)
 }
 
-export function arrayCompare(a: Set<any>, b: Set<any>) {
-   const aArr = [...a]
-   const bArr = [...b]
-   return aArr.every((v, i) => v === bArr[i])
+export function arrayCompare(a: any[], b: any[]) {
+   return a.every((v, i) => v === b[i])
 }
 
 export function track<T>(source: {

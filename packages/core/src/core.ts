@@ -19,12 +19,10 @@ import {
 } from "@angular/core"
 import {
    BehaviorSubject,
-   combineLatest,
    Notification,
    PartialObserver,
    SchedulerAction,
    SchedulerLike,
-   Subject,
    Subscribable,
    Subscription,
    TeardownLogic,
@@ -39,15 +37,7 @@ import {
    UnsubscribeSignal,
    Value,
 } from "./interfaces"
-import {
-   addSignal,
-   arrayCompare,
-   computeValue,
-   isEmitter,
-   isObject,
-   isValue,
-} from "./utils"
-import { distinctUntilChanged, skip, switchMap } from "rxjs/operators"
+import { addSignal, computeValue, isEmitter, isObject, isValue } from "./utils"
 import { ValueToken } from "./provider"
 
 let currentContext: any
@@ -226,8 +216,7 @@ export class Scheduler implements SchedulerLike {
    flush(step: number) {
       let action
       let error
-      const actions = this.actions[step].slice()
-      this.actions[step].length = 0
+      const actions = this.actions[step]
       while ((action = actions.shift()!)) {
          if ((error = action.execute(action.state))) {
             break
@@ -317,14 +306,11 @@ export function check(key: CheckPhase) {
 }
 
 export function subscribe() {
+   let effect
    const { effects } = getContext()
-   if (effects.length === 0) return
-   const list = Array.from(effects)
-   effects.length = 0
-   for (const effect of list) {
+   while ((effect = effects.shift())) {
       effect.subscribe()
    }
-   return true
 }
 
 export function unsubscribe() {
@@ -394,9 +380,10 @@ function next(
 
 function detectChanges() {
    timeoutId = undefined
+   let scheduler
    const list = Array.from(dirty)
    dirty.clear()
-   for (const scheduler of list) {
+   while ((scheduler = list.shift())) {
       scheduler.detectChanges()
    }
 }
@@ -404,40 +391,33 @@ function detectChanges() {
 export class ComputedSubject<T> extends BehaviorSubject<T> {
    [checkPhase]: CheckPhase
    compute
-   deps: Subject<Set<any>>
-   refs: number
-   subscription?: Unsubscribable
-   changes: Subscribable<any>
-   subscribe(): Subscription
-   subscribe(observer: (value: T) => void): Subscription
-   subscribe(observer: PartialObserver<T>): Subscription
-   subscribe(observer?: any): Subscription {
-      this.refs++
-      if (this.refs === 1) {
-         this.subscription = this.changes.subscribe(() => {
-            const [value, deps] = computeValue(this.compute)
-            this.deps.next(deps)
-            this.next(value)
-         })
+   subscription!: Subscription
+
+   private subscribeDeps(deps: any[]) {
+      let dep
+      let first = true
+      this.subscription = new Subscription()
+      while ((dep = deps.shift())) {
+         this.subscription.add(
+            dep.subscribe(() => {
+               if (!first) {
+                  this.subscription.unsubscribe()
+                  const [value, deps] = computeValue(this.compute)
+                  this.subscribeDeps(deps)
+                  this.next(value)
+               }
+            }),
+         )
       }
-      return super.subscribe(observer).add(() => {
-         this.refs--
-         if (this.refs === 0) {
-            this.subscription?.unsubscribe()
-         }
-      })
+      first = false
    }
+
    constructor(compute: (value?: T) => T) {
       const [value, deps] = computeValue(compute)
       super(value)
       this[checkPhase] = 0
       this.compute = compute
-      this.deps = new BehaviorSubject(deps)
-      this.changes = this.deps.pipe(
-         distinctUntilChanged(arrayCompare),
-         switchMap((deps) => combineLatest([...deps]).pipe(skip(1))),
-      )
-      this.refs = 0
+      this.subscribeDeps(deps)
    }
 }
 
@@ -583,7 +563,7 @@ function service<T>(
 }
 
 export interface ServiceStatic {
-   new<T>(factory: (...params: any[]) => T, options?: ServiceOptions,): Type<T>
+   new <T>(factory: (...params: any[]) => T, options?: ServiceOptions): Type<T>
 }
 
 export const Service: ServiceStatic = service as any
