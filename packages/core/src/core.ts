@@ -141,7 +141,7 @@ class ContextBinding<T = any> implements Check {
 
 const dirty = new Set<Scheduler>()
 
-let id: number
+let timeoutId: number | undefined
 
 class Action<T> extends Subscription implements SchedulerAction<T> {
    delay?: number
@@ -196,9 +196,8 @@ export class Scheduler implements SchedulerLike {
       if (this.closed) return
       this.dirty = true
       dirty.add(this)
-      if (!currentContext) {
-         clearTimeout(id)
-         id = setTimeout(detectChanges)
+      if (!currentContext && timeoutId === undefined) {
+         timeoutId = setTimeout(detectChanges)
       }
    }
 
@@ -394,6 +393,7 @@ function next(
 }
 
 function detectChanges() {
+   timeoutId = undefined
    const list = Array.from(dirty)
    dirty.clear()
    for (const scheduler of list) {
