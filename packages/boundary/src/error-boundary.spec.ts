@@ -238,7 +238,7 @@ describe("ErrorBoundary", () => {
       expect(getErrorBoundary(boundary).nativeElement).toHaveClass("ng-cloak")
       expect(logger).toHaveBeenCalledWith(
          "ERROR",
-         new TypeError("Cannot read property 'not' of undefined"),
+         new TypeError("Cannot read properties of undefined (reading 'not')"),
       )
    })
    it("should show fallback when error is caught", () => {
@@ -252,7 +252,7 @@ describe("ErrorBoundary", () => {
       expect(getFallback(boundary).nativeElement).not.toHaveClass("ng-cloak")
       expect(logger).toHaveBeenCalledWith(
          "ERROR",
-         new TypeError("Cannot read property 'not' of undefined"),
+         new TypeError("Cannot read properties of undefined (reading 'not')"),
       )
    })
    it("should show fallback when async error is handled", fakeAsync(() => {
@@ -317,7 +317,7 @@ describe("ErrorBoundary", () => {
       expect(getErrorBoundary(boundary).nativeElement).toHaveClass("ng-cloak")
       expect(logger).toHaveBeenCalledWith(
          "ERROR",
-         new TypeError("Cannot read property 'not' of undefined"),
+         new TypeError("Cannot read properties of undefined (reading 'not')"),
       )
    })
 })
