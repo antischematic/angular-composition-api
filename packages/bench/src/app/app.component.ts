@@ -18,7 +18,7 @@ function app() {
    const sanitizer = inject(DomSanitizer)
    const transform = select(() => sanitizer.bypassSecurityTrustStyle(getTransform(elapsed())))
 
-   subscribe(interval(0), elapsed)
+   subscribe(interval(0, animationFrameScheduler), elapsed)
 
    return {
       transform
