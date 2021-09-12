@@ -76,9 +76,8 @@ class ResultObserver implements Observer<any> {
    }
    complete() {
       this.value.next(Resource.createComplete(this.value.value.value))
-      console.log(this.mutation.value)
    }
-   constructor(private value: Value<any>, private mutation: any) {}
+   constructor(private value: Value<any>) {}
 }
 
 class PendingObserver implements NextObserver<any> {
@@ -192,7 +191,7 @@ function queryFactory(
 
       subscribe(cache)
       subscribe(fetch, new PendingObserver(value))
-      subscribe(result, new ResultObserver(value, value))
+      subscribe(result, new ResultObserver(value))
 
       if (options.refetch) {
          const signal = merge(...options.refetch).pipe(
@@ -258,7 +257,7 @@ function mutateFactory(
    })
 
    subscribe(queue, new PendingObserver(value))
-   subscribe(result, new ResultObserver(value, mutation))
+   subscribe(result, new ResultObserver(value))
 
    return mutation
 }
