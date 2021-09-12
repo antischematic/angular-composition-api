@@ -8,7 +8,13 @@ import {
    ViewChild,
    ViewChildren,
 } from "@angular/core"
-import {Observable, ObservableInput, Subject, Subscribable, Subscription} from "rxjs"
+import {
+   BehaviorSubject,
+   Observable,
+   Subject,
+   Subscribable,
+   Subscription,
+} from "rxjs"
 
 export const checkPhase = Symbol("checkPhase")
 
@@ -59,7 +65,7 @@ export type Value<T> = CheckSubject<T> & {
    (value: T): void
    (): T
    next(value: T): void
-} & [Value<T>, Emitter<T>]
+} & [ReadonlyValue<T>, Emitter<T>]
 
 export interface ReadonlyValue<T> extends CheckSubject<T> {
    readonly __ng_value: true
@@ -70,8 +76,8 @@ export interface ReadonlyValue<T> extends CheckSubject<T> {
 }
 
 export interface ValueAccessorOptions<T, U> {
-   next(value: T): void
-   subscribe: Subscribable<U> | (() => U)
+   next: ((value: T) => void) | Subject<any>
+   value: Subscribable<U> | Value<U> | BehaviorSubject<U> | (() => U)
 }
 
 export interface EmitterWithParams<T extends (...args: any[]) => any>

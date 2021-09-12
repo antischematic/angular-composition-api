@@ -397,6 +397,15 @@ arr((val) => val.push(10))
 subscribe(num, observer)
 ```
 
+**Readonly Value**
+
+A readonly value can be obtained through destructuring.
+
+```ts
+const value = use(0)
+const [readonly] = use(0)
+```
+
 #### Emitter
 
 Creates an `Emitter` from a `Function` or `Value`.
@@ -553,18 +562,18 @@ Select can also be used to delegate between separate read and write streams.
 const count = use(0)
 const increment = use(Function)
 
-const delegate = select({
+const value = select({
    next: increment,
-   subscribe: () => count() + 1,
+   value: () => count() + 1,
 })
 
 subscribe(increment, () => count(count() + 1))
 
 // write value
-delegate.next()
+value.next()
 // read value
-delegate()
-delegate.value
+value()
+value.value
 ```
 
 #### beforeUpdate/afterUpdate

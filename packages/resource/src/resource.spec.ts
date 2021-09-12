@@ -1,8 +1,8 @@
 import {invalidate, Mutation, Query, Resource} from "./resource";
 import {Component, Injectable, Type} from "@angular/core";
 import {ComponentFixture, fakeAsync, TestBed, tick} from "@angular/core/testing";
-import {inject, ViewDef, use} from "@mmuscat/angular-composition-api"
-import {Observable, of, Subject} from "rxjs";
+import {inject, use, ViewDef} from "@mmuscat/angular-composition-api"
+import {Observable, of} from "rxjs";
 import {delay} from "rxjs/operators";
 import {HttpClient} from "@angular/common/http";
 

@@ -174,7 +174,7 @@ function queryFactory(
                value(valueOrCommand)
             }
          },
-         subscribe: value,
+         value,
       })
       const cache = cacheFactory.get(forwardRef(), queryFunction)
       const operator = config?.operator ?? switchMap
@@ -254,7 +254,7 @@ function mutateFactory(
    }
    const mutation = select({
       next: mutate,
-      subscribe: value,
+      value,
    })
 
    subscribe(queue, new PendingObserver(value))

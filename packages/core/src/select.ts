@@ -2,118 +2,98 @@ import {
    BehaviorSubject,
    Observable,
    PartialObserver,
-   Subject,
    Subscribable,
    Subscription,
    Unsubscribable,
 } from "rxjs"
-import { ComputedSubject } from "./core"
-import {
-   CheckSubject,
-   Emitter,
-   Value,
-   ValueAccessorOptions,
-} from "./interfaces"
-import { use } from "./common"
-import { isEmitter, isValue } from "./utils"
+import {ComputedSubject} from "./core"
+import {CheckSubject, Emitter, Value, ValueAccessorOptions,} from "./interfaces"
+import {use} from "./common"
+import {isEmitter, isValue} from "./utils"
 
-class SelectObserver {
-   next(value: any) {
-      value = this.subject.selector ? this.subject.selector(value) : value
-      if (this.subject.value !== value) {
-         this.subject.value = value
-         this.subject.next(value)
+class Subscriber extends Subscription {
+   unsubscribe() {
+      const { source } = this
+      if (source.refCount > 0) {
+         source.refCount--
+         if (source.refCount === 0) {
+            source.subscription?.unsubscribe()
+         }
+      }
+      super.unsubscribe()
+   }
+
+   constructor(private source: any, observer: any) {
+      super(source.subject.subscribe(observer))
+   }
+}
+
+class AnonymousSubject<T, U> {
+   get value(): U {
+      return this.subject.value
+   }
+   refCount: number
+   subscription?: Unsubscribable
+   subject: BehaviorSubject<U>
+   next(value: T) {
+      const { destination } = this
+      if (typeof destination === "function") {
+         destination(value)
+      } else if (destination?.next) {
+         destination.next(value)
       }
    }
    error(error: unknown) {
-      this.subject.error(error)
+      const { destination } = this
+      if (typeof destination !== "function" && destination?.error) {
+         destination.error(error)
+      }
    }
    complete() {
-      this.subject.complete()
+      const { destination } = this
+      if (typeof destination !== "function" && destination?.complete) {
+         destination.complete()
+      }
    }
-   constructor(private subject: SelectSubject<any, any>) {}
+   subscribe(observer: any) {
+      const { source, subject } = this
+      if (this.refCount === 0) {
+         this.refCount++
+         this.subscription = source.subscribe(subject)
+      }
+      return new Subscriber(this, observer)
+   }
+   constructor(value: U, public source: Subscribable<U>, public destination?: ((value: T) => void) | PartialObserver<T>) {
+      this.refCount = 0
+      this.subject = new BehaviorSubject<U>(value)
+      this.destination = this.destination ?? this.subject as any
+   }
 }
 
-// todo: extract delegate behavior
-class SelectSubject<T, U> {
-   value: U
-   refs: number
-   subject: Subject<T>
-   selector?: (value: T) => U
-   subscription?: Unsubscribable
-   subscribe(): Subscription
-   subscribe(observer: (value: U) => void): Subscription
-   subscribe(observer: PartialObserver<U>): Subscription
-   subscribe(observer?: any): Subscription {
-      if (this.refs === 0) {
-         this.subscription = this.subject.subscribe(new SelectObserver(this))
-      }
-      this.refs++
-      return this.subject.subscribe(observer).add(() => {
-         this.refs--
-         if (this.refs === 0) {
-            this.subscription?.unsubscribe()
-         }
+class SelectSubject<T, U> extends AnonymousSubject<T, U> {
+   selector
+   next(value: T) {
+      super.next(this.selector?.(value) as any ?? value)
+   }
+   constructor(source: Subscribable<T> | Subscribable<T> & { value: T }, selector: (value: T) => U, initialValue: U) {
+      const value: any = "value" in source ? source.value : initialValue
+      const obs = new Observable(() => {
+         return source.subscribe(this)
       })
-   }
-
-   next: (value: any) => void
-
-   error(error: any) {
-      this.subject.error?.(error)
-   }
-
-   complete() {
-      this.subject.complete?.()
-   }
-
-   constructor(
-      source:
-         | Subscribable<T>
-         | BehaviorSubject<T>
-         | ValueAccessorOptions<any, any>,
-      selector?: (value?: T) => U,
-      initialValue?: any,
-   ) {
-      let next
-      let subscribe: any
-      if (
-         "next" in source &&
-         !(source instanceof BehaviorSubject) &&
-         !isValue(source) &&
-         !isEmitter(source)
-      ) {
-         next = source.next
-         source =
-            typeof source.subscribe === "function" &&
-            !isValue(source.subscribe) &&
-            !isEmitter(source.subscribe)
-               ? new ComputedSubject(source.subscribe)
-               : source.subscribe
-         Object.defineProperty(this, "value", {
-            get() {
-               return (<any>source).value
-            },
-            set(val) {},
-         })
-      }
-      if ("value" in source) {
-         initialValue =
-            typeof selector === "function"
-               ? selector(source.value)
-               : source.value
-      } else {
-         initialValue = typeof selector === "function" ? initialValue : selector
-      }
-
-      this.next = next ?? ((value) => this.subject.next(value))
-      this.value = initialValue
-      this.subject = source as Subject<any>
+      super(selector ? selector(value) : value as U, obs as Subscribable<any>)
       this.selector = selector
-      this.subscribe = subscribe ?? this.subscribe
-      this.refs = 0
    }
 }
+
+class ValueAccessorSubject<T, U> extends AnonymousSubject<T, U> {
+   constructor(accessor: ValueAccessorOptions<T, U>) {
+      const source: any = "subscribe" in accessor.value ? accessor.value : new ComputedSubject(accessor.value)
+      const value = "value" in source ? source.value : undefined
+      const destination = accessor.next
+      super(value as U, source, destination)
+   }
+}
+
 export type ValueAccessor<T, U> = CheckSubject<T> & {
    readonly __ng_value: true
    readonly source: Observable<T>
@@ -144,21 +124,21 @@ export function select<T, U>(
    source: Subscribable<T>,
    initialValue: U,
 ): Value<T | U>
-export function select<T, U>(
-   source: Subscribable<T>,
-   selector: (value: T) => U,
-): Value<U | undefined>
 export function select<T, U, V>(
    source: Subscribable<T>,
    selector: (value: T) => U,
    initialValue: V,
 ): Value<U | V>
-export function select<T, U>(
+export function select<T, U, V>(
    source: Subscribable<T> | (() => U) | ValueAccessorOptions<T, U>,
    selector?: (value: T) => U,
-): Value<U> {
+   initialValue?: V,
+): unknown {
    if (typeof source === "function" && !isValue(source) && !isEmitter(source)) {
       return use(new ComputedSubject(source)) as any
    }
-   return use(new SelectSubject<any, any>(source as any, selector)) as any
+   if ("next" in source && source.constructor === Object) {
+      return use(new ValueAccessorSubject(source as ValueAccessorOptions<any, any>))
+   }
+   return use(new SelectSubject<any, any>(source as any, selector!, initialValue!)) as any
 }
