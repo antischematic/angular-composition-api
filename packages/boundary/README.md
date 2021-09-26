@@ -160,8 +160,10 @@ export class MyBrand {
    <ng-template>
       <ng-cloak>
          <my-brand></my-brand>
+         <fallback>Loading...</fallback>
       </ng-cloak>
    </ng-template>
+   <fallback>Something went wrong</fallback>
 </error-boundary>
 ```
 
