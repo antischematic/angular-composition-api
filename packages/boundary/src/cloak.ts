@@ -163,7 +163,7 @@ class CloakListObserver {
 }
 
 @Directive({
-   selector: "ng-cloak-list",
+   selector: "cloak-list",
 })
 export class NgCloakList implements AfterContentInit {
    @Input()

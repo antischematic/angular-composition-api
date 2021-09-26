@@ -169,7 +169,7 @@ export class MyBrand {
 
 ### NgCloakList
 
-**selector:** `ng-cloak-list`
+**selector:** `cloak-list`
 
 **input:** `revealOrder` **enum:** `together` `forwards` `backwards`
 
@@ -184,12 +184,12 @@ not render any fallbacks. If omitted all fallbacks will be rendered by default.
 item has its own cloak boundary.
 
 ```html
-<ng-cloak-list revealOrder="forwards" tail="collapsed">
+<cloak-list revealOrder="forwards" tail="collapsed">
   <li *ngFor="let item of items">
      <ng-cloak>
         <my-brand [item]="item"></my-brand>
         <fallback>Loading...</fallback>
      </ng-cloak>
   </li>
-</ng-cloak-list>
+</cloak-list>
 ```
