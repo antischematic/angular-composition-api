@@ -1,9 +1,12 @@
 import { NgModule } from "@angular/core"
-import { NgCloak } from "./cloak"
-import { CatchError, ErrorBoundary, Fallback } from "./error-boundary"
+import {NgCloak, NgCloakList} from "./cloak"
+import {CommonModule} from "@angular/common";
+import {ErrorBoundary} from "./error-boundary";
+import {Fallback} from "./fallback";
 
 @NgModule({
-   declarations: [ErrorBoundary, Fallback, CatchError, NgCloak],
-   exports: [ErrorBoundary, Fallback, CatchError, NgCloak],
+   imports: [CommonModule],
+   declarations: [ErrorBoundary, NgCloakList, NgCloak, Fallback],
+   exports: [ErrorBoundary, NgCloakList, NgCloak, Fallback],
 })
 export class BoundaryModule {}

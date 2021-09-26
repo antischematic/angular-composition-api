@@ -17,16 +17,6 @@ Install via Yarn
 yarn add @mmuscat/angular-error-boundary
 ```
 
-Add global styles for `ng-cloak` to hide content when fallback is shown.
-
-**styles.css**
-
-```css
-.ng-cloak {
-   display: none;
-}
-```
-
 Add `BoundaryModule` to your `NgModule` imports to enable error boundaries.
 
 **my.module.ts**
@@ -46,16 +36,18 @@ Add error boundaries to your components.
 
 ```html
 <error-boundary>
-   <my-widget *catchError></my-widget>
-   <div fallback>Something went wrong</div>
+   <ng-template>
+      <my-widget></my-widget>
+   </ng-template>
+   <fallback>Something went wrong</fallback>
 </error-boundary>
 ```
 
-## Example
+[comment]: <> (## Example)
 
-[View demo on Stackblitz](https://stackblitz.com/edit/angular-error-boundary?file=src%2Fapp%2Fapp.component.html)
+[comment]: <> ([View demo on Stackblitz]&#40;https://stackblitz.com/edit/angular-error-boundary?file=src%2Fapp%2Fapp.component.html&#41;)
 
-### Handling async errors
+## Handling async errors
 
 You should handle any errors that might occur in your Angular application by
 injecting the [`ErrorHandler`](https://angular.io/api/core/ErrorHandler) service.
@@ -81,106 +73,54 @@ class AsyncComponent {
 
 **selector:** `error-boundary`
 
-Defines a boundary for `catchError`. Renders `fallback` content when an error occurs,
-otherwise renders the embedded view.
+Creates an error boundary. Renders `fallback` content when an error is handled,
+otherwise it renders an embedded template.
 
-**exportAs:** `errorBoundary`
+**method:** `retry()`
 
-**method:** `reset()`
-
-Resets the error state, hides `fallback` content and re-creates the embedded view.
+Resets the error state, hides `fallback` content and reloads the template.
 
 **output:** `error`
 
-Emits an `ErrorBoundaryEvent` when an error is caught. Calls to `reset` will
-dismiss the error state and re-create the embedded view
+Emits an `ErrorEvent` when an error is caught.
 
 ```ts
-interface ErrorBoundaryEvent {
-   closed: boolean
+interface ErrorEvent {
    error: unknown
-   reset(): void
 }
 ```
 
 **examples:**
 
 ```html
-<error-boundary (error)="handleError($event)" #boundary="errorBoundary">
-   <maybe-throws *catchError></maybe-throws>
-   <div fallback>
+<error-boundary (error)="handleError($event)" #boundary>
+   <ng-template>
+      <maybe-throws></maybe-throws>
+   </ng-template>
+   <fallback>
       <p>Uh oh... Something happened.</p>
-      <button (click)="boundary.reset()">Start again</button>
-   </div>
+      <button (click)="boundary.retry()">Start again</button>
+   </fallback>
 </error-boundary>
 ```
-
-### CatchError
-
-**selector:** `[catchError]`
-
-Catches and funnels errors that occur during change detection to the nearest
-`ErrorBoundary`. Does _not_ catch errors for:
-
--  Component/Directive constructors
--  Event handlers
--  Asynchronous code (e.g. setTimeout or requestAnimationFrame callbacks)
--  Async pipe
--  Server side rendering
--  Errors thrown in the error boundary itself
-
-Each error boundary can only have one `catchError` as a direct descendant.
 
 ### Fallback
 
-**selector:** `[fallback]`
+**selector:** `fallback, [fallback]`
 
-If used on a DOM element, hides the element until an error is caught by the
-error boundary, then shows it. The element is hidden again when the error
-state resets.
-
-If used on a template, embeds the view when an error is caught by the error boundary
-and destroys it when the error state resets.
-
-Each error boundary can only have one `fallback` as a direct descendant.
+Fallback are hidden until they are rendered by an error boundary.
 
 **examples:**
 
-With DOM element
+```html
+<error-boundary>
+   <fallback>An error has occurred</fallback>
+</error-boundary>
+```
 
 ```html
-<error-boundary [fallback]="domElement"></error-boundary>
-<div #domElement>An error has occurred</div>
-
-<!-- or -->
-
 <error-boundary>
    <div fallback>An error has occurred</div>
-</error-boundary>
-```
-
-With `ng-template`
-
-```html
-<error-boundary [fallback]="templateRef"></error-boundary>
-<ng-template #templateRef></ng-template>
-
-<!-- or -->
-
-<error-boundary>
-   <ng-template fallback>An error has occurred.</ng-template>
-</error-boundary>
-```
-
-With component
-
-```html
-<error-boundary [fallback]="MyCustomError"></error-boundary>
-
-<!-- or -->
-
-<error-boundary>
-   <my-custom-error fallback></my-custom-error>
 </error-boundary>
 ```
 
@@ -188,83 +128,66 @@ With component
 
 **selector:** `ng-cloak`
 
-Hides components and displays a `fallback` until all components have resolved
-"cloaked" data sources. Cloaked data sources are observables that has been wrapped by
-`CloakBoundary`. Any component in the `ng-cloak` tree can mark data as cloaked, which
-will hide the entire tree from display until all cloaked data has resolved. The lead time
-and trailing time for showing/hiding content can be configured with the `NG_CLOAK_CONFIG`
-provider.
+Hides components and displays a `fallback` until all pending data sources are resolved. Cloak boundaries are triggered
+by passing an `Observable` to the `ErrorHandler` service. Change detection still runs while a component is cloaked,
+and will continue to render children until all data dependencies are met.
 
-Each cloak boundary can only have one `fallback` as a direct descendant.
+A data dependency is met after it emits its first value, or completes. If one or more data dependencies fail, this
+will cascade up to the nearest error boundary.
 
 **examples:**
 
-```html
-<error-boundary>
-   <ng-cloak *catchError>
-      <my-brand></my-brand>
-   </ng-cloak>
-</error-boundary>
-```
-
----
-
-**What's the difference between NgCloak and Suspense?**
-
--  We wrap observables in a `CloakBoundary` instead of throwing them.
--  Components templates are always rendered, giving child components a chance to load data before the
-   parent has finished resolving.
--  Components are hidden with the `ng-cloak` class instead of unmounting them, unless an
-   error occurs.
-
----
-
-### CloakBoundary
-
-An injectable service with a single method: **cloak**
+Given a component with async data, inject the `ErrorHandler` service and pass your data dependencies to the `handleError`
+method.
 
 ```ts
-interface CloakBoundary {
-   cloak<T>(source: Observable<T>): Observable<T>
-}
-```
+@Component()
+export class MyBrand {
+   data
 
-**method:** `cloak`
-
-Returns a "cloaked" observable that is bound to the `CloakBoundary`. Subscribing to a
-cloaked observable triggers the cloak boundary, hiding content until the observable
-completes, errors, or emits a value. Multiple cloaked observables can be subscribed to
-in this way, hiding content until all observables have emitted, errored or completed.
-
-**examples:**
-
-In this example, the component is cloaked/hidden for 2 seconds, then is displayed.
-
-```ts
-@Component({
-   template: ` <p>{{ values | async | json }}</p> `,
-})
-class MyComponent {
-   values
-   constructor(boundary: CloakBoundary) {
-      this.values = boundary.cloak(timer(2000)).pipe(map(() => [1, 2, 3]))
+   constructor(private errorHandler: ErrorHandler) {
+      this.data = of([1, 2, 3]).pipe(
+         delay(2000),
+         share(), // multicast to prevent multiple subscriptions
+      )
+      errorHandler.handleError(this.data) // will be cloaked for 2 seconds
    }
 }
 ```
 
-### NG_CLOAK_CONFIG
+```html
+<error-boundary>
+   <ng-template>
+      <ng-cloak>
+         <my-brand></my-brand>
+      </ng-cloak>
+   </ng-template>
+</error-boundary>
+```
 
-Provide this value to configure the `leading` and `trailing` delay when a
-`CloakBoundary` state transition occurs.
+### NgCloakList
 
-```ts
-export interface CloakConfig {
-   leading: number
-   trailing: number
-}
+**selector:** `ng-cloak-list`
 
-DEFAULT_CLOAK_CONFIG = {
-   leading: 0,
-   trailing: 1000,
-}
+**input:** `revealOrder` **enum:** `together` `forwards` `backwards`
+
+Controls the order in which items are revealed. If omitted all items will be rendered by default.
+
+**input:** `tail` **enum:** `collapsed` `hidden`
+
+Controls how fallbacks are rendered. `collapsed` will only render the next fallback in the list, while `hidden` will
+not render any fallbacks. If omitted all fallbacks will be rendered by default.
+
+`NgCloakList` controls the rendering flow of multiple `NgCloak` components. This is useful when rendering lists or grids, where each
+item has its own cloak boundary.
+
+```html
+<ng-cloak-list revealOrder="forwards" tail="collapsed">
+  <li *ngFor="let item of items">
+     <ng-cloak>
+        <my-brand [item]="item"></my-brand>
+        <fallback>Loading...</fallback>
+     </ng-cloak>
+  </li>
+</ng-cloak-list>
 ```
