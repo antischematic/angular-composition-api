@@ -96,6 +96,7 @@ For example, when manually creating a component:
 ```ts
 const componentRef = componentFactoryResolver
    .resolveComponentFactory(MyComponent)
+   .create()
 
 componentRef.instance.count = 10 // not reactive
 componentRef.instance.countChange(10) // not reactive
