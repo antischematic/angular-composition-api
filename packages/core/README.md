@@ -2,6 +2,27 @@
 
 A lightweight (3kb) library for writing functional Angular applications.
 
+```ts
+function setup() {
+   const [count, countChange] = use(0)
+   
+   subscribe(count, () => {
+      console.log(count.value)
+   })
+   
+   return {
+      count,
+      countChange,
+   }
+}
+
+@Component({
+   inputs: ["count"],
+   outputs: ["countChange"],
+})
+export class MyComponent extends ViewDef(setup) {}
+```
+
 ## Quick Start
 
 [Install via NPM](https://www.npmjs.com/package/@mmuscat/angular-composition-api)
@@ -16,96 +37,17 @@ npm install @mmuscat/angular-composition-api
 yarn add @mmuscat/angular-composition-api
 ```
 
-```ts
-function setup() {
-   const [count, countChange] = use(0)
-   return {
-      count,
-      countChange,
-   }
-}
-
-@Component({
-   inputs: ["count"],
-   outputs: ["countChange"],
-})
-export class MyComponent extends ViewDef(setup) {}
-```
-
-## Example
-
-### Playground
-
-[View on Stackblitz](https://stackblitz.com/edit/node-x8aq3m)
-
-### Component
+> :warning: For change detection to function correctly, you must add the `ZonelessEventManager`
+to your root module. This is required whether zone.js is enabled or not.
 
 ```ts
-function counter() {
-   const [count, countChange] = use(0)
-   const increment = use<void>(Function)
-   const disabled = use(false)
-
-   subscribe(increment, () => {
-      if (disabled.value) return
-      countChange(count() + 1)
-   })
-
-   return {
-      count,
-      countChange,
-      disabled,
-      increment,
-   }
-}
-
-@Component({
-   selector: "app-counter",
-   template: `
-      <p>{{ count }}</p>
-      <button (click)="increment()">Increment</button>
-   `,
-   inputs: ["count", "disabled"],
-   outputs: ["countChange"],
+@NgModule({
+   providers: [{
+      provide: EventManager,
+      useClass: ZonelessEventManager
+   }]
 })
-export class Counter extends ViewDef(counter) {}
-```
-
-### Service
-
-```ts
-function getTodosByUserId() {
-   const http = inject(HttpClient)
-   return function (userId: string) {
-      return http.get(url, {
-         params: { userId },
-      })
-   }
-}
-
-export const GetTodosByUserId = new Service(getTodosByUserId, {
-   providedIn: "root", // defaults to null
-})
-
-function todos() {
-   const userId = use("me")
-   const getTodosByUserId = inject(GetTodosByUserId)
-   const todos = use<Todos[]>([])
-   const result = userId.pipe(switchMap(getTodosByUserId))
-
-   subscribe(result, todos)
-
-   return {
-      userId,
-      todos,
-   }
-}
-
-@Component({
-   providers: [GetTodosByUserId], // optional if provided in module
-   inputs: ["userId"],
-})
-export class Todos extends ViewDef(todos) {}
+export class AppModule {}
 ```
 
 ## Api Reference
@@ -135,45 +77,38 @@ strategy):
 
 -  On first render.
 -  When inputs change.
--  When an event binding emits (if zone.js is enabled).
+-  When an event binding is executed.
 -  When `subscribe` emits a value, after the observer is called.
--  When reactive functions are called, after they have finished executing.
 
-Functions returned from the setup function will also trigger change detection if they are
-a top-level field.
-
-```ts
-function setup() {
-   const count = use(0)
-   function increment() {
-      count((val) => val + 1)
-   }
-   return {
-      count,
-      increment, // only top-level functions are reactive
-   }
-}
-```
-
-Change detection might _not_ occur:
-
--  If you manually create a component and mutate a
-   value, you must call `detectChanges` to propagate the change.
+Functions returned from the setup function will also trigger change detection if they called
+from a template event binding. 
 
 Updates to reactive state are not immediately reflected in the view. If you need an immediate update, call `detectChanges` after updating a value.
 
-**Value mutation**
+Change detection might _not_ occur when:
 
-Reactive values can be mutated using a setter function.
+- Imperatively mutating fields on the component instance.
+- Imperatively calling state mutating methods on the component instance. 
+Unless the mutated state has a `subscribe` observer, this will not trigger
+  a change detection run.
+
+For example, when manually creating a component:
 
 ```ts
-const values = use<number[]>([])
-const append = use<number>(Function)
+const componentRef = componentFactoryResolver
+   .resolveComponentFactory(MyComponent)
 
-subscribe(append, (value) => {
-   values((val) => val.push(value))
-})
+componentRef.instance.count = 10 // not reactive
+componentRef.instance.countChange(10) // not reactive
+
+componentRef.instance.count // 0
+
+componentRef.changeDetectorRef.detectChanges()
+
+componentRef.instance.count // 10
 ```
+
+To propagate these changes you will need to call `detectChanges`.
 
 #### Service
 

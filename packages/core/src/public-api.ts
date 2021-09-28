@@ -26,3 +26,4 @@ export {
 export { select, ValueAccessor } from "./select"
 export { ValueToken, provide, EmptyValueError } from "./provider"
 export { beforeUpdate, afterUpdate } from "./utils"
+export { ZonelessEventManager } from "./event-manager"

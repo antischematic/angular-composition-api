@@ -1,11 +1,12 @@
 import { NgModule } from "@angular/core"
-import { BrowserModule } from "@angular/platform-browser"
+import {BrowserModule, EventManager} from "@angular/platform-browser"
 import { FormsModule } from "@angular/forms"
 
 import { AppComponent } from "./app.component"
 import { TodoListModule } from "./todo-list.component"
 import { HttpClientModule } from "@angular/common/http"
 import { BoundaryModule } from "@mmuscat/angular-error-boundary"
+import {ZonelessEventManager} from "@mmuscat/angular-composition-api";
 
 @NgModule({
    imports: [
@@ -18,5 +19,9 @@ import { BoundaryModule } from "@mmuscat/angular-error-boundary"
    ],
    declarations: [AppComponent],
    bootstrap: [AppComponent],
+   providers: [{
+      provide: EventManager,
+      useClass: ZonelessEventManager
+   }]
 })
 export class AppModule {}

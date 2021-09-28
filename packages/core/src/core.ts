@@ -43,14 +43,10 @@ import { ValueToken } from "./provider"
 let currentContext: any
 const contextMap = new WeakMap<{}, CurrentContext>()
 
-export function beginContext(value: any) {
+export function setContext(value: any) {
    const previousContext = currentContext
    currentContext = value
    return previousContext
-}
-
-export function endContext(previous: any) {
-   currentContext = previous
 }
 
 export class CallContextError extends Error {
@@ -72,10 +68,12 @@ function runInContext<T extends (...args: any[]) => any>(
    fn: T,
    ...args: any[]
 ): any {
-   const previous = beginContext(context)
-   const value = fn(...args)
-   endContext(previous)
-   return value
+   const previous = setContext(context)
+   try {
+      return fn(...args)
+   } finally {
+      setContext(previous)
+   }
 }
 
 function createContext(
@@ -186,9 +184,6 @@ export class Scheduler implements SchedulerLike {
       if (this.closed) return
       this.dirty = true
       dirty.add(this)
-      if (!currentContext && timeoutId === undefined) {
-         timeoutId = setTimeout(detectChanges)
-      }
    }
 
    unsubscribe() {
@@ -250,16 +245,37 @@ function createBinding(context: any, key: any, value: any) {
    addTeardown(value.subscribe(binding))
 }
 
-function createFunction(exec: Function, errorHandler: ErrorHandler) {
-   return function functionBinding(...args: any[]) {
+let templateContext: any
+
+export function setTemplateContext(context: any) {
+   const previous = templateContext
+   templateContext = context
+   return previous
+}
+
+export function runInTemplate(handler: Function, ...args: any[]) {
+   const previous = setTemplateContext(handler)
+   try {
+      handler(...args)
+   } finally {
+      setTemplateContext(previous)
+   }
+}
+
+function decorateFunction(exec: Function, errorHandler: ErrorHandler) {
+   function decorated(...args: any[]) {
       try {
          return exec(...args)
       } catch (error) {
-         errorHandler.handleError(error)
-      } finally {
-         detectChanges()
+         if (templateContext) {
+            errorHandler.handleError(error)
+         } else {
+            throw error
+         }
       }
    }
+   decorated.originalFunction = exec
+   return decorated
 }
 
 export interface Context extends SchedulerLike {
@@ -285,7 +301,7 @@ function setup(injector: Injector, stateFactory: (context: Context) => {}) {
          context[key] = value.value
          createBinding(context, key, value)
       } else if (typeof value === "function" && !isEmitter(value)) {
-         context[key] = createFunction(value, error)
+         context[key] = decorateFunction(value, error)
       } else {
          Object.defineProperty(
             context,
@@ -378,7 +394,7 @@ function next(
    detectChanges()
 }
 
-function detectChanges() {
+export function detectChanges() {
    timeoutId = undefined
    let scheduler
    const list = Array.from(dirty)
@@ -584,9 +600,9 @@ export function inject<T>(
    flags?: InjectFlags,
 ): T {
    const { injector } = getContext()
-   const previous = beginContext(void 0)
+   const previous = setContext(void 0)
    const value = injector.get(token, notFoundValue, flags)
-   endContext(previous)
+   setContext(previous)
    return value
 }
 
