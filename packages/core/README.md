@@ -63,8 +63,7 @@ Creates a context-aware class from a setup function. Values returned from this f
 
 The setup function takes a single argument of `Context` that implements the `SchedulerLike` interface.
 
-`markDirty` Marks the current view dirty and schedules change detection if it isn't already
-scheduled.
+`markDirty` Marks the current view dirty.
 
 `detectChanges` Immediately checks and updates the view if it's dirty.
 
