@@ -1,5 +1,6 @@
 import {
    BehaviorSubject,
+   Notification,
    observable,
    Observable,
    PartialObserver,
@@ -30,114 +31,131 @@ import {
 import { isObserver, isSignal, isValue, track } from "./utils"
 import { addEffect, addTeardown } from "./core"
 
-export class QueryListSubject extends Observable<any> {
-   next(value: QueryList<any>) {
-      this.queryList.reset(value.toArray())
-      this.queryList.notifyOnChanges()
+type Callable = (...args: any[]) => any
+interface BaseType extends Callable, Observable<any> {}
+
+abstract class BaseType {
+   get bindon(): any {
+      return [this, createEmitter(this as any)]
    }
-   complete() {
-      this.queryList.destroy()
+   get value() {
+      return this.source.value
+   }
+   [observable]() {
+      return this
+   }
+   call(context: any, ...args: any[]) {
+      return this(...args)
+   }
+   apply(context: any, args: any[]) {
+      return this(...args)
+   }
+   subscribe(nextOrObserver: any) {
+      return this.source.subscribe(nextOrObserver)
+   }
+   pipe(...operators: any[]) {
+      return this.source.pipe(...operators)
+   }
+   next(value: any) {
+      return this.source.next(value)
+   }
+   constructor(public source: any) {}
+}
+class ValueType extends BaseType {
+   [checkPhase]: number
+   __ng_value = true
+   constructor(source: any, phase: any) {
+      super(source)
+      this[checkPhase] = phase
+   }
+}
+class EmitterType extends BaseType {
+   __ng_emitter = true
+
+   next(values: any[]): any {
+      values = Array.isArray(values) ? values : [values]
+      return super.next(this.modifier(...values))
    }
 
-   constructor(private queryList: QueryList<any>) {
-      super((subscriber) => {
-         subscriber.next(queryList)
-         queryList.changes.subscribe(subscriber)
-      })
+   constructor(source: any, private modifier: Function) {
+      super(source)
+   }
+}
+
+export class QueryListSubject extends QueryList<any> {
+   subscription?: Subscription
+   get value() {
+      return this
+   }
+   next(value: QueryList<any>) {
+      this.subscription?.unsubscribe()
+      this.reset(value.toArray())
+      this.notifyOnChanges()
+      this.subscription = value.changes.subscribe(this)
+   }
+   subscribe(observer: any) {
+      Notification.createNext(this).accept(observer)
+      return this.changes.subscribe(observer)
+   }
+   complete() {
+      this.destroy()
    }
 }
 
 function createQueryList<T>(phase: CheckPhase): ReadonlyValue<QueryList<T>> {
-   const queryList = new QueryList<T>()
+   const queryList = new QueryListSubject()
+   const valueType: ValueType = Object.setPrototypeOf(
+      getterSetter,
+      new ValueType(queryList, phase),
+   )
    function getterSetter(nextValue?: QueryList<T>): QueryList<T> | void {
       if (arguments.length === 0) {
-         track(getterSetter as any)
+         track(valueType)
          return queryList
       }
-      getterSetter.source.next(nextValue!)
-      nextValue!.changes.subscribe(getterSetter.source)
+      valueType.next(nextValue!)
    }
-   getterSetter.value = queryList
-   Object.defineProperty(getterSetter, observable, observableProperty)
-   getterSetter.source = new QueryListSubject(queryList)
-   getterSetter.next = getterSetter
-   getterSetter.pipe = pipe
-   getterSetter.subscribe = sub
-   getterSetter[checkPhase] = phase
-   getterSetter.__ng_value = true
-
-   return getterSetter as any
-}
-
-function sub(this: Value<any>, nextOrObserver: any) {
-   return this.source.subscribe(nextOrObserver)
-}
-
-function pipe(this: any, ...operators: any[]) {
-   return this.source.pipe(...operators)
-}
-
-function get(this: any) {
-   return this.source.value
-}
-
-function* generator(this: Value<any>) {
-   yield this
-   yield createEmitter(this)
+   return valueType as ReadonlyValue<QueryList<T>>
 }
 
 function createValue<T>(source: BehaviorSubject<T>, phase = 0): Value<T> {
+   const valueType: ValueType = Object.setPrototypeOf(
+      getterSetter,
+      new ValueType(source, phase),
+   )
    function getterSetter(this: Value<any>, nextValue?: any): T | void {
       if (arguments.length === 0) {
-         track(getterSetter as any)
-         return (<any>getterSetter).value
+         track(valueType)
+         return valueType.value
       }
       if (typeof nextValue === "function") {
-         nextValue((<any>getterSetter).value)
-         getterSetter.source.next((<any>getterSetter).value)
+         nextValue(valueType.value)
+         valueType.next(valueType.value)
       } else {
-         getterSetter.source.next(nextValue!)
+         valueType.next(nextValue!)
       }
    }
-   Object.defineProperty(getterSetter, observable, observableProperty)
-   Object.defineProperty(getterSetter, "value", { get })
-   getterSetter.next = getterSetter
-   getterSetter.subscribe = sub
-   getterSetter.source = source
-   getterSetter.pipe = pipe
-   getterSetter[Symbol.iterator] = generator
-   getterSetter[checkPhase] = phase
-   getterSetter.__ng_value = true
-   return getterSetter as unknown as Value<T>
+   return valueType as Value<T>
 }
 
 function defaultFn(value: any) {
    return value
 }
 
-const observableProperty = {
-   value() {
-      return this
-   },
-}
-
 function createEmitter<T extends (...args: any[]) => any>(
    fn: T | FunctionConstructor,
 ): Emitter<T> {
    fn = fn === Function ? (defaultFn as T) : fn
+   const emitterType: EmitterType = Object.setPrototypeOf(
+      next,
+      new EmitterType(new EventEmitter(), fn),
+   )
 
    function next(...args: any[]) {
-      next.source.next(fn(...args))
+      emitterType.next(args)
    }
 
-   Object.defineProperty(next, observable, observableProperty)
-   next.source = new EventEmitter()
-   next.subscribe = sub
-   next.pipe = pipe
-   next.next = next
-   next.__ng_emitter = true
-
-   return next as any
+   return emitterType as Emitter<any>
 }
 
 const queryMap = new Map<Function, CheckPhase>([
@@ -165,10 +183,10 @@ export function use<T>(value: QueryListType): ReadonlyValue<QueryList<T>>
 export function use<T>(value: QueryType): ReadonlyValue<T>
 export function use<T>(value: typeof Function): Emitter<T>
 export function use<T>(value: Value<T>): Emitter<T>
-export function use<T>(value: T): Value<T>
 export function use<T extends (...args: any[]) => any>(
    value: T,
 ): EmitterWithParams<T>
+export function use<T>(value: T): Value<T>
 export function use(value?: any): unknown {
    if (isQuery(value)) {
       const phase = queryMap.get(value)!

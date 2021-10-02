@@ -2,13 +2,11 @@ import {
    BehaviorSubject,
    NextObserver,
    PartialObserver,
-   Subject,
    Subscription,
    SubscriptionLike,
    Unsubscribable,
 } from "rxjs"
-import {Emitter, UnsubscribeSignal, Value} from "./interfaces"
-import { Context } from "./core"
+import { Emitter, UnsubscribeSignal, Value } from "./interfaces"
 
 let previous: Set<any>
 let deps: Set<any>
@@ -27,10 +25,6 @@ export function trackDeps<T>(fn: () => T): [T, any[]] {
 
 export function computeValue<T>(compute: (value?: T) => T) {
    return trackDeps(compute)
-}
-
-export function arrayCompare(a: any[], b: any[]) {
-   return a.every((v, i) => v === b[i])
 }
 
 export function track<T>(source: {
@@ -111,22 +105,4 @@ export function isObserver(
    return (observer && "next" in observer) || typeof observer === "function"
       ? observer
       : void 0
-}
-
-export function onUpdate(context: Context, signal: 0 | 1) {
-   const subject = new Subject()
-   function action() {
-      subject.next()
-      context.schedule(action, signal)
-   }
-   action()
-   return subject
-}
-
-export function beforeUpdate(context: Context) {
-   return onUpdate(context, 0)
-}
-
-export function afterUpdate(context: Context) {
-   return onUpdate(context, 1)
 }

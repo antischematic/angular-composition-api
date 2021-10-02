@@ -57,7 +57,7 @@ Usage
 ```ts
 function setup() {
    const userId = use("123")
-   const [createTodoStatus, createTodo] = inject(CreateTodo)
+   const [createTodoStatus, createTodo] = inject(CreateTodo).bindon
    const getTodosByUserId = inject(GetTodosByUserId)
    const todos = getTodosByUserId(userId, {
       refetch: [createTodo],
@@ -150,7 +150,7 @@ it will wait until it is `done` before it runs the query again.
 ```ts
 function setup() {
    const myQuery = inject(MyQuery)
-   const [mutation, mutate] = inject(MyMutation)
+   const [mutation, mutate] = inject(MyMutation).bindon
    const fetch = use(Function)
    const result = myQuery(fetch, {
       initialValue: null,

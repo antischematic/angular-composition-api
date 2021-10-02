@@ -23,16 +23,18 @@ import { checkPhase } from "./interfaces"
 import { use } from "./common"
 import objectContaining = jasmine.objectContaining
 import createSpy = jasmine.createSpy
-import {EventManager} from "@angular/platform-browser";
-import {ZonelessEventManager} from "./event-manager";
+import { EventManager } from "@angular/platform-browser"
+import { ZonelessEventManager } from "./event-manager"
 
 export function configureTest<T>(View: Type<T>): () => ComponentFixture<T> {
    TestBed.configureTestingModule({
       declarations: [View],
-      providers: [{
-         provide: EventManager,
-         useClass: ZonelessEventManager
-      }]
+      providers: [
+         {
+            provide: EventManager,
+            useClass: ZonelessEventManager,
+         },
+      ],
    })
 
    return function createComponent() {
@@ -82,9 +84,8 @@ describe("ViewDef", () => {
          objectContaining({ count: 0, name: "bogus" }),
       )
    })
-
    it("should unwrap marked values", () => {
-      const subject = use(1337)
+      const [subject] = use(1337).bindon
       Object.defineProperty(subject, checkPhase, { value: 0 })
       function create() {
          return {
@@ -145,7 +146,8 @@ describe("ViewDef", () => {
    })
    it("should not automatically detect changes when directly calling returned functions", () => {
       function create() {
-         const [count, countChange] = use(0)
+         const [count, countChange] = use(0).bindon
+
          function increment() {
             countChange(count() + 1)
             expect(view.debugElement.nativeElement.textContent).toBe(`0`)
@@ -180,7 +182,9 @@ describe("ViewDef", () => {
       const error = TestBed.inject(ErrorHandler)
       const spy = spyOn(error, "handleError")
       view.detectChanges()
-      expect(() => view.componentInstance.increment()).toThrow(new Error("Bogus"))
+      expect(() => view.componentInstance.increment()).toThrow(
+         new Error("Bogus"),
+      )
    })
 })
 
@@ -257,7 +261,7 @@ describe("Context API", () => {
    })
    it("should not automatically update view when directly mutating value", () => {
       function create() {
-         const value = use<number[]>([])
+         const [value, valueChange] = use<number[]>([]).bindon
 
          function update() {
             value((val) => val.push(10))

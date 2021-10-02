@@ -9,7 +9,7 @@ function calcStyle(size: number, x: number, y: number) {
 
 function dot() {
    const count = inject(Counter)
-   const [hover, hoverChange] = use(false)
+   const [hover, hoverChange] = use(false).bindon
    const x = use(0)
    const y = use(0)
    const size = use(0)

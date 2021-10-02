@@ -1,5 +1,5 @@
 import { subscribe, use } from "./common"
-import {auditTime, map, materialize, mergeMap} from "rxjs/operators"
+import { map, materialize, mergeMap } from "rxjs/operators"
 import {
    Component,
    ContentChild,
@@ -11,21 +11,11 @@ import {
    ViewChildren,
 } from "@angular/core"
 import { Value } from "./interfaces"
-import {
-   Context,
-   EffectObserver,
-   inject,
-   Service,
-   ViewDef,
-} from "./core"
+import { EffectObserver, inject, Service, ViewDef } from "./core"
 import { defer, interval, merge, of, Subscription, throwError } from "rxjs"
-import {
-   discardPeriodicTasks,
-   fakeAsync,
-   TestBed,
-   tick,
-} from "@angular/core/testing"
+import { discardPeriodicTasks, fakeAsync, TestBed, tick } from "@angular/core/testing"
 import { configureTest, defineService } from "./core.spec"
+import { onBeforeUpdate, onUpdated } from "./lifecycle"
 import createSpy = jasmine.createSpy
 import objectContaining = jasmine.objectContaining
 
@@ -62,7 +52,7 @@ describe("use", () => {
          expect(value()).toBe(20)
       })
       it("should destructure", () => {
-         const [value, valueChange] = use(0)
+         const [value, valueChange] = use(0).bindon
 
          expect(value.__ng_value).toBe(true)
          expect(valueChange.__ng_emitter).toEqual(true)
@@ -571,14 +561,10 @@ describe("subscribe", () => {
    it("should emit before and after view updates", () => {
       const count = use(0)
       const spy = createSpy()
-      function create(context: Context) {
-         const beforeUpdate = count.pipe(
-            auditTime(0, context),
-         )
-         const afterUpdate = count.pipe(
-            auditTime(1, context),
-         )
-         subscribe(afterUpdate, () => {
+      function create() {
+         const beforeUpdate = onBeforeUpdate()
+         const updated = onUpdated()
+         subscribe(updated, () => {
             spy("spy3: " + count())
          })
          subscribe(beforeUpdate, () => {

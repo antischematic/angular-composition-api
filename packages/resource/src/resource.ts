@@ -26,7 +26,7 @@ import {
    Observer,
    of,
    OperatorFunction,
-   Subject,
+   Subject, Subscribable,
 } from "rxjs"
 
 export interface QueryOptions<T> {
@@ -43,7 +43,7 @@ export interface Query<T, U> {
 }
 
 interface QueryStatic {
-   new <T, U>(factory: () => (params: U) => Observable<T>): Type<Query<T, U>>
+   new <T, U>(factory: () => (params: U) => Subscribable<T>): Type<Query<T, U>>
 }
 
 export class Resource<T> {
@@ -181,7 +181,7 @@ function queryFactory(
       const fetch = use((args: any, invalidate: any) => [
          args,
          invalidate,
-      ]) as any
+      ])
       const result = fetch.pipe(
          operator(([args, invalidate]) => cache.get(args, invalidate)),
          materialize(),
@@ -201,7 +201,11 @@ function queryFactory(
       }
 
       if (args) {
-         subscribe(merge(...(Array.isArray(args) ? args : [args])), fetch)
+         subscribe(merge(...(Array.isArray(args) ? args : [args])), {
+            next(value) {
+               fetch.next([value, false])
+            }
+         })
       }
 
       return query

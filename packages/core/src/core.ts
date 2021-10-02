@@ -35,7 +35,6 @@ import {
    CheckSubject,
    CurrentContext,
    UnsubscribeSignal,
-   Value,
 } from "./interfaces"
 import { addSignal, computeValue, isEmitter, isObject, isValue } from "./utils"
 import { ValueToken } from "./provider"
@@ -191,15 +190,6 @@ export class Scheduler implements SchedulerLike {
       dirty.delete(this)
    }
 
-   constructor(
-      private ref: ChangeDetectorRef,
-      private errorHandler: ErrorHandler,
-   ) {
-      this.dirty = false
-      this.closed = false
-      this.ref.detach()
-   }
-
    now(): number {
       return Date.now()
    }
@@ -211,7 +201,7 @@ export class Scheduler implements SchedulerLike {
    flush(step: number) {
       let action
       let error
-      const actions = this.actions[step]
+      const actions = this.actions[step].splice(0, Infinity)
       while ((action = actions.shift()!)) {
          if ((error = action.execute(action.state))) {
             break
@@ -231,6 +221,15 @@ export class Scheduler implements SchedulerLike {
       state?: T,
    ): Subscription {
       return new Action(this, work).schedule(state, delay)
+   }
+
+   constructor(
+      private ref: ChangeDetectorRef,
+      private errorHandler: ErrorHandler,
+   ) {
+      this.dirty = false
+      this.closed = false
+      this.ref.detach()
    }
 }
 
@@ -606,12 +605,7 @@ export function inject<T>(
    return value
 }
 
-export function markDirty<T>(value: Value<T>): T {
-   value(value.value)
-   return value.value
-}
-
-export function ViewDef<T>(create: (context: Context) => T): ViewDef<T> {
+export function ViewDef<T>(create: () => T): ViewDef<T> {
    return decorate(create)
 }
 

@@ -4,7 +4,6 @@ import { CreateTodo, LoadTodosById } from "./api.service"
 import { Todo, TodoModule } from "./todo.component"
 import {
    inject,
-   markDirty,
    subscribe,
    use,
    ViewDef,
@@ -41,7 +40,7 @@ function todoList() {
          }
          case "response": {
             console.log("todo created!", value)
-            markDirty(userId)
+            userId(userId())
             break
          }
       }

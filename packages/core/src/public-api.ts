@@ -8,8 +8,8 @@ export {
    CallContextError,
    decorate,
    ViewDef,
-   markDirty,
    Context,
+   detectChanges,
 } from "./core"
 export { use, subscribe } from "./common"
 export {
@@ -22,8 +22,10 @@ export {
    ReadonlyValue,
    Emitter,
    EmitterWithParams,
+   ValueAccessorOptions,
 } from "./interfaces"
 export { select, ValueAccessor } from "./select"
 export { ValueToken, provide, EmptyValueError } from "./provider"
-export { beforeUpdate, afterUpdate } from "./utils"
+export { onDestroy, onUpdated, onBeforeUpdate } from "./lifecycle"
 export { ZonelessEventManager } from "./event-manager"
+export { useArray, useBoolean, useElement, useNumber } from "./coercion"

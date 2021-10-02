@@ -1,6 +1,6 @@
-import {Component, ElementRef, NgModule, Renderer2, ViewChild, ViewChildren,} from "@angular/core"
-import {FormsModule} from "@angular/forms"
-import {Context, inject, subscribe, use, ViewDef} from "@mmuscat/angular-composition-api"
+import { Component, ElementRef, NgModule, Renderer2, ViewChild, ViewChildren } from "@angular/core"
+import { FormsModule } from "@angular/forms"
+import { inject, subscribe, use, ViewDef } from "@mmuscat/angular-composition-api"
 
 export interface Todo {
    id?: number
@@ -9,7 +9,7 @@ export interface Todo {
 }
 
 
-function create(context: Context) {
+function create() {
    const id = use<number>()
    const text = use("")
    const done = use(false)

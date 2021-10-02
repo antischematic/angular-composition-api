@@ -4,7 +4,7 @@ A lightweight (3kb) library for writing functional Angular applications.
 
 ```ts
 function setup() {
-   const [count, countChange] = use(0)
+   const [count, countChange] = use(0).bindon
    
    subscribe(count, () => {
       console.log(count.value)
@@ -37,8 +37,8 @@ npm install @mmuscat/angular-composition-api
 yarn add @mmuscat/angular-composition-api
 ```
 
-> :warning: For change detection to function correctly, you must add the `ZonelessEventManager`
-to your root module. This is required whether zone.js is enabled or not.
+For change detection to function correctly, you must provide `ZonelessEventManager`
+in your root module. This is required whether zone.js is enabled or not.
 
 ```ts
 @NgModule({
@@ -58,16 +58,6 @@ export class AppModule {}
 
 Creates a context-aware class from a setup function. Values returned from this function are merged with the base class.
 `Value` types are unwrapped in the final class and template view, eg. `Value<number>` becomes `number`.
-
-**Arguments**
-
-The setup function takes a single argument of `Context` that implements the `SchedulerLike` interface.
-
-`markDirty` Marks the current view dirty.
-
-`detectChanges` Immediately checks and updates the view if it's dirty.
-
-`schedule` Used to schedule observable notifications to be emitted before or after the view has updated.
 
 **Change Detection**
 
@@ -119,19 +109,9 @@ Creates a context-aware, tree-shakable service from the provided setup function.
 ```ts
 function setup(arg1, arg2, ...args) {
    const http = inject(HttpClient)
-   const request = use<Request>(Function)
-   const response = use<Response>()
-   const api = select({
-      next: request,
-      subscribe: response
-   })
-
-   subscribe(request, (req) => {
-      subscribe(http.post(url, req), response)
-   })
-   
-   // return non-primitive value
-   return api
+   return function (data) {
+      return http.post(url, data)
+   }
 }
 
 // without options
@@ -259,11 +239,11 @@ behavior).
 ```ts
 function pinger() {
    const ping = inject(PingService)
-   const untilDestroy = subscribe() // cancels when view is destroyed
+   const signal = subscribe() // cancels when view is destroyed
    const state = use<State>()
 
    subscribe(interval(1000), () => {
-      subscribe(ping.pong(), state, untilDestroy)
+      subscribe(ping.pong(), state, signal)
    })
 
    return {
@@ -277,36 +257,6 @@ export class Pinger extends ViewDef(pinger) {}
 
 In this example, a new inner stream is created every second and will not be disposed even if it takes longer than 1
 second to complete. If the view is destroyed, then all remaining streams are unsubscribed.
-
----
-
-**View Scheduler**
-
-The context can be used to control how observable notifications are delivered to observers. Used with an operator such
-as `auditTime`, you can debounce changes until props change, before or after the DOM is updated. Pass `0` to emit before an update,
-and `1` to emit after an update.
-
-```ts
-function setup(context: Context) {
-   const count = use(0)
-   const beforeUpdate = scheduled(count, context)
-   const afterUpdate = count.pipe(
-      auditTime(1, context), // pass 0 for before update
-   )
-
-   subscribe(beforeUpdate, (value) => {
-      // executes when props change, before the dom is updated
-   })
-
-   subscribe(afterUpdate, (value) => {
-      // executes when props change, after the dom is updated
-   })
-
-   return {
-      count,
-   }
-}
-```
 
 ### Use API
 
@@ -332,13 +282,17 @@ arr((val) => val.push(10))
 subscribe(num, observer)
 ```
 
-**Readonly Value**
-
-A readonly value can be obtained through destructuring.
+The read/write stream can be separated using `bindon`.
 
 ```ts
-const value = use(0)
-const [readonly] = use(0)
+function setup() {
+   const [count, countChange] = use(0).bindon
+
+   return {
+      count,
+      countChange // won't be unwrapped
+   }
+}
 ```
 
 #### Emitter
@@ -366,17 +320,17 @@ const count = use(0)
 const countChange = use(count)
 ```
 
-Shorthand syntax
+The above can be shorted with the `bindon` property
 
 ```ts
-const [count, countChange] = use(0)
+const [count, countChange] = use(0).bindon
 ```
 
 Two-way binding example
 
 ```ts
 function counter() {
-   const [count, countChange] = use(0)
+   const [count, countChange] = use(0).bindon
 
    subscribe(interval(1000), () => {
       countChange(count() + 1)
@@ -397,11 +351,11 @@ export class Counter extends ViewDef(counter) {}
 
 #### Query
 
-Creates a `Value` that will receive a `ContentChild` or `ViewChild`. Queries are checked during the `ngDoCheck`, `ngAfterContentChecked` or `ngAfterViewChecked` lifecycle hook.
+Creates a `ReadonlyValue` that will receive a `ContentChild` or `ViewChild`. Queries are checked during the 
+`ngAfterContentChecked` or `ngAfterViewChecked` lifecycle hook.
 
 ```ts
 function setup() {
-   const staticChild = use<TemplateRef<any>>()
    const contentChild = use<TemplateRef<any>>(ContentChild)
    const viewChild = use<TemplateRef<any>>(ViewChild)
 
@@ -412,7 +366,6 @@ function setup() {
    })
 
    return {
-      staticChild,
       contentChild,
       viewChild,
    }
@@ -420,7 +373,6 @@ function setup() {
 
 @Component({
    queries: {
-      staticChild: new ContentChild(TemplateRef, { static: true }),
       contentChild: new ContentChild(TemplateRef),
       viewChild: new ViewChild(TemplateRef),
    },
@@ -439,7 +391,7 @@ function setup() {
    const viewChildren = use<TemplateRef<any>>(ViewChildren)
 
    subscribe(() => {
-      for (const child of contentChildren().toArray()) {
+      for (const child of contentChildren()) {
          console.log(child)
       }
    })
@@ -511,18 +463,87 @@ value()
 value.value
 ```
 
-#### beforeUpdate/afterUpdate
+#### BeforeUpdate
 
-For convenience, you can observe whenever any property on a `ViewDef` changes
-and react to it either before or after the DOM updates.
+Returns an `Emitter` that will emit whenever the view is about to update. Accepts an optional callback argument.
 
 ```ts
-function setup(context) {
-   subscribe(beforeUpdate(context), () => {
+function setup() {
+   const beforeUpdate = onBeforeUpdate()
+
+   subscribe(beforeUpdate, () => {
       // when the view is about to update
    })
-   subscribe(afterUpdate(context), () => {
+
+   // or
+
+   onBeforeUpdate(() => {
+      // when the view is about to update
+   })
+}
+```
+
+#### Updated
+
+Returns an `Emitter` that will emit after the view has updated. Accepts an optional callback argument.
+
+```ts
+function setup() {
+   const updated = onUpdated()
+
+   subscribe(updated, () => {
+      // after the view has updated
+   })
+
+   // or
+
+   onUpdated(() => {
       // after the view has updated
    })
 }
+```
+
+#### OnDestroy
+
+Returns an `Emitter` that will emit after the view is destroyed. Accepts an optional callback argument.
+
+```ts
+function setup() {
+   onDestroy(() => {
+      // when the view is destroyed
+   })
+}
+```
+
+#### Coercion
+
+Some helpers are exported to simplify input property coercion. The available types are:
+
+```ts
+useElement()
+useBoolean()
+useNumber()
+useArray()
+```
+
+Example
+
+```ts
+function setup() {
+   const enabled = useBoolean(false)
+   
+   return {
+      enabled
+   }
+}
+
+@Component({
+   selector: "my-toggle",
+   inputs: ["enabled"]
+})
+export class MyToggle {}
+```
+
+```html
+<my-toggle enabled></my-toggle>
 ```

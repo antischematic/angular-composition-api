@@ -1,7 +1,7 @@
-import {select} from "./select"
-import {use} from "./common"
-import {asyncScheduler, BehaviorSubject, of, scheduled} from "rxjs";
-import {fakeAsync, tick} from "@angular/core/testing";
+import { select } from "./select"
+import { use } from "./common"
+import { asyncScheduler, BehaviorSubject, of, scheduled } from "rxjs"
+import { fakeAsync, tick } from "@angular/core/testing"
 
 describe("select", () => {
    it("should create", () => {
@@ -20,7 +20,7 @@ describe("select", () => {
    })
    it("should use observable with initial value", fakeAsync(() => {
       const value = scheduled(of(10), asyncScheduler)
-      const [double] = select(value, (val) => val * 2, 0)
+      const double = select(value, (val) => val * 2, 0)
       const spy = jasmine.createSpy()
       expect(double.value).toBe(0)
       double.subscribe(spy)
@@ -34,7 +34,7 @@ describe("select", () => {
       const value = use(0)
       const double = select({
          next: (val: number) => value(val),
-         value: () => value() * 2
+         value: () => value() * 2,
       })
       const spy = jasmine.createSpy()
       expect(double.value).toBe(0)
@@ -48,7 +48,7 @@ describe("select", () => {
       const value = use(0)
       const double = select({
          next: (val: number) => value(val * 2),
-         value: value
+         value: value,
       })
       const spy = jasmine.createSpy()
       expect(double.value).toBe(0)

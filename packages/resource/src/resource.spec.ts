@@ -63,7 +63,7 @@ describe("Resource Query", () => {
       const initialValue = [] as any[]
       function setup() {
          const testQuery = inject(TestQuery)
-         const [value] = testQuery({ initialValue })
+         const value = testQuery({ initialValue })
          return {
             value
          }
@@ -204,7 +204,7 @@ describe("Mutation", () => {
       const expected = [1,2,3]
       const TestMutation = new Mutation(mutation)
       function setup() {
-         const [mutation, mutate] = inject(TestMutation)
+         const [mutation, mutate] = inject(TestMutation).bindon
          return {
             mutation,
             mutate,
