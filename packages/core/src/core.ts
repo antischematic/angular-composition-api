@@ -128,8 +128,6 @@ class ContextBinding<T = any> implements Check {
 
 const dirty = new Set<Scheduler>()
 
-let timeoutId: number | undefined
-
 class Action<T> extends Subscription implements SchedulerAction<T> {
    delay?: number
    state: any
@@ -252,8 +250,8 @@ export function setTemplateContext(context: any) {
    return previous
 }
 
-export function runInTemplate(handler: Function, ...args: any[]) {
-   const previous = setTemplateContext(handler)
+export function runInTemplate(context: any, handler: Function, ...args: any[]) {
+   const previous = setTemplateContext(context)
    try {
       handler(...args)
    } finally {
@@ -264,7 +262,7 @@ export function runInTemplate(handler: Function, ...args: any[]) {
 function decorateFunction(exec: Function, errorHandler: ErrorHandler) {
    function decorated(...args: any[]) {
       try {
-         return exec(...args)
+         return runInTemplate(null, exec, ...args)
       } catch (error) {
          if (templateContext) {
             errorHandler.handleError(error)
@@ -277,23 +275,8 @@ function decorateFunction(exec: Function, errorHandler: ErrorHandler) {
    return decorated
 }
 
-export interface Context extends SchedulerLike {
-   markDirty(): void
-   detectChanges(): void
-}
-
-function setup(injector: Injector, stateFactory: (context: Context) => {}) {
-   const context: { [key: string]: any } = currentContext
-   const error = injector.get(ErrorHandler)
-   const scheduler = new Scheduler(injector.get(ChangeDetectorRef), error)
-
-   createContext(context, injector, error, scheduler, [
-      new Set(),
-      new Set(),
-      new Set(),
-   ])
-
-   const state = stateFactory(scheduler)
+function createState(context: any, stateFactory: () => {}, error: ErrorHandler) {
+   const state = stateFactory()
 
    for (let [key, value] of Object.entries(state)) {
       if (isCheckSubject(value)) {
@@ -309,8 +292,27 @@ function setup(injector: Injector, stateFactory: (context: Context) => {}) {
          )
       }
    }
+}
+
+function setup(injector: Injector, stateFactory: () => {}) {
+   const context: { [key: string]: any } = currentContext
+   const error = injector.get(ErrorHandler)
+   const scheduler = new Scheduler(injector.get(ChangeDetectorRef), error)
+
+   createContext(context, injector, error, scheduler, [
+      new Set(),
+      new Set(),
+      new Set(),
+   ])
 
    addTeardown(scheduler)
+
+   try {
+      createState(context, stateFactory, error)
+   } catch (e) {
+      error.handleError(error)
+      unsubscribe()
+   }
 }
 
 export function check(key: CheckPhase) {
@@ -394,7 +396,6 @@ function next(
 }
 
 export function detectChanges() {
-   timeoutId = undefined
    let scheduler
    const list = Array.from(dirty)
    dirty.clear()

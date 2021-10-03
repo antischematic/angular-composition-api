@@ -4,7 +4,7 @@ A lightweight (3kb) library for writing functional Angular applications.
 
 ```ts
 function setup() {
-   const [count, countChange] = use(0).bindon
+   const [count, countChange] = use(0).sync
    
    subscribe(count, () => {
       console.log(count.value)
@@ -61,8 +61,7 @@ Creates a context-aware class from a setup function. Values returned from this f
 
 **Change Detection**
 
-Change detection occurs in the following scenarios (assuming `OnPush`
-strategy):
+Change detection occurs in the following scenarios (assuming `OnPush` strategy):
 
 -  On first render.
 -  When inputs change.
@@ -91,11 +90,7 @@ const componentRef = componentFactoryResolver
 componentRef.instance.count = 10 // not reactive
 componentRef.instance.countChange(10) // not reactive
 
-componentRef.instance.count // 0
-
-componentRef.changeDetectorRef.detectChanges()
-
-componentRef.instance.count // 10
+componentRef.changeDetectorRef.detectChanges() // now the view will be updated
 ```
 
 To propagate these changes you will need to call `detectChanges`.
@@ -282,11 +277,11 @@ arr((val) => val.push(10))
 subscribe(num, observer)
 ```
 
-The read/write stream can be separated using `bindon`.
+The read/write stream can be separated using `sync`.
 
 ```ts
 function setup() {
-   const [count, countChange] = use(0).bindon
+   const [count, countChange] = use(0).sync
 
    return {
       count,
@@ -312,25 +307,30 @@ add(1)
 sum(1, 2, 3)
 ```
 
-When a `Value` is passed, calling the `Emitter` will also update the value.
-This is useful for creating two-way bindings.
+When a `Value` is passed, calling the `Emitter` will also update the value. Updating the value directly however will
+not trigger the emitter. This is useful for creating two-way bindings.
 
 ```ts
 const count = use(0)
 const countChange = use(count)
+
+countChange(count() + 1)
+count.value // 1
+
+count(10) // will not trigger countChange
 ```
 
-The above can be shorted with the `bindon` property
+Value/Emitter pairs can be shortened with the `sync` property
 
 ```ts
-const [count, countChange] = use(0).bindon
+const [count, countChange] = use(0).sync
 ```
 
 Two-way binding example
 
 ```ts
 function counter() {
-   const [count, countChange] = use(0).bindon
+   const [count, countChange] = use(0).sync
 
    subscribe(interval(1000), () => {
       countChange(count() + 1)

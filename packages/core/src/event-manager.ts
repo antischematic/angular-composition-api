@@ -4,7 +4,7 @@ import { detectChanges, runInTemplate } from "./core"
 
 function wrapHandlerInTemplateContext(handler: Function) {
    return function handlerWrappedInDetectChanges(...args: any[]) {
-      runInTemplate(handler, ...args)
+      runInTemplate(handler, handler, ...args)
       detectChanges()
    }
 }

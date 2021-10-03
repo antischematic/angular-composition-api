@@ -35,7 +35,7 @@ type Callable = (...args: any[]) => any
 interface BaseType extends Callable, Observable<any> {}
 
 abstract class BaseType {
-   get bindon(): any {
+   get sync(): any {
       return [this, createEmitter(this as any)]
    }
    get value() {

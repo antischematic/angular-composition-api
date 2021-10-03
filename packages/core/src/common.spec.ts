@@ -52,7 +52,7 @@ describe("use", () => {
          expect(value()).toBe(20)
       })
       it("should destructure", () => {
-         const [value, valueChange] = use(0).bindon
+         const [value, valueChange] = use(0).sync
 
          expect(value.__ng_value).toBe(true)
          expect(valueChange.__ng_emitter).toEqual(true)

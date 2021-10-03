@@ -204,7 +204,7 @@ describe("Mutation", () => {
       const expected = [1,2,3]
       const TestMutation = new Mutation(mutation)
       function setup() {
-         const [mutation, mutate] = inject(TestMutation).bindon
+         const [mutation, mutate] = inject(TestMutation).sync
          return {
             mutation,
             mutate,

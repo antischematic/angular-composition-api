@@ -60,7 +60,7 @@ export type Value<T> = CheckSubject<T> & {
    readonly __ng_value: true
    readonly source: Observable<T>
    readonly pipe: Observable<T>["pipe"]
-   readonly bindon: [Value<T>, Emitter<T>]
+   readonly sync: [Value<T>, Emitter<T>]
    readonly value: T
    (mutate: (value: T) => any): void
    (value: T): void

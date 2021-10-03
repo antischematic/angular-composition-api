@@ -114,7 +114,7 @@ export type ValueAccessor<T, U> = CheckSubject<T> & {
    readonly __ng_value: true
    readonly source: Observable<T>
    readonly pipe: Observable<T>["pipe"]
-   readonly bindon: [ValueAccessor<T, U>, Emitter<U>]
+   readonly sync: [ValueAccessor<T, U>, Emitter<U>]
    readonly value: T
    (mutate: (value: U) => any): void
    (value: U): void
