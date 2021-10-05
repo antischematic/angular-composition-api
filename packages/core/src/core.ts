@@ -26,7 +26,6 @@ import {
    Subscribable,
    Subscription,
    TeardownLogic,
-   Unsubscribable,
 } from "rxjs"
 import {
    Check,
@@ -275,7 +274,11 @@ function decorateFunction(exec: Function, errorHandler: ErrorHandler) {
    return decorated
 }
 
-function createState(context: any, stateFactory: () => {}, error: ErrorHandler) {
+function createState(
+   context: any,
+   stateFactory: () => {},
+   error: ErrorHandler,
+) {
    const state = stateFactory()
 
    for (let [key, value] of Object.entries(state)) {
@@ -347,7 +350,7 @@ export function addEffect<T>(
    source?: Subscribable<T> | (() => TeardownLogic),
    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
    signal?: UnsubscribeSignal,
-): Unsubscribable | void {
+): Subscription | void {
    if (!source) {
       const subscription = new Subscription()
       addTeardown(subscription)
@@ -437,8 +440,7 @@ export class ComputedSubject<T> extends BehaviorSubject<T> {
    }
 }
 
-export class EffectObserver<T> {
-   closed
+export class EffectObserver<T> extends Subscription {
    next(value: T | Notification<T>) {
       if (this.closed) return
       if (value instanceof Notification) {
@@ -484,8 +486,8 @@ export class EffectObserver<T> {
    }
    unsubscribe() {
       if (this.closed) return
-      this.closed = true
       runInContext(this, unsubscribe)
+      super.unsubscribe()
    }
    private call(notification: Notification<T>) {
       const { observer, injector, errorHandler, scheduler, signal } = this
@@ -516,7 +518,7 @@ export class EffectObserver<T> {
       private scheduler?: Scheduler,
       private signal?: UnsubscribeSignal,
    ) {
-      this.closed = false
+      super()
       createContext(this, injector, errorHandler, scheduler)
    }
 }

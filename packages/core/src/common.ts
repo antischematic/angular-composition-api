@@ -7,7 +7,6 @@ import {
    Subscribable,
    Subscription,
    TeardownLogic,
-   Unsubscribable,
 } from "rxjs"
 import {
    ContentChild,
@@ -18,7 +17,8 @@ import {
    ViewChildren,
 } from "@angular/core"
 import {
-   AccessorEmitter, AccessorValue,
+   AccessorEmitter,
+   AccessorValue,
    CheckPhase,
    checkPhase,
    Emitter,
@@ -235,7 +235,7 @@ export function subscribe<T>(
       | ((value: T) => TeardownLogic)
       | UnsubscribeSignal,
    signal?: UnsubscribeSignal,
-): Unsubscribable | void {
+): Subscription | void {
    const observer = isObserver(observerOrSignal) ? observerOrSignal : void 0
    signal = isSignal(observerOrSignal) ? observerOrSignal : signal
 
