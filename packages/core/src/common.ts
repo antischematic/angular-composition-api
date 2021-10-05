@@ -184,6 +184,10 @@ export function use<T>(value: QueryListType): ReadonlyValue<QueryList<T>>
 export function use<T>(value: QueryType): ReadonlyValue<T>
 export function use<T>(value: typeof Function): Emitter<T>
 export function use<T>(value: BehaviorSubject<T>): Value<T>
+export function use<T>(value: Emitter<T>): Emitter<T>
+export function use<T, U>(value: AccessorEmitter<T, U>): AccessorEmitter<T, U>
+export function use<T extends (...args: any) => any>(value: EmitterWithParams<T>): EmitterWithParams<T>
+export function use<T>(value: ReadonlyValue<T>): Emitter<T>
 export function use<T>(value: Value<T>): Emitter<T>
 export function use<T, U>(value: AccessorValue<T, U>): AccessorEmitter<T, U>
 export function use<T>(value: Subscribable<T>): ReadonlyValue<T | undefined>

@@ -21,10 +21,10 @@ import {
 import { ComponentFixture, TestBed } from "@angular/core/testing"
 import { checkPhase } from "./interfaces"
 import { use } from "./common"
-import objectContaining = jasmine.objectContaining
-import createSpy = jasmine.createSpy
 import { EventManager } from "@angular/platform-browser"
 import { ZonelessEventManager } from "./event-manager"
+import objectContaining = jasmine.objectContaining
+import createSpy = jasmine.createSpy
 
 export function configureTest<T>(View: Type<T>): () => ComponentFixture<T> {
    TestBed.configureTestingModule({

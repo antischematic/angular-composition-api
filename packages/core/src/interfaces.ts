@@ -77,8 +77,8 @@ export interface ReadonlyValue<T> extends CheckSubject<T> {
 }
 
 export interface Accessor<T, U> {
-   next: ((value: U) => void) | Subject<U>
-   value: Value<T> | AccessorValue<T, any> | BehaviorSubject<T> | (() => T)
+   next: ((value: U) => void) | Subject<U> | Value<U> | ReadonlyValue<U> | Emitter<U> | AccessorValue<any, U>
+   value: Value<T> | ReadonlyValue<T> | AccessorValue<T, any> | BehaviorSubject<T> | (() => T)
 }
 
 export type AccessorValue<T, U> = CheckSubject<T> & {
