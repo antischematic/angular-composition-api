@@ -1,7 +1,7 @@
-import { select, ValueAccessor } from "./select"
+import { select } from "./select"
 import { use } from "./common"
 import { ElementRef } from "@angular/core"
-import { QueryType } from "./interfaces"
+import {AccessorValue, QueryType} from "./interfaces"
 
 export type BooleanInput = string | boolean | null | undefined
 
@@ -12,7 +12,7 @@ export function coerceBooleanProperty(value: any): boolean {
 
 export function useBoolean(
    initialValue: BooleanInput = false,
-): ValueAccessor<boolean, BooleanInput> {
+): AccessorValue<boolean, BooleanInput> {
    const value = use(coerceBooleanProperty(initialValue))
    return select({
       value,
@@ -70,13 +70,13 @@ export function coerceElement<T>(elementOrRef: ElementRef<T> | T): T {
       : elementOrRef
 }
 
-export function useElement<T>(): ValueAccessor<ElementRef<T> | T, T | undefined>
+export function useElement<T>(): AccessorValue<ElementRef<T> | T, T | undefined>
 export function useElement<T>(
    initialValue: QueryType,
-): ValueAccessor<ElementRef<T> | T, T | undefined>
+): AccessorValue<ElementRef<T> | T, T | undefined>
 export function useElement<T>(
    initialValue: ElementRef<T> | T,
-): ValueAccessor<ElementRef<T> | T, T>
+): AccessorValue<ElementRef<T> | T, T>
 export function useElement<T>(initialValue?: ElementRef<T> | T | Function) {
    const value = use(
       typeof initialValue === "function"

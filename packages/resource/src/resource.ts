@@ -6,7 +6,7 @@ import {
    subscribe,
    use,
    Value,
-   ValueAccessor,
+   AccessorValue,
 } from "@mmuscat/angular-composition-api"
 import {
    exhaust,
@@ -35,11 +35,11 @@ export interface QueryOptions<T> {
 }
 
 export interface Query<T, U> {
-   (config: QueryOptions<T>): ValueAccessor<Resource<T>, U>
+   (config: QueryOptions<T>): AccessorValue<Resource<T>, U>
    (
       params: Observable<U> | Observable<U>[],
       config: QueryOptions<T>,
-   ): ValueAccessor<Resource<T>, U>
+   ): AccessorValue<Resource<T>, U>
 }
 
 interface QueryStatic {
@@ -274,7 +274,7 @@ export interface MutationStatic {
    new <T, U>(
       factory: () => (params: U) => Observable<T>,
       config?: MutationConfig,
-   ): Type<ValueAccessor<Resource<T>, U>>
+   ): Type<AccessorValue<Resource<T>, U>>
 }
 
 function createMutationFactory(

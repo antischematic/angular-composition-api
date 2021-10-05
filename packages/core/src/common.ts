@@ -18,6 +18,7 @@ import {
    ViewChildren,
 } from "@angular/core"
 import {
+   AccessorEmitter, AccessorValue,
    CheckPhase,
    checkPhase,
    Emitter,
@@ -32,9 +33,9 @@ import { isObserver, isSignal, isValue, track } from "./utils"
 import { addEffect, addTeardown } from "./core"
 
 type Callable = (...args: any[]) => any
-interface BaseType extends Callable, Observable<any> {}
+interface UseSubject extends Callable, Observable<any> {}
 
-abstract class BaseType {
+abstract class UseSubject {
    get sync(): any {
       return [this, createEmitter(this as any)]
    }
@@ -61,7 +62,7 @@ abstract class BaseType {
    }
    constructor(public source: any) {}
 }
-class ValueType extends BaseType {
+class ValueSubject extends UseSubject {
    [checkPhase]: number
    __ng_value = true
    constructor(source: any, phase: any) {
@@ -69,7 +70,7 @@ class ValueType extends BaseType {
       this[checkPhase] = phase
    }
 }
-class EmitterType extends BaseType {
+class EmitterSubject extends UseSubject {
    __ng_emitter = true
 
    next(values: any[]): any {
@@ -104,9 +105,9 @@ export class QueryListSubject extends QueryList<any> {
 
 function createQueryList<T>(phase: CheckPhase): ReadonlyValue<QueryList<T>> {
    const queryList = new QueryListSubject()
-   const valueType: ValueType = Object.setPrototypeOf(
+   const valueType: ValueSubject = Object.setPrototypeOf(
       getterSetter,
-      new ValueType(queryList, phase),
+      new ValueSubject(queryList, phase),
    )
    function getterSetter(nextValue?: QueryList<T>): QueryList<T> | void {
       if (arguments.length === 0) {
@@ -119,9 +120,9 @@ function createQueryList<T>(phase: CheckPhase): ReadonlyValue<QueryList<T>> {
 }
 
 function createValue<T>(source: BehaviorSubject<T>, phase = 0): Value<T> {
-   const valueType: ValueType = Object.setPrototypeOf(
+   const valueType: ValueSubject = Object.setPrototypeOf(
       getterSetter,
-      new ValueType(source, phase),
+      new ValueSubject(source, phase),
    )
    function getterSetter(this: Value<any>, nextValue?: any): T | void {
       if (arguments.length === 0) {
@@ -146,9 +147,9 @@ function createEmitter<T extends (...args: any[]) => any>(
    fn: T | FunctionConstructor,
 ): Emitter<T> {
    fn = fn === Function ? (defaultFn as T) : fn
-   const emitterType: EmitterType = Object.setPrototypeOf(
+   const emitterType: EmitterSubject = Object.setPrototypeOf(
       next,
-      new EmitterType(new EventEmitter(), fn),
+      new EmitterSubject(new EventEmitter(), fn),
    )
 
    function next(...args: any[]) {
@@ -182,7 +183,10 @@ export function use<T>(): Value<T | undefined>
 export function use<T>(value: QueryListType): ReadonlyValue<QueryList<T>>
 export function use<T>(value: QueryType): ReadonlyValue<T>
 export function use<T>(value: typeof Function): Emitter<T>
+export function use<T>(value: BehaviorSubject<T>): Value<T>
 export function use<T>(value: Value<T>): Emitter<T>
+export function use<T, U>(value: AccessorValue<T, U>): AccessorEmitter<T, U>
+export function use<T>(value: Subscribable<T>): ReadonlyValue<T | undefined>
 export function use<T extends (...args: any[]) => any>(
    value: T,
 ): EmitterWithParams<T>

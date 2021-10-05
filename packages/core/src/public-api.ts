@@ -21,9 +21,11 @@ export {
    ReadonlyValue,
    Emitter,
    EmitterWithParams,
-   ValueAccessorOptions,
+   Accessor,
+   AccessorEmitter,
+   AccessorValue,
 } from "./interfaces"
-export { select, ValueAccessor } from "./select"
+export { select } from "./select"
 export { ValueToken, provide, EmptyValueError } from "./provider"
 export { onDestroy, onUpdated, onBeforeUpdate } from "./lifecycle"
 export { ZonelessEventManager } from "./event-manager"

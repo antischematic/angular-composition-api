@@ -415,46 +415,30 @@ export class MyComponent extends ViewDef(setup) {}
 
 #### Select
 
-Computes a new `Value` from a reactive observer, `Observable` or `Value`, with an optional `selector` and initial value.
+Selects a new `Value` or `AccessorValue`.
 
-With `Value`
+Examples:
 
-```ts
-const state = use({ count: 0 })
-const count = select(state, (val) => val.count)
-```
-
-With `Observable` and initial value
-
-```ts
-const store = inject(Store)
-const count = select(
-   store.select((val) => val.count),
-   0,
-)
-```
-
-With reactive observer
+Select `Value` with reactive observer
 
 ```ts
 const state = use({ count: 0 })
 const count = select(() => state().count)
 ```
 
-**ValueAccessor**
+Select a new `AccessorValue` with separate read and write streams. 
 
-Select can also be used to delegate between separate read and write streams.
+- `next` can be a `Function` or a `Subject`
+- `value` can be a `Value`, `AccessorValue`, `BehaviorSubject` or a
+reactive observer.
 
 ```ts
 const count = use(0)
-const increment = use(Function)
 
 const value = select({
-   next: increment,
-   value: () => count() + 1,
+   next: () => count() + 1,
+   value: count,
 })
-
-subscribe(increment, () => count(count() + 1))
 
 // write value
 value.next()
