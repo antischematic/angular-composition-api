@@ -184,6 +184,7 @@ interface MutationConfig {
 ```
 
 `operator` - specifies the merge strategy when multiple requests are in the queue. Defaults to `exhaust`
+
 `cancel` - cancels all requests currently in the queue when the given observable emits.
 
 ### Resource
