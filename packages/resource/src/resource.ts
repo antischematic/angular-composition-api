@@ -210,7 +210,7 @@ function createQueryFactory(factory: () => Function) {
 
 export const Query: QueryStatic = createQueryFactory as any
 
-interface MutateOptions {
+export interface MutateOptions {
    operator?: () => OperatorFunction<ObservableInput<any>, any>
    cancel?: Observable<any>
 }
