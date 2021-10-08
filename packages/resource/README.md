@@ -85,12 +85,16 @@ it will wait until it is `done` before it runs the query again.
 ```ts
 function setup() {
    const myQuery = inject(MyQuery)
-   const [mutation, mutate] = inject(MyMutation).sync
+   const refetch = use(Function)
    const fetch = use(Function)
    const result = myQuery(fetch, {
       initialValue: null,
-      refetch: [mutation],
+      refetch: [refetch],
    })
+   
+   return {
+      result
+   }
 }
 ```
 
@@ -99,12 +103,15 @@ The queuing strategy can also be configured. The default is `switchMap`.
 ```ts
 function setup() {
    const myQuery = inject(MyQuery)
-   const [mutation, mutate] = inject(MyMutation).sync
    const fetch = use(Function)
    const result = myQuery(fetch, {
       initialValue: null,
       operator: mergeMap
    })
+
+   return {
+      result
+   }
 }
 ```
 
@@ -120,7 +127,12 @@ function setup() {
    const result = myQuery(fetch, {
       initialValue: null
    })
+
    fetch([1, 2, 3]) // stringified to "[1, 2, 3]" to use as cache key
+
+   return {
+      result
+   }
 }
 ```
 
