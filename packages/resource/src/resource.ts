@@ -1,12 +1,11 @@
 import { Injectable, Type } from "@angular/core"
 import {
+   AccessorValue,
    inject,
-   select,
    Service,
    subscribe,
    use,
    Value,
-   AccessorValue,
 } from "@mmuscat/angular-composition-api"
 import {
    exhaust,
@@ -19,18 +18,25 @@ import {
    tap,
 } from "rxjs/operators"
 import {
+   EMPTY,
    merge,
    NextObserver,
    Notification,
    Observable,
+   ObservableInput,
+   ObservedValueOf,
    Observer,
    of,
    OperatorFunction,
-   Subject, Subscribable,
+   Subject,
+   Subscribable,
 } from "rxjs"
 
 export interface QueryOptions<T> {
    initialValue: T
+   operator?: <T, O>(
+      mapFn: (value: T) => O,
+   ) => OperatorFunction<T, ObservedValueOf<O>>
    refetch?: Observable<any>[]
 }
 
@@ -87,7 +93,7 @@ class PendingObserver implements NextObserver<any> {
    constructor(private value: Value<any>) {}
 }
 
-class Cache {
+class Cache implements Invalidator {
    params: any
    get(params: any, invalidate?: boolean): any {
       this.params = params
@@ -101,10 +107,11 @@ class Cache {
       }
       return factory(params).pipe(tap((value) => cache.set(key, value)))
    }
-   clear() {
-      this.cache.clear()
+   invalidate(params: any) {
+      return this.get(params, true)
    }
-   invalidate() {
+   invalidateAll() {
+      this.cache.clear()
       return this.get(this.params, true)
    }
    subscribe() {
@@ -117,71 +124,51 @@ class Cache {
    ) {}
 }
 
-const globalCache = new Map<Type<any>, Set<Cache>>()
+const invalidators = new WeakMap<any, Set<Invalidator>>()
 
-@Injectable({ providedIn: "root" })
-class CacheFactory {
-   get(token: any, queryFactory: any) {
-      function unsubscribe(this: Cache) {
-         globalCache.get(token)?.delete(this)
-      }
-      const cache = new Cache(queryFactory, new Map(), unsubscribe)
-      if (globalCache.has(token)) {
-         globalCache.get(token)!.add(cache)
-         return cache
-      } else {
-         globalCache.set(token, new Set([cache]))
-         return cache
-      }
+interface Invalidator {
+   invalidate(params: any): void
+   invalidateAll(): void
+}
+
+function addInvalidator(key: any, value: Invalidator) {
+   if (invalidators.has(key)) {
+      invalidators.get(key)!.add(value)
+   } else {
+      invalidators.set(key, new Set([value]))
    }
 }
 
-export interface QueryConfig {
-   operator?: () => OperatorFunction<any, any>
+@Injectable({ providedIn: "root" })
+class CacheFactory {
+   get(token: any, queryFactory: any, value: any) {
+      function unsubscribe(this: Cache) {
+         invalidators.get(token)?.delete(this)
+      }
+      const cache = new Cache(queryFactory, new Map(), unsubscribe)
+
+      addInvalidator(token, cache)
+      addInvalidator(value, cache)
+
+      return cache
+   }
 }
 
 function queryFactory(
    factory: () => (args: any) => Observable<any>,
    forwardRef: () => any,
-   config: QueryConfig,
 ) {
    const cacheFactory = inject(CacheFactory)
    const queryFunction = factory()
 
    return function query(...params: any[]) {
       const args = params[params.length - 2]
-      const options = params[params.length - 1]
+      const options: QueryOptions<any> = params[params.length - 1]
       const value = use(Resource.createNext(options.initialValue))
-      const query = select({
-         next(valueOrCommand: any) {
-            if (valueOrCommand instanceof Command) {
-               switch (valueOrCommand.signal) {
-                  case CANCEL:
-                     cancel.next()
-                     break
-                  case INVALIDATE:
-                     if (valueOrCommand.params) {
-                        fetch(valueOrCommand.params, true)
-                     } else {
-                        cache.clear()
-                     }
-                     break
-                  default:
-                     throwInvalidCommand()
-               }
-            } else {
-               value(valueOrCommand)
-            }
-         },
-         value,
-      })
-      const cache = cacheFactory.get(forwardRef(), queryFunction)
-      const operator = config?.operator ?? switchMap
+      const cache = cacheFactory.get(forwardRef(), queryFunction, value)
+      const operator = options?.operator ?? switchMap
       const cancel = new Subject()
-      const fetch = use((args: any, invalidate: any) => [
-         args,
-         invalidate,
-      ])
+      const fetch = use((args: any, invalidate: any) => [args, invalidate])
       const result = fetch.pipe(
          operator(([args, invalidate]) => cache.get(args, invalidate)),
          materialize(),
@@ -204,104 +191,84 @@ function queryFactory(
          subscribe(merge(...(Array.isArray(args) ? args : [args])), {
             next(value) {
                fetch.next([value, false])
-            }
+            },
          })
       }
 
-      return query
+      return value
    }
 }
 
-function createQueryFactory(factory: () => Function, config?: any) {
-   const Query = new Service(queryFactory, {
+function createQueryFactory(factory: () => Function) {
+   const Query: any = new Service(queryFactory, {
       providedIn: "root",
       name: factory.name,
-      arguments: [factory, () => Query, config],
+      arguments: [factory, () => Query],
    })
    return Query
 }
 
 export const Query: QueryStatic = createQueryFactory as any
 
-const CANCEL = 0
-const INVALIDATE = 1
-
-class Command {
-   constructor(public signal: number, public params?: any) {}
+interface MutateOptions {
+   operator?: () => OperatorFunction<ObservableInput<any>, any>
+   cancel?: Observable<any>
 }
 
-function throwInvalidCommand() {
-   throw new Error("Invalid command")
-}
+function mutateFactory(factory: () => (...args: any[]) => Observable<any>) {
+   function mutate(params: Observable<any>, options: MutateOptions) {
+      const operator = options?.operator?.() ?? exhaust()
+      const cancel = options?.cancel ?? EMPTY
+      const queue = use<Observable<Notification<any>>>(Function)
+      const result = queue.pipe(operator)
+      const createStream = factory()
+      const value = use(Resource.createNext(undefined))
 
-function mutateFactory(
-   factory: () => (...args: any[]) => Observable<any>,
-   config: MutationConfig,
-) {
-   const operator = config?.operator?.() ?? exhaust()
-   const queue = use<Observable<Notification<any>>>(Function)
-   const cancel = new Subject()
-   const result = queue.pipe(operator)
-   const createStream = factory()
-   const value = use(Resource.createNext(undefined))
-   function mutate(params: any) {
-      if (params instanceof Command) {
-         switch (params.signal) {
-            case CANCEL:
-               return cancel.next()
-            default:
-               throwInvalidCommand()
-         }
+      function mutate(params: any) {
+         queue.next(createStream(params).pipe(materialize(), takeUntil(cancel)))
       }
-      queue.next(createStream(params).pipe(materialize(), takeUntil(cancel)))
+
+      subscribe(params, mutate)
+      subscribe(queue, new PendingObserver(value))
+      subscribe(result, new ResultObserver(value))
+
+      return value
    }
-   const mutation = select({
-      next: mutate,
-      value,
-   })
 
-   subscribe(queue, new PendingObserver(value))
-   subscribe(result, new ResultObserver(value))
-
-   return mutation
+   return mutate
 }
 
-export interface MutationConfig {
-   operator?: () => OperatorFunction<Observable<any>, any>
+export interface Mutation<T, U> {
+   (params: Observable<U>, options?: MutateOptions): Value<Resource<T>>
 }
 
 export interface MutationStatic {
-   new <T, U>(
-      factory: () => (params: U) => Observable<T>,
-      config?: MutationConfig,
-   ): Type<AccessorValue<Resource<T>, U>>
+   new <T, U>(factory: () => (params: U) => Observable<T>): Type<Mutation<T, U>>
 }
 
 function createMutationFactory(
    factory: () => (...args: any) => Observable<any>,
-   config: MutationConfig,
 ) {
    return new Service(mutateFactory, {
       providedIn: "root",
       name: factory.name,
-      arguments: [factory, config],
+      arguments: [factory],
    })
 }
 
 export const Mutation: MutationStatic = createMutationFactory as any
 
-export function cancel(resource: any) {
-   resource.next(new Command(CANCEL))
-}
-
-export function invalidate(query: any, params?: any) {
-   if (query.__ng_value) {
-      query.next(new Command(INVALIDATE, params))
-   } else {
-      const set = globalCache.get(query) ?? []
-      for (const cache of set) {
-         cache.clear()
-         cache.invalidate()
+export function invalidate(key: any, params?: any) {
+   const invalidator = invalidators.get(key)
+   const clear = arguments.length === 1
+   if (invalidator) {
+      const list = Array.from(invalidator)
+      for (const item of list) {
+         if (clear) {
+            item.invalidateAll()
+         } else {
+            item.invalidate(params)
+         }
       }
    }
 }

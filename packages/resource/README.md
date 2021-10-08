@@ -20,68 +20,6 @@ yarn add @mmuscat/angular-resource
 
 ```
 
-### Example
-
-Query
-
-```ts
-function getTodosByUserId() {
-   const http = inject(HttpClient)
-   return function (userId) {
-      return http.get(url, {
-         params: { userId },
-      })
-   }
-}
-
-const GetTodosByUserId = new Query(getTodosByUserId)
-```
-
-Mutation
-
-```ts
-function createTodo() {
-   const http = inject(HttpClient)
-   return function (data) {
-      return http.post(url, data)
-   }
-}
-
-const CreateTodo = new Mutation(createTodo, {
-   operator: exhaustAll,
-})
-```
-
-Usage
-
-```ts
-function setup() {
-   const userId = use("123")
-   const [createTodoStatus, createTodo] = inject(CreateTodo).sync
-   const getTodosByUserId = inject(GetTodosByUserId)
-   const todos = getTodosByUserId(userId, {
-      refetch: [createTodo],
-      initialValue: [],
-   })
-
-   return {
-      todos,
-      createTodo,
-      createTodoStatus,
-   }
-}
-
-@Component({
-   template: `
-      <spinner *ngIf="todos.pending"></spinner>
-      <div *ngIf="todos.error">Something went wrong</div>
-      <todo *ngFor="let todo of todos.value"></todo>
-      <add-todo (save)="createTodo($event)"></create-todo>
-   `,
-})
-export class MyComponent extends ViewDef(setup) {}
-```
-
 ## Api Reference
 
 ### Query
@@ -109,7 +47,7 @@ function setup() {
    const myQuery = inject(MyQuery)
    const params = use(Function)
    const result = myQuery(params, {
-      initialValue: null,
+      initialValue: [],
    })
    return {
       result,
@@ -119,20 +57,16 @@ function setup() {
 
 This returns a `Value` that emits `Resource` notifications.
 
-#### QueryConfig
-
 ```ts
-interface QueryConfig {
-   operator?: <T>() => OperatorFunction<Observable<T>, T> // defaults to switchMap
-}
-```
-
-The default `operator` used to **map** higher order observables can be overridden.
-
-```ts
-const MyQuery = new Query(myQuery, {
-   operator: concatMap,
+@Component({
+   template: `
+      <spinner *ngIf="result.pending"></spinner>
+      <ng-container *ngFor="let item of result.value">
+        <child [item]="item"></child>
+      </ng-container>
+   `
 })
+export class MyComponent extends ViewDef(setup) {}
 ```
 
 #### QueryOptions
@@ -140,6 +74,7 @@ const MyQuery = new Query(myQuery, {
 ```ts
 interface QueryOptions<T> {
    initialValue: T
+   operator?: <U, V>(mapFn: (value: U) => V) => OperatorFunction<U, ObservedValueOf<V>>
    refetch?: Observable<any>[]
 }
 ```
@@ -159,7 +94,21 @@ function setup() {
 }
 ```
 
-### Caching
+The queuing strategy can also be configured. The default is `switchMap`.
+
+```ts
+function setup() {
+   const myQuery = inject(MyQuery)
+   const [mutation, mutate] = inject(MyMutation).sync
+   const fetch = use(Function)
+   const result = myQuery(fetch, {
+      initialValue: null,
+      operator: mergeMap
+   })
+}
+```
+
+#### Caching
 
 Queries are memoized by stringifying arguments. Make sure the params passed to queries
 are serializable to JSON.
@@ -190,45 +139,40 @@ function myMutation() {
 const MyMutation = new Mutation(myMutation)
 ```
 
-#### MutationConfig
-
-```ts
-interface MutationConfig {
-   operator?: <T>() => OperatorFunction<Observable<T>, T> // defaults to exhaust
-}
-```
-
-The default `operator` used to **flatten** higher order observables can be overridden.
-
-```ts
-const MyMutation = new Mutation(myMutation, {
-   operator: concat,
-})
-```
-
-**Returning mutation from a `ViewDef`**
-
-Use the array destructure pattern to obtain an `Emitter` that can be used to trigger the mutation outside the `ViewDef`
-factory.
+Mutations are consumed by passing an observable data source to its factory function. This returns a `Resource` value
+that can be observed to inspect the status of any ongoing mutations.
 
 ```ts
 function setup() {
-   const [mutation, mutate] = inject(MyMutation)
-
+   const myMutation = inject(MyMutation)
+   const params = use(Function)
+   const result = myMutation(params)
+   
    return {
-      mutation, // mutation status
-      mutate, // trigger mutation
+      params,
+      result
    }
 }
 
 @Component({
    template: `
-      <spinner *ngIf="mutation.pending"></spinner>
-      <button (click)="mutate(params)">Mutate</button>
-   `,
+      <spinner *ngIf="result.pending"></spinner>
+   `
 })
 export class MyComponent extends ViewDef(setup) {}
 ```
+
+#### MutationOptions
+
+```ts
+interface MutationConfig {
+   operator?: () => OperatorFunction<ObservableInput<any>, any>
+   cancel?: Observable<any>
+}
+```
+
+`operator` - specifies the merge strategy when multiple requests are in the queue. Defaults to `exhaust`
+`cancel` - cancels all requests currently in the queue when the given observable emits.
 
 ### Resource
 
@@ -269,7 +213,7 @@ cancel(createTodo)
 
 ### invalidate
 
-Invalidate a single query
+Invalidate a single query.
 
 ```ts
 const getTodosByUserId = inject(GetTodosByUserId)

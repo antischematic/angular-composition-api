@@ -191,7 +191,8 @@ describe("Mutation", () => {
    it("should have an initial value", () => {
       const TestMutation = new Mutation(mutation)
       function setup() {
-         const status = inject(TestMutation)
+         const testMutation = inject(TestMutation)
+         const status = testMutation(use(Function))
          return {
             status
          }
@@ -204,7 +205,9 @@ describe("Mutation", () => {
       const expected = [1,2,3]
       const TestMutation = new Mutation(mutation)
       function setup() {
-         const [mutation, mutate] = inject(TestMutation).sync
+         const testMutation = inject(TestMutation)
+         const mutate = use<number[]>(Function)
+         const mutation = testMutation(mutate)
          return {
             mutation,
             mutate,
