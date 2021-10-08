@@ -203,27 +203,6 @@ interface Resource<T> {
 `pending` is true if there are any active queries or mutations in the queue. `done` is true when there are no more pending
 transactions, until the next request is made. `error` is set when an error is caught and resets when a new request is made.
 
-### cancel
-
-Cancel pending queries
-
-```ts
-const getTodosByUserId = inject(GetTodosByUserId)
-const todos = getTodosByUserId(userId)
-
-cancel(todos)
-```
-
-Cancel pending mutations
-
-```ts
-const createTodo = inject(CreateTodo)
-
-createTodo(todo)
-
-cancel(createTodo)
-```
-
 ### invalidate
 
 Invalidate a single query.
