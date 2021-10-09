@@ -498,36 +498,3 @@ function setup() {
    })
 }
 ```
-
-#### Coercion
-
-Some helpers are exported to simplify input property coercion. The available types are:
-
-```ts
-useElement()
-useBoolean()
-useNumber()
-useArray()
-```
-
-Example
-
-```ts
-function setup() {
-   const enabled = useBoolean(false)
-   
-   return {
-      enabled
-   }
-}
-
-@Component({
-   selector: "my-toggle",
-   inputs: ["enabled"]
-})
-export class MyToggle {}
-```
-
-```html
-<my-toggle enabled></my-toggle>
-```
