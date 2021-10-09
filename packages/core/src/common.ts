@@ -1,6 +1,5 @@
 import {
    BehaviorSubject, isObservable,
-   Notification,
    observable,
    Observable,
    PartialObserver, Subject,
@@ -28,7 +27,7 @@ import {
    UnsubscribeSignal,
    Value,
 } from "./interfaces"
-import { isObserver, isSignal, isValue, track } from "./utils"
+import {isObserver, isSignal, isValue, Notification, observeNotification, track} from "./utils"
 import { addEffect, addTeardown } from "./core"
 
 type Callable = (...args: any[]) => any
@@ -91,7 +90,7 @@ export class QueryListSubject extends QueryList<any> {
       this.subscription = value.changes.subscribe(this)
    }
    subscribe(observer: any) {
-      Notification.createNext(this).accept(observer)
+      observeNotification(Notification.createNext(this), observer)
       return this.changes.subscribe(observer)
    }
    complete() {
@@ -177,7 +176,7 @@ function isSource(value: any) {
 
 export function use<T>(): Value<T | undefined>
 export function use<T>(value: QueryListType): ReadonlyValue<QueryList<T>>
-export function use<T>(value: QueryType): ReadonlyValue<T>
+export function use<T>(value: QueryType): ReadonlyValue<T | undefined>
 export function use<T>(value: typeof Function): Emitter<T>
 export function use<T>(value: BehaviorSubject<T>): Value<T>
 export function use<T>(value: Subject<T>): Value<T | undefined>

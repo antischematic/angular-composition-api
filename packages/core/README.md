@@ -1,25 +1,43 @@
 # Angular Composition API
 
-A lightweight (3kb) library for writing functional Angular applications.
+Composition model for functional reactive Angular applications.
+
+**Features**
+
+-  Small bundle size (approx 4kb min gzipped, treeshakable)
+-  Minimal API
+-  Granular change detection
+-  Better-than `OnPush` performance
+-  Optional Zone.js
+-  Observable inputs and queries
+-  Reactive two-way bindings
+-  Composable components, directives and services
+-  Composable providers
+-  Composable subscriptions
+-  Lifecycle hooks
+-  Computed values
+-  Automatic teardown
+-  RxJS interop (v6 and v7)
+-  Incrementally adoptable
+
+**What it looks like**
 
 ```ts
 function setup() {
+   const service = inject(Service)
    const count = use(0)
-   const countChange = use(count)
-   
+
    subscribe(count, () => {
-      console.log(count.value)
+      service.log(count.value)
    })
-   
+
    return {
       count,
-      countChange,
    }
 }
 
 @Component({
    inputs: ["count"],
-   outputs: ["countChange"],
 })
 export class MyComponent extends ViewDef(setup) {}
 ```
@@ -43,10 +61,12 @@ in your root module. This is required whether zone.js is enabled or not.
 
 ```ts
 @NgModule({
-   providers: [{
-      provide: EventManager,
-      useClass: ZonelessEventManager
-   }]
+   providers: [
+      {
+         provide: EventManager,
+         useClass: ZonelessEventManager,
+      },
+   ],
 })
 export class AppModule {}
 ```
@@ -70,16 +90,16 @@ Change detection occurs in the following scenarios (assuming `OnPush` strategy):
 -  When `subscribe` emits a value, after the observer is called.
 
 Functions returned from the setup function will also trigger change detection if they called
-from a template event binding. 
+from a template event binding.
 
 Updates to reactive state are not immediately reflected in the view. If you need an immediate update, call `detectChanges` after updating a value.
 
 Change detection might _not_ occur when:
 
-- Imperatively mutating fields on the component instance.
-- Imperatively calling state mutating methods on the component instance. 
-Unless the mutated state has a `subscribe` observer, this will not trigger
-  a change detection run.
+-  Imperatively mutating fields on the component instance.
+-  Imperatively calling state mutating methods on the component instance.
+   Unless the mutated state has a `subscribe` observer, this will not trigger
+   a change detection run.
 
 For example, when manually creating a component:
 
@@ -334,7 +354,7 @@ export class Counter extends ViewDef(counter) {}
 
 #### Query
 
-Creates a `ReadonlyValue` that will receive a `ContentChild` or `ViewChild`. Queries are checked during the 
+Creates a `ReadonlyValue` that will receive a `ContentChild` or `ViewChild`. Queries are checked during the
 `ngAfterContentChecked` or `ngAfterViewChecked` lifecycle hook.
 
 ```ts
@@ -409,11 +429,11 @@ const state = use({ count: 0 })
 const count = select(() => state().count)
 ```
 
-Select a new `AccessorValue` with separate read and write streams. 
+Select a new `AccessorValue` with separate read and write streams.
 
-- `next` can be a `Function` or a `Subject`
-- `value` can be a `Value`, `AccessorValue`, `BehaviorSubject` or a
-reactive observer.
+-  `next` can be a `Function` or a `Subject`
+-  `value` can be a `Value`, `AccessorValue`, `BehaviorSubject` or a
+   reactive observer.
 
 ```ts
 const count = use(0)

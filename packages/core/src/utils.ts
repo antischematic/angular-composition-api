@@ -71,10 +71,11 @@ export function set<T>(
 }
 
 export function addSignal(
-   teardown: Unsubscribable | Function,
+   teardown: Unsubscribable | (() => void),
    abort: Subscription | AbortSignal,
 ) {
-   const subscription = new Subscription().add(teardown)
+   const subscription = new Subscription()
+   subscription.add(teardown)
    if (abort instanceof AbortSignal) {
       const listener = () => subscription.unsubscribe()
       abort.addEventListener("abort", listener, { once: true })
@@ -105,4 +106,33 @@ export function isObserver(
    return (observer && "next" in observer) || typeof observer === "function"
       ? observer
       : void 0
+}
+
+export class Notification<T> {
+   constructor(public kind: "N" | "E" | "C", public value: T, public error: unknown, public complete: boolean) {}
+
+   static createNext(value: any) {
+      return new Notification("N", value, undefined, false)
+   }
+
+   static createError(error: any) {
+      return new Notification("E",undefined, error, false)
+   }
+
+   static createComplete() {
+      return new Notification("C",undefined, undefined, true)
+   }
+}
+
+export function observeNotification<T>(notification: Notification<T>, observer: PartialObserver<T> | ((value: T) => any)): any {
+   const { kind, value, error } = notification as any;
+   if (typeof kind !== 'string') {
+      throw new TypeError('Invalid notification, missing "kind"');
+   }
+   if (typeof observer === "function") {
+      if (kind === "N")
+         return observer(value)
+      return
+   }
+   return kind === 'N' ? observer.next?.(value!) : kind === 'E' ? observer.error?.(error) : observer.complete?.();
 }

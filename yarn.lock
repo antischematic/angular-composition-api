@@ -1253,10 +1253,10 @@
     merge-source-map "^1.1.0"
     schema-utils "^2.7.0"
 
-"@mmuscat/angular-composition-api@^0.1200.0-next.7":
-  version "0.1200.0-next.11"
-  resolved "https://registry.yarnpkg.com/@mmuscat/angular-composition-api/-/angular-composition-api-0.1200.0-next.11.tgz#fc163439cd137c69e66008aa1e597332f57551d6"
-  integrity sha512-jbQsRTalPdMqt+MI8ZeO+WMhyb887FRuQiTtYnK4VMRsWgXuABdw3HjQ6Ucv/jSrQrKadfUfHGh6jNfipdPgIg==
+"@mmuscat/angular-composition-api@^0.1200.0-next.13":
+  version "0.1200.0-next.13"
+  resolved "https://registry.yarnpkg.com/@mmuscat/angular-composition-api/-/angular-composition-api-0.1200.0-next.13.tgz#099a1efb2df87e2e449e6aa8c0700d8ccc69d4b5"
+  integrity sha512-O2vlqeYUy/0nLvrSOjeO/ZoZQe5LvUNyqulrGfVD8ZFKIYT9WxR8mMpkr8/GNQ4G3olNOGDn+CXd0irxZPmq9Q==
   dependencies:
     tslib "^2.1.0"
 

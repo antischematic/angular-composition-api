@@ -19,7 +19,6 @@ import {
 } from "@angular/core"
 import {
    BehaviorSubject,
-   Notification,
    PartialObserver,
    SchedulerAction,
    SchedulerLike,
@@ -34,9 +33,17 @@ import {
    CheckPhase,
    CheckSubject,
    CurrentContext,
-   UnsubscribeSignal, Value,
+   UnsubscribeSignal,
+   Value,
 } from "./interfaces"
-import { addSignal, computeValue, isEmitter, isObject, isValue } from "./utils"
+import {
+   addSignal,
+   computeValue,
+   isEmitter,
+   isObject,
+   isValue,
+   Notification, observeNotification,
+} from "./utils"
 import { ValueToken } from "./provider"
 
 let currentContext: any
@@ -326,11 +333,13 @@ export function check(key: CheckPhase) {
    }
 }
 
+const emptyObserver = {}
+
 export function subscribe() {
    let effect
    const { effects } = getContext()
    while ((effect = effects.shift())) {
-      effect.subscribe()
+      effect.subscribe(emptyObserver as any)
    }
 }
 
@@ -383,10 +392,10 @@ function next(
    scheduler?: Scheduler,
    signal?: UnsubscribeSignal,
 ) {
-   notification.accept(unsubscribe)
+   observeNotification(notification, unsubscribe)
    createContext(currentContext, injector, errorHandler, scheduler)
    try {
-      const teardown = notification.accept(observer as any)
+      const teardown = observeNotification(notification, observer)
       if (signal) {
          addSignal(teardown, signal)
       } else if (signal !== null) {
@@ -395,7 +404,7 @@ function next(
    } catch (error) {
       errorHandler.handleError(error)
    }
-   notification.accept(subscribe)
+   observeNotification(notification, subscribe)
    detectChanges()
 }
 
@@ -444,8 +453,19 @@ export class ComputedSubject<T> extends BehaviorSubject<T> {
 export class EffectObserver<T> extends Subscription {
    next(value: T | Notification<T>) {
       if (this.closed) return
-      if (value instanceof Notification) {
-         return this.call(value)
+      if (isObject(value) && "kind" in value && value.kind.length === 1) {
+         let mappedValue
+         switch (value.kind) {
+            case "N":
+               mappedValue = Notification.createNext(value.value)
+               break
+            case "E":
+               mappedValue = Notification.createError(value.error)
+               break
+            case "C":
+               mappedValue = Notification.createComplete()
+         }
+         return this.call(mappedValue)
       }
       this.call(Notification.createNext(value))
    }
@@ -457,7 +477,7 @@ export class EffectObserver<T> extends Subscription {
       if (this.closed) return
       this.call(Notification.createComplete())
    }
-   subscribe() {
+   subscribe(): Subscription {
       const { source } = this
       let subscription
       if (
@@ -481,7 +501,7 @@ export class EffectObserver<T> extends Subscription {
          subscription = source.subscribe(this)
       }
       if (this.signal) {
-         return addSignal(subscription, this.signal)
+         addSignal(subscription, this.signal)
       }
       return subscription
    }
@@ -490,7 +510,7 @@ export class EffectObserver<T> extends Subscription {
       runInContext(this, unsubscribe)
       super.unsubscribe()
    }
-   private call(notification: Notification<T>) {
+   private call(notification: Notification<T | undefined>) {
       const { observer, injector, errorHandler, scheduler, signal } = this
       const isError = notification.kind === "E"
       let errorHandled = !isError
@@ -613,13 +633,27 @@ export function ViewDef<T>(create: () => T): ViewDef<T> {
    return decorate(create)
 }
 type Readonly<T> = {
-   readonly [key in keyof T as T[key] extends AccessorValue<infer A, infer B> ? A extends B ? never : key : T[key] extends Value<any> ? never : key]: T[key]
+   readonly [key in keyof T as T[key] extends AccessorValue<infer A, infer B>
+      ? A extends B
+         ? never
+         : key
+      : T[key] extends Value<any>
+      ? never
+      : key]: T[key]
 }
 
 type Writable<T> = {
-   [key in keyof T as T[key] extends AccessorValue<infer A, infer B> ? A extends B ? key : never : T[key] extends Value<any> ? key : never]: T[key]
+   [key in keyof T as T[key] extends AccessorValue<infer A, infer B>
+      ? A extends B
+         ? key
+         : never
+      : T[key] extends Value<any>
+      ? key
+      : never]: T[key]
 }
 
-export type ViewDef<T, U = Readonly<T> & Writable<T>> = Type<{
-   [key in keyof U]: U[key] extends CheckSubject<infer R> ? R : U[key]
-}>
+export type ViewDef<T, U = Readonly<T> & Writable<T>> = Type<
+   {
+      [key in keyof U]: U[key] extends CheckSubject<infer R> ? R : U[key]
+   }
+>

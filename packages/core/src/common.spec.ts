@@ -1,5 +1,5 @@
 import { subscribe, use } from "./common"
-import { map, materialize, mergeMap } from "rxjs/operators"
+import {map, materialize, mergeMap, tap} from "rxjs/operators"
 import {
    Component,
    ContentChild,
@@ -213,7 +213,7 @@ describe("subscribe", () => {
    it("should subscribe to observables", () => {
       const spy = createSpy()
       function factory() {
-         const deferred = defer(spy)
+         const deferred = of(null).pipe(tap(spy))
          subscribe(deferred)
          return {}
       }
@@ -311,7 +311,7 @@ describe("subscribe", () => {
       const error = createSpy()
       const complete = createSpy()
       function factory() {
-         const source = of(10, new Error()).pipe(
+         const source = of(10, new Error).pipe(
             mergeMap((value, index) => (index ? throwError(value) : of(value))),
             materialize(),
          )

@@ -1,6 +1,27 @@
 # Angular Composition API
 
 Composition API and supporting libraries for writing functional Angular applications.
+[Learn more](https://github.com/mmuscat/angular-composition-api/tree/master/packages/core)
+
+```ts
+function setup() {
+   const service = inject(Service)
+   const count = use(0)
+
+   subscribe(count, () => {
+      service.log(count.value)
+   })
+
+   return {
+      count,
+   }
+}
+```
+
+## RFC
+
+This repository is a reference implementation for this [RFC
+discussion](https://github.com/mmuscat/angular-composition-api/issues/9).
 
 ## Packages
 
