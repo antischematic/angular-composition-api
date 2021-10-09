@@ -60,7 +60,6 @@ export type Value<T> = CheckSubject<T> & {
    readonly __ng_value: true
    readonly source: Observable<T>
    readonly pipe: Observable<T>["pipe"]
-   readonly sync: [Value<T>, Emitter<T>]
    readonly value: T
    (mutate: (value: T) => any): void
    (value: T): void
@@ -86,20 +85,10 @@ export type AccessorValue<T, U> = CheckSubject<T> & {
    readonly __ng_accessor_value: true
    readonly source: Observable<T>
    readonly pipe: Observable<T>["pipe"]
-   readonly sync: [AccessorValue<T, U>, AccessorEmitter<T, U>]
    readonly value: T
    (mutate: (value: U) => any): void
    (value: U): void
    (): T
-   next(value: U): void
-}
-
-export interface AccessorEmitter<T, U>
-   extends Observable<T> {
-   readonly __ng_emitter: true
-   readonly source: Observable<T>
-   readonly pipe: Observable<T>["pipe"]
-   (param: U): void
    next(value: U): void
 }
 

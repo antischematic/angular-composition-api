@@ -4,7 +4,8 @@ A lightweight (3kb) library for writing functional Angular applications.
 
 ```ts
 function setup() {
-   const [count, countChange] = use(0).sync
+   const count = use(0)
+   const countChange = use(count)
    
    subscribe(count, () => {
       console.log(count.value)
@@ -277,19 +278,6 @@ arr((val) => val.push(10))
 subscribe(num, observer)
 ```
 
-The read/write stream can be separated using `sync`.
-
-```ts
-function setup() {
-   const [count, countChange] = use(0).sync
-
-   return {
-      count,
-      countChange // won't be unwrapped
-   }
-}
-```
-
 #### Emitter
 
 Creates an `Emitter` from a `Function` or `Value`.
@@ -320,17 +308,12 @@ count.value // 1
 count(10) // will not trigger countChange
 ```
 
-Value/Emitter pairs can be shortened with the `sync` property
-
-```ts
-const [count, countChange] = use(0).sync
-```
-
 Two-way binding example
 
 ```ts
 function counter() {
-   const [count, countChange] = use(0).sync
+   const count = use(0)
+   const countChange = use(count)
 
    subscribe(interval(1000), () => {
       countChange(count() + 1)

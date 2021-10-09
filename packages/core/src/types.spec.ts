@@ -1,7 +1,7 @@
 import { ViewDef } from "./core"
 import {use} from "./common";
 import {isEmitter, isValue} from "./utils";
-import {BehaviorSubject, of, ReplaySubject, Subject} from "rxjs";
+import {BehaviorSubject, from, of, ReplaySubject, Subject} from "rxjs";
 import {select} from "./select";
 import {TestBed} from "@angular/core/testing";
 import {Component} from "@angular/core";
@@ -29,7 +29,7 @@ describe("types", () => {
          const error = use(new Error)
 
          // Overloads
-         const emitter = use(Function)
+         const emitter = use<void>(Function)
          const valueEmitter = use(number)
          const emitterWithParams = use(() => {})
          const fromObservable = use(of(1))
@@ -54,6 +54,18 @@ describe("types", () => {
          // Never
          // noinspection JSUnusedLocalSymbols
          const readonlyNever = use(use(of(1)))
+
+         // Observable interop
+         // noinspection JSUnusedLocalSymbols
+         const obs1 = from(number)
+         // noinspection JSUnusedLocalSymbols
+         const obs2 = from(emitter)
+         // noinspection JSUnusedLocalSymbols
+         const obs3 = from(accessor)
+         // noinspection JSUnusedLocalSymbols
+         const obs4 = number.pipe()
+         // noinspection JSUnusedLocalSymbols
+         const obs5 = emitter.pipe()
 
          return {
             number,

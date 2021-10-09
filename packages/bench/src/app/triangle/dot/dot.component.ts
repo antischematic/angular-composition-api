@@ -9,7 +9,8 @@ function calcStyle(size: number, x: number, y: number) {
 
 function dot() {
    const count = inject(Counter)
-   const [hover, hoverChange] = use(false).sync
+   const hover = use(false)
+   const hoverChange = use(hover)
    const x = use(0)
    const y = use(0)
    const size = use(0)

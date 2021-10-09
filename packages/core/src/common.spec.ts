@@ -51,12 +51,6 @@ describe("use", () => {
          expect(value.value).toBe(20)
          expect(value()).toBe(20)
       })
-      it("should destructure", () => {
-         const [value, valueChange] = use(0).sync
-
-         expect(value.__ng_value).toBe(true)
-         expect(valueChange.__ng_emitter).toEqual(true)
-      })
       it("should update upstream value", () => {
          const value = use(0)
          const valueChange = use(value)

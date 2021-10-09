@@ -85,7 +85,7 @@ describe("ViewDef", () => {
       )
    })
    it("should unwrap marked values", () => {
-      const [subject] = use(1337).sync
+      const subject = use(1337)
       Object.defineProperty(subject, checkPhase, { value: 0 })
       function create() {
          return {
@@ -146,7 +146,8 @@ describe("ViewDef", () => {
    })
    it("should not automatically detect changes when directly calling returned functions", () => {
       function create() {
-         const [count, countChange] = use(0).sync
+         const count = use(0)
+         const countChange = use(count)
 
          function increment() {
             countChange(count() + 1)
@@ -261,7 +262,7 @@ describe("Context API", () => {
    })
    it("should not automatically update view when directly mutating value", () => {
       function create() {
-         const [value, valueChange] = use<number[]>([]).sync
+         const value = use<number[]>([])
 
          function update() {
             value((val) => val.push(10))

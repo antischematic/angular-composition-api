@@ -22,7 +22,6 @@ export {
    Emitter,
    EmitterWithParams,
    Accessor,
-   AccessorEmitter,
    AccessorValue,
 } from "./interfaces"
 export { select } from "./select"
