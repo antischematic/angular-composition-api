@@ -35,12 +35,6 @@ type Callable = (...args: any[]) => any
 interface UseSubject extends Callable, Observable<any> {}
 
 abstract class UseSubject {
-   get sync(): any {
-      if (!this._emitter) {
-         this._emitter = createEmitter(this)
-      }
-      return [this, this._emitter]
-   }
    get value() {
       return this.source.value
    }
@@ -62,7 +56,6 @@ abstract class UseSubject {
    next(value: any) {
       return this.source.next(value)
    }
-   private _emitter?: Emitter<any>
    protected constructor(public source: any) {}
 }
 class ValueSubject extends UseSubject {
