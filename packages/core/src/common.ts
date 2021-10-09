@@ -1,9 +1,9 @@
 import {
-   BehaviorSubject,
+   BehaviorSubject, isObservable,
    Notification,
    observable,
    Observable,
-   PartialObserver,
+   PartialObserver, Subject,
    Subscribable,
    Subscription,
    TeardownLogic,
@@ -188,13 +188,14 @@ export function use<T>(value: QueryListType): ReadonlyValue<QueryList<T>>
 export function use<T>(value: QueryType): ReadonlyValue<T>
 export function use<T>(value: typeof Function): Emitter<T>
 export function use<T>(value: BehaviorSubject<T>): Value<T>
+export function use<T>(value: Subject<T>): Value<T | undefined>
+export function use<T, U>(value: AccessorValue<T, U>): AccessorEmitter<T, U>
+export function use<T>(value: Value<T>): Emitter<T>
+export function use<T>(value: ReadonlyValue<T>): never
 export function use<T>(value: Emitter<T>): Emitter<T>
+export function use<T>(value: Subscribable<T>): ReadonlyValue<T | undefined>
 export function use<T, U>(value: AccessorEmitter<T, U>): AccessorEmitter<T, U>
 export function use<T extends (...args: any) => any>(value: EmitterWithParams<T>): EmitterWithParams<T>
-export function use<T>(value: ReadonlyValue<T>): Emitter<T>
-export function use<T>(value: Value<T>): Emitter<T>
-export function use<T, U>(value: AccessorValue<T, U>): AccessorEmitter<T, U>
-export function use<T>(value: Subscribable<T>): ReadonlyValue<T | undefined>
 export function use<T extends (...args: any[]) => any>(
    value: T,
 ): EmitterWithParams<T>
@@ -210,7 +211,7 @@ export function use(value?: any): unknown {
    if (isValue(value) || typeof value === "function") {
       return createEmitter(value)
    }
-   if (isSource(value)) {
+   if (isSource(value) || isObservable(value)) {
       return createValue(value, 0)
    }
    return createValue(new BehaviorSubject(value))

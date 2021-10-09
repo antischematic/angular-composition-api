@@ -83,6 +83,7 @@ export interface Accessor<T, U> {
 
 export type AccessorValue<T, U> = CheckSubject<T> & {
    readonly __ng_value: true
+   readonly __ng_accessor_value: true
    readonly source: Observable<T>
    readonly pipe: Observable<T>["pipe"]
    readonly sync: [AccessorValue<T, U>, AccessorEmitter<T, U>]

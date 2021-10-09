@@ -28,12 +28,13 @@ import {
    TeardownLogic,
 } from "rxjs"
 import {
+   AccessorValue,
    Check,
    checkPhase,
    CheckPhase,
    CheckSubject,
    CurrentContext,
-   UnsubscribeSignal,
+   UnsubscribeSignal, Value,
 } from "./interfaces"
 import { addSignal, computeValue, isEmitter, isObject, isValue } from "./utils"
 import { ValueToken } from "./provider"
@@ -611,9 +612,14 @@ export function inject<T>(
 export function ViewDef<T>(create: () => T): ViewDef<T> {
    return decorate(create)
 }
+type Readonly<T> = {
+   readonly [key in keyof T as T[key] extends AccessorValue<infer A, infer B> ? A extends B ? never : key : T[key] extends Value<any> ? never : key]: T[key]
+}
 
-export type ViewDef<T> = Type<
-   {
-      [key in keyof T]: T[key] extends CheckSubject<infer R> ? R : T[key]
-   }
->
+type Writable<T> = {
+   [key in keyof T as T[key] extends AccessorValue<infer A, infer B> ? A extends B ? key : never : T[key] extends Value<any> ? key : never]: T[key]
+}
+
+export type ViewDef<T, U = Readonly<T> & Writable<T>> = Type<{
+   [key in keyof U]: U[key] extends CheckSubject<infer R> ? R : U[key]
+}>
