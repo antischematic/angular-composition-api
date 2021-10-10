@@ -131,12 +131,12 @@ function setup(arg1, arg2, ...args) {
 }
 
 // without options
-const MyService = new Service(setup)
+const BasicService = new Service(setup)
 
 // all options
-const MyService = new Service(setup, {
+const ServiceWithOptions = new Service(setup, {
    providedIn: "root",
-   name: "MyService",
+   name: "MyService", // descriptive name for error handling
    arguments: [arg1, arg2, ...args],
 })
 ```
