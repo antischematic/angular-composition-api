@@ -3,7 +3,7 @@ import {
    ContentChildren,
    ErrorHandler,
    EventEmitter,
-   Injector,
+   Injector, NgZone,
    Type,
    ViewChild,
    ViewChildren,

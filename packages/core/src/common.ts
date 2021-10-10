@@ -1,11 +1,15 @@
 import {
-   BehaviorSubject, isObservable,
+   BehaviorSubject,
+   isObservable,
    observable,
    Observable,
-   PartialObserver, Subject,
+   PartialObserver,
+   ReplaySubject,
+   Subject,
    Subscribable,
    Subscription,
    TeardownLogic,
+   ObjectUnsubscribedError,
 } from "rxjs"
 import {
    ContentChild,
@@ -27,8 +31,15 @@ import {
    UnsubscribeSignal,
    Value,
 } from "./interfaces"
-import {isObserver, isSignal, isValue, Notification, observeNotification, track} from "./utils"
-import { addEffect, addTeardown } from "./core"
+import {
+   isObserver,
+   isSignal,
+   isValue,
+   Notification,
+   observeNotification,
+   track,
+} from "./utils"
+import {addEffect, addTeardown, currentContext} from "./core"
 
 type Callable = (...args: any[]) => any
 interface UseSubject extends Callable, Observable<any> {}
@@ -98,6 +109,43 @@ export class QueryListSubject extends QueryList<any> {
    }
 }
 
+export class ObservableSubject extends ReplaySubject<any> {
+   subscription = new Subscription()
+   refCount = 0
+   private _value: any
+   get value() {
+      if (this.hasError) {
+         throw this.thrownError
+      } else if (this.closed) {
+         throw new ObjectUnsubscribedError()
+      }
+      return this._value
+   }
+   next(value?: any) {
+      this._value = value
+      super.next(value)
+   }
+   subscribe(observer: any) {
+      this.refCount++
+      if (this.refCount === 1) {
+         this.subscription = this._source.subscribe(this)
+      }
+      const subscription = super.subscribe(observer)
+      return new Subscription(() => {
+         subscription.unsubscribe()
+         if (this.refCount > 1) {
+            this.refCount--
+            if (this.refCount === 0) {
+               this.subscription.unsubscribe()
+            }
+         }
+      })
+   }
+   constructor(private _source: Observable<any>) {
+      super(1)
+   }
+}
+
 function createQueryList<T>(phase: CheckPhase): ReadonlyValue<QueryList<T>> {
    const queryList = new QueryListSubject()
    const valueType: ValueSubject = Object.setPrototypeOf(
@@ -114,7 +162,7 @@ function createQueryList<T>(phase: CheckPhase): ReadonlyValue<QueryList<T>> {
    return valueType as ReadonlyValue<QueryList<T>>
 }
 
-function createValue<T>(source: BehaviorSubject<T>, phase = 0): Value<T> {
+function createValue<T>(source: BehaviorSubject<T> | ObservableSubject, phase = 0): Value<T> {
    const valueType: ValueSubject = Object.setPrototypeOf(
       getterSetter,
       new ValueSubject(source, phase),
@@ -165,12 +213,13 @@ function isQuery(value: any) {
    return queryMap.has(value)
 }
 
-function isSource(value: any) {
+function isBehavior(value: any) {
    return (
       typeof value === "object" &&
       value !== null &&
       "next" in value &&
-      typeof value["next"] === "function"
+      typeof value["subscribe"] === "function" &&
+      "value" in value
    )
 }
 
@@ -185,7 +234,9 @@ export function use<T>(value: Value<T>): Emitter<T>
 export function use<T>(value: ReadonlyValue<T>): never
 export function use<T>(value: Emitter<T>): Emitter<T>
 export function use<T>(value: Subscribable<T>): ReadonlyValue<T | undefined>
-export function use<T extends (...args: any) => any>(value: EmitterWithParams<T>): EmitterWithParams<T>
+export function use<T extends (...args: any) => any>(
+   value: EmitterWithParams<T>,
+): EmitterWithParams<T>
 export function use<T extends (...args: any[]) => any>(
    value: T,
 ): EmitterWithParams<T>
@@ -201,8 +252,11 @@ export function use(value?: any): unknown {
    if (isValue(value) || typeof value === "function") {
       return createEmitter(value)
    }
-   if (isSource(value) || isObservable(value)) {
-      return createValue(value, 0)
+   if (isBehavior(value)) {
+      return createValue(value)
+   }
+   if (isObservable(value)) {
+      return createValue(new ObservableSubject(value))
    }
    return createValue(new BehaviorSubject(value))
 }
@@ -237,6 +291,12 @@ export function subscribe<T>(
 ): Subscription | void {
    const observer = isObserver(observerOrSignal) ? observerOrSignal : void 0
    signal = isSignal(observerOrSignal) ? observerOrSignal : signal
+
+   if (!currentContext) {
+      const subscription = new Subscription()
+      subscription.add(typeof source === "function" ? source() : source?.subscribe(observer))
+      return subscription
+   }
 
    if (!source) {
       const subscription = new Subscription()

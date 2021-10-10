@@ -175,24 +175,6 @@ describe("types", () => {
 
       const instance = TestBed.createComponent(Test).componentInstance
 
-      // readonly
-      // @ts-expect-error
-      instance.readonlyAccessor = 3
-      // @ts-expect-error
-      instance.emitter = use(Function)
-      // @ts-expect-error
-      instance.plainBoolean = true
-      // @ts-expect-error
-      instance.plainFunction = () => {}
-      // @ts-expect-error
-      instance.contentQuery = undefined
-      // @ts-expect-error
-      instance.contentChildren = new QueryList()
-
-      // writable
-      instance.number = 3
-      instance.accessor = 3
-
       expect(instance.number).toEqual(jasmine.any(Number))
       expect(instance.string).toEqual(jasmine.any(String))
       expect(instance.boolean).toEqual(jasmine.any(Boolean))
@@ -241,5 +223,26 @@ describe("types", () => {
       expect(instance.viewChildren).toEqual(jasmine.any(QueryList))
       expect(instance.plainNull).toEqual(null)
       expect(instance.plainUndefined).toEqual(undefined)
+
+      // readonly
+      // @ts-expect-error
+      instance.readonlyAccessor = 3
+      // @ts-expect-error
+      instance.emitter = use(Function)
+      // @ts-expect-error
+      instance.plainBoolean = true
+      // @ts-expect-error
+      instance.plainFunction = () => {}
+      // @ts-expect-error
+      instance.contentQuery = undefined
+      // @ts-expect-error
+      instance.contentChildren = new QueryList()
+
+      // writable
+      instance.number = 3
+      instance.accessor = 3
+      instance.fromSubject = 3
+      instance.fromBehavior = 3
+      instance.fromReplay = 3
    })
 })

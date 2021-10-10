@@ -4,7 +4,7 @@ Composition model for functional reactive Angular applications.
 
 **Features**
 
--  Small bundle size (approx 4kb min gzipped, treeshakable)
+-  Small bundle size (4kb min gzipped)
 -  Minimal API
 -  Granular change detection
 -  Better-than `OnPush` performance

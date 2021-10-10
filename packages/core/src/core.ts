@@ -46,7 +46,7 @@ import {
 } from "./utils"
 import { ValueToken } from "./provider"
 
-let currentContext: any
+export let currentContext: any
 const contextMap = new WeakMap<{}, CurrentContext>()
 
 export function setContext(value: any) {
