@@ -7,6 +7,8 @@ import { TodoListModule } from "./todo-list.component"
 import { HttpClientModule } from "@angular/common/http"
 import { BoundaryModule } from "@mmuscat/angular-error-boundary"
 import {ZonelessEventManager} from "@mmuscat/angular-composition-api";
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import {MatButtonModule} from "@angular/material/button";
 
 @NgModule({
    imports: [
@@ -16,6 +18,8 @@ import {ZonelessEventManager} from "@mmuscat/angular-composition-api";
       HttpClientModule,
       BoundaryModule,
       BoundaryModule,
+      BrowserAnimationsModule,
+      MatButtonModule,
    ],
    declarations: [AppComponent],
    bootstrap: [AppComponent],

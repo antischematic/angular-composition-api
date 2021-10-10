@@ -86,6 +86,7 @@
               "packages/example/src/assets"
             ],
             "styles": [
+              "./node_modules/@angular/material/prebuilt-themes/deeppurple-amber.css",
               "packages/example/src/styles.css"
             ],
             "statsJson": true,
@@ -336,5 +337,5 @@
       }
     }
   },
-  "defaultProject": "core"
+  "defaultProject": "example"
 }
