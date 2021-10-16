@@ -298,7 +298,7 @@ export function subscribe<T>(
    if (!currentContext) {
       const subscription = new Subscription()
       subscription.add(
-         typeof source === "function" ? source() : source?.subscribe(observer),
+         typeof source === "function" ? source() : source?.subscribe(observer as any ?? {}),
       )
       return subscription
    }

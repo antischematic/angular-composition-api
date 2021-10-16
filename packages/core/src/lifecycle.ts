@@ -8,7 +8,7 @@ class ScheduleObserver {
          this.emitter.next()
       }
    }
-   constructor(private phase: number, private emitter: Subject<any>) {}
+   constructor(private phase: number, private emitter: Subject<void>) {}
 }
 
 function schedule(callback: () => void = Function, phase: 0 | 1) {

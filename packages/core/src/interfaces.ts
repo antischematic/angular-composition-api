@@ -106,7 +106,7 @@ export type AccessorValue<T, U> = CheckSubject<T> & {
 }
 
 export interface EmitterWithParams<T extends (...args: any[]) => any>
-   extends Subject<T> {
+   extends Subject<ReturnType<T>> {
    readonly __ng_emitter: true
    readonly source: Observable<ReturnType<T>>
    readonly pipe: Observable<ReturnType<T>>["pipe"]
