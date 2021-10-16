@@ -1,5 +1,5 @@
 import { subscribe, use } from "./common"
-import {map, materialize, mergeMap, tap} from "rxjs/operators"
+import { map, materialize, mergeMap, tap } from "rxjs/operators"
 import {
    Component,
    ContentChild,
@@ -13,7 +13,12 @@ import {
 import { Value } from "./interfaces"
 import { EffectObserver, inject, Service, ViewDef } from "./core"
 import { defer, interval, merge, of, Subscription, throwError } from "rxjs"
-import { discardPeriodicTasks, fakeAsync, TestBed, tick } from "@angular/core/testing"
+import {
+   discardPeriodicTasks,
+   fakeAsync,
+   TestBed,
+   tick,
+} from "@angular/core/testing"
 import { configureTest, defineService } from "./core.spec"
 import { onBeforeUpdate, onUpdated } from "./lifecycle"
 import createSpy = jasmine.createSpy
@@ -311,7 +316,7 @@ describe("subscribe", () => {
       const error = createSpy()
       const complete = createSpy()
       function factory() {
-         const source = of(10, new Error).pipe(
+         const source = of(10, new Error()).pipe(
             mergeMap((value, index) => (index ? throwError(value) : of(value))),
             materialize(),
          )

@@ -39,10 +39,10 @@ import {
    observeNotification,
    track,
 } from "./utils"
-import {addEffect, addTeardown, currentContext} from "./core"
+import { addEffect, addTeardown, currentContext } from "./core"
 
 type Callable = (...args: any[]) => any
-interface UseSubject extends Callable, Observable<any> {}
+interface UseSubject extends Callable, Subject<any> {}
 
 abstract class UseSubject {
    get value() {
@@ -162,7 +162,10 @@ function createQueryList<T>(phase: CheckPhase): ReadonlyValue<QueryList<T>> {
    return valueType as ReadonlyValue<QueryList<T>>
 }
 
-function createValue<T>(source: BehaviorSubject<T> | ObservableSubject, phase = 0): Value<T> {
+function createValue<T>(
+   source: BehaviorSubject<T> | ObservableSubject,
+   phase = 0,
+): Value<T> {
    const valueType: ValueSubject = Object.setPrototypeOf(
       getterSetter,
       new ValueSubject(source, phase),
@@ -294,7 +297,9 @@ export function subscribe<T>(
 
    if (!currentContext) {
       const subscription = new Subscription()
-      subscription.add(typeof source === "function" ? source() : source?.subscribe(observer))
+      subscription.add(
+         typeof source === "function" ? source() : source?.subscribe(observer),
+      )
       return subscription
    }
 

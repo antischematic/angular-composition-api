@@ -1,7 +1,13 @@
-import {BehaviorSubject, PartialObserver, Subscribable, Subscription, Unsubscribable,} from "rxjs"
-import {ComputedSubject} from "./core"
-import {Accessor, AccessorValue, Emitter, Value,} from "./interfaces"
-import {use} from "./common"
+import {
+   BehaviorSubject,
+   PartialObserver,
+   Subscribable,
+   Subscription,
+   Unsubscribable,
+} from "rxjs"
+import { ComputedSubject } from "./core"
+import { Accessor, AccessorValue, Emitter, Value } from "./interfaces"
+import { use } from "./common"
 
 class Subscriber extends Subscription {
    unsubscribe() {
@@ -78,18 +84,14 @@ class AccessorValueSubject<T, U> extends AnonymousSubject<U, T> {
    }
 }
 
-export function select<T, U>(
-   accessor: Accessor<T, U>,
-): AccessorValue<T, U>
+export function select<T, U>(accessor: Accessor<T, U>): AccessorValue<T, U>
 export function select<T extends Value<any> | Emitter<any>>(source: T): unknown
 export function select<T>(source: () => T): Value<T>
 export function select(
-   source: (() => any) | Accessor<any, any> | Value<any> | Emitter<any>
+   source: (() => any) | Accessor<any, any> | Value<any> | Emitter<any>,
 ): unknown {
    if (typeof source === "function") {
       return use(new ComputedSubject(source)) as any
    }
-   return use(
-      new AccessorValueSubject(source),
-   )
+   return use(new AccessorValueSubject(source))
 }

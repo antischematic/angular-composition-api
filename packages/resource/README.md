@@ -62,9 +62,9 @@ This returns a `Value` that emits `Resource` notifications.
    template: `
       <spinner *ngIf="result.pending"></spinner>
       <ng-container *ngFor="let item of result.value">
-        <child [item]="item"></child>
+         <child [item]="item"></child>
       </ng-container>
-   `
+   `,
 })
 export class MyComponent extends ViewDef(setup) {}
 ```
@@ -74,7 +74,9 @@ export class MyComponent extends ViewDef(setup) {}
 ```ts
 interface QueryOptions<T> {
    initialValue: T
-   operator?: <U, V>(mapFn: (value: U) => V) => OperatorFunction<U, ObservedValueOf<V>>
+   operator?: <U, V>(
+      mapFn: (value: U) => V,
+   ) => OperatorFunction<U, ObservedValueOf<V>>
    refetch?: Observable<any>[]
 }
 ```
@@ -91,9 +93,9 @@ function setup() {
       initialValue: null,
       refetch: [refetch],
    })
-   
+
    return {
-      result
+      result,
    }
 }
 ```
@@ -106,11 +108,11 @@ function setup() {
    const fetch = use(Function)
    const result = myQuery(fetch, {
       initialValue: null,
-      operator: mergeMap
+      operator: mergeMap,
    })
 
    return {
-      result
+      result,
    }
 }
 ```
@@ -125,13 +127,13 @@ function setup() {
    const myQuery = inject(MyQuery)
    const fetch = use(Function)
    const result = myQuery(fetch, {
-      initialValue: null
+      initialValue: null,
    })
 
    fetch([1, 2, 3]) // stringified to "[1, 2, 3]" to use as cache key
 
    return {
-      result
+      result,
    }
 }
 ```
@@ -159,17 +161,15 @@ function setup() {
    const myMutation = inject(MyMutation)
    const params = use(Function)
    const result = myMutation(params)
-   
+
    return {
       params,
-      result
+      result,
    }
 }
 
 @Component({
-   template: `
-      <spinner *ngIf="result.pending"></spinner>
-   `
+   template: ` <spinner *ngIf="result.pending"></spinner> `,
 })
 export class MyComponent extends ViewDef(setup) {}
 ```

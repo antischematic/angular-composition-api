@@ -18,10 +18,11 @@ import {
    ɵɵdirectiveInject as directiveInject,
 } from "@angular/core"
 import {
-   BehaviorSubject,
    PartialObserver,
+   ReplaySubject,
    SchedulerAction,
    SchedulerLike,
+   Subject,
    Subscribable,
    Subscription,
    TeardownLogic,
@@ -38,11 +39,12 @@ import {
 } from "./interfaces"
 import {
    addSignal,
-   computeValue,
    isEmitter,
    isObject,
    isValue,
-   Notification, observeNotification,
+   Notification,
+   observeNotification,
+   trackDeps,
 } from "./utils"
 import { ValueToken } from "./provider"
 
@@ -135,38 +137,8 @@ class ContextBinding<T = any> implements Check {
 
 const dirty = new Set<Scheduler>()
 
-class Action<T> extends Subscription implements SchedulerAction<T> {
-   delay?: number
-   state: any
-   schedule(state?: any, delay?: number): Subscription {
-      this.state = state
-      this.delay = delay
-      this.scheduler.enqueue(this)
-      return this
-   }
-
-   execute(state: any) {
-      if (this.closed) {
-         return new Error("executing a cancelled action")
-      }
-      try {
-         this.work(state)
-      } catch (error) {
-         return error
-      }
-   }
-
-   constructor(
-      private scheduler: Scheduler,
-      private work: (this: Action<any>, state?: T) => void,
-   ) {
-      super()
-   }
-}
-
-export class Scheduler implements SchedulerLike {
+export class Scheduler extends Subject<any> {
    private dirty: boolean
-   actions: Action<any>[][] = [[], []]
    closed: boolean
 
    detectChanges() {
@@ -174,10 +146,10 @@ export class Scheduler implements SchedulerLike {
          this.dirty = false
          dirty.delete(this)
          try {
-            this.flush(0)
+            this.next(0)
             this.ref.detectChanges()
             isDevMode() && this.ref.checkNoChanges()
-            this.flush(1)
+            this.next(1)
          } catch (error) {
             this.errorHandler.handleError(error)
          }
@@ -195,43 +167,11 @@ export class Scheduler implements SchedulerLike {
       dirty.delete(this)
    }
 
-   now(): number {
-      return Date.now()
-   }
-
-   enqueue(action: Action<any>) {
-      this.actions[+(action.delay !== 0)].push(action)
-   }
-
-   flush(step: number) {
-      let action
-      let error
-      const actions = this.actions[step].splice(0, Infinity)
-      while ((action = actions.shift()!)) {
-         if ((error = action.execute(action.state))) {
-            break
-         }
-      }
-      if (error) {
-         while ((action = actions.shift()!)) {
-            action.unsubscribe()
-         }
-         throw error
-      }
-   }
-
-   schedule<T>(
-      work: (this: Action<T>, state?: T) => void,
-      delay?: number,
-      state?: T,
-   ): Subscription {
-      return new Action(this, work).schedule(state, delay)
-   }
-
    constructor(
       private ref: ChangeDetectorRef,
       private errorHandler: ErrorHandler,
    ) {
+      super()
       this.dirty = false
       this.closed = false
       this.ref.detach()
@@ -417,36 +357,40 @@ export function detectChanges() {
    }
 }
 
-export class ComputedSubject<T> extends BehaviorSubject<T> {
+class ComputedSubscriber extends Subscription {
+   first: boolean
+   next() {
+      if (!this.first) {
+         super.unsubscribe()
+         trackDeps(this.subject)
+      }
+   }
+   constructor(private subject: ComputedSubject<any>) {
+      super()
+      this.first = true
+   }
+}
+
+export class ComputedSubject<T> extends ReplaySubject<T> {
    [checkPhase]: CheckPhase
    compute
-   subscription!: Subscription
+   value: any
 
-   private subscribeDeps(deps: any[]) {
-      let dep
-      let first = true
-      this.subscription = new Subscription()
-      while ((dep = deps.shift())) {
-         this.subscription.add(
-            dep.subscribe(() => {
-               if (!first) {
-                  this.subscription.unsubscribe()
-                  const [value, deps] = computeValue(this.compute)
-                  this.subscribeDeps(deps)
-                  this.next(value)
-               }
-            }),
-         )
+   subscribeDeps(deps: Set<any>) {
+      const subscriber = new ComputedSubscriber(this)
+      for (const dep of deps) {
+         subscriber.add(dep.subscribe(subscriber))
       }
-      first = false
+      subscriber.first = false
+      // @ts-ignore
+      deps = null
    }
 
    constructor(compute: (value?: T) => T) {
-      const [value, deps] = computeValue(compute)
-      super(value)
+      super(1)
       this[checkPhase] = 0
       this.compute = compute
-      this.subscribeDeps(deps)
+      trackDeps(this)
    }
 }
 
@@ -575,8 +519,6 @@ export function decorate(create: any) {
 
 export type ProvidedIn = Type<any> | "root" | "platform" | "any" | null
 
-const serviceMap = new Map()
-
 function service<T>(
    factory: (...params: any[]) => T,
    options?: ServiceOptions,
@@ -585,17 +527,14 @@ function service<T>(
    class Class {
       static overriddenName = options?.name ?? factory.name
       ngOnDestroy() {
-         runInContext(serviceMap.get(this) ?? this, unsubscribe)
-         serviceMap.delete(this)
+         runInContext(this, unsubscribe)
       }
       constructor() {
          serviceInject(
             NgModuleRef,
             InjectFlags.Self | InjectFlags.Optional,
          )?.onDestroy(() => this.ngOnDestroy())
-         const value = createService(this, factory, options?.arguments)
-         serviceMap.set(value, this)
-         return value
+         return createService(this, factory, options?.arguments)
       }
    }
    return Class as any

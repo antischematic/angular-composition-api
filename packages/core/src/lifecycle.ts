@@ -1,17 +1,21 @@
 import { addTeardown, getContext } from "./core"
 import { subscribe, use } from "./common"
+import { Subject } from "rxjs"
 
-function schedule(callback: () => void = Function, delay: 0 | 1) {
+class ScheduleObserver {
+   next(phase: number) {
+      if (phase === this.phase) {
+         this.emitter.next()
+      }
+   }
+   constructor(private phase: number, private emitter: Subject<any>) {}
+}
+
+function schedule(callback: () => void = Function, phase: 0 | 1) {
    const emitter = use(callback)
    const { scheduler } = getContext()
 
-   function action() {
-      scheduler.schedule(emitter, delay)
-   }
-
-   action()
-
-   subscribe(emitter, action)
+   subscribe(scheduler, new ScheduleObserver(phase, emitter))
 
    return emitter
 }

@@ -1,5 +1,5 @@
-import {select} from "./select"
-import {use} from "./common"
+import { select } from "./select"
+import { use } from "./common"
 
 describe("select", () => {
    it("should create", () => {
@@ -12,16 +12,12 @@ describe("select", () => {
       const double = select(() => value() * 2)
 
       const a = select({
-         next(value: string) {
-
-         },
-         value: double
+         next(value: string) {},
+         value: double,
       })
       const b = select({
-         next(value: string) {
-
-         },
-         value: a
+         next(value: string) {},
+         value: a,
       })
 
       const spy = jasmine.createSpy()
@@ -29,6 +25,18 @@ describe("select", () => {
       expect(double.value).toBe(20)
       expect(double()).toBe(20)
       expect(spy).toHaveBeenCalledOnceWith(20)
+   })
+   it("should update", () => {
+      const value = use(0)
+      const a = select(() => value() * 2)
+      const b = select(() => value() * 4)
+      const c = select(() => a() + b())
+
+      value(10)
+
+      expect(a.value).toBe(20)
+      expect(b.value).toBe(40)
+      expect(c.value).toBe(60)
    })
    it("should use computed value accessor", () => {
       const value = use(0)

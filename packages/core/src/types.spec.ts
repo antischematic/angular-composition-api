@@ -56,7 +56,7 @@ describe("types", () => {
          // Select
          const computed = select(() => number())
          const accessor = select({
-            next: (val: string | number) => {},
+            next: (_val: string | number) => {},
             value: number,
          })
          const readonlyAccessor = select({
@@ -69,6 +69,14 @@ describe("types", () => {
          // Never
          // noinspection JSUnusedLocalSymbols
          const readonlyNever = use(use(of(1)))
+
+         // Assignable
+         // noinspection JSUnusedLocalSymbols
+         const observable: Observable<number> = number
+         // noinspection JSUnusedLocalSymbols
+         const subject: Subject<number> = number
+         // noinspection JSUnusedLocalSymbols
+         const behavior: BehaviorSubject<number> = number
 
          // Observable interop
          // noinspection JSUnusedLocalSymbols

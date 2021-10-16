@@ -1,11 +1,25 @@
-import {CommonModule} from "@angular/common"
-import {ChangeDetectionStrategy, Component, ErrorHandler, NgModule} from "@angular/core"
-import {CreateTodo, LoadTodosById} from "./api.service"
-import {Todo, TodoModule} from "./todo.component"
-import {inject, subscribe, use, ViewDef,} from "@mmuscat/angular-composition-api"
-import {MatButtonModule} from "@angular/material/button";
-import {MatDialog, MatDialogModule, MatDialogRef} from "@angular/material/dialog";
-import {timer} from "rxjs";
+import { CommonModule } from "@angular/common"
+import {
+   ChangeDetectionStrategy,
+   Component,
+   ErrorHandler,
+   NgModule,
+} from "@angular/core"
+import { CreateTodo, LoadTodosById } from "./api.service"
+import { Todo, TodoModule } from "./todo.component"
+import {
+   inject,
+   subscribe,
+   use,
+   ViewDef,
+} from "@mmuscat/angular-composition-api"
+import { MatButtonModule } from "@angular/material/button"
+import {
+   MatDialog,
+   MatDialogModule,
+   MatDialogRef,
+} from "@angular/material/dialog"
+import { timer } from "rxjs"
 
 function trackById(index: number, value: any) {
    return value?.id ?? index
@@ -100,10 +114,8 @@ export function dialog() {
 }
 
 @Component({
-   template: `
-      Uh oh...
-   `,
-   changeDetection: ChangeDetectionStrategy.OnPush
+   template: ` Uh oh... `,
+   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DialogText extends ViewDef(dialog) {}
 
@@ -111,7 +123,7 @@ export class DialogText extends ViewDef(dialog) {}
    selector: "app-todo-list",
    templateUrl: "./todo-list.component.html",
    providers: [CreateTodo, LoadTodosById],
-   changeDetection: ChangeDetectionStrategy.OnPush
+   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TodoList extends ViewDef(todoList) {}
 

@@ -1,4 +1,8 @@
-import { FactoryProvider, InjectionToken, ɵɵdirectiveInject as inject } from "@angular/core"
+import {
+   FactoryProvider,
+   InjectionToken,
+   ɵɵdirectiveInject as inject,
+} from "@angular/core"
 import { ProvidedIn } from "./core"
 
 export type ValueToken<T> = InjectionToken<T> & {
