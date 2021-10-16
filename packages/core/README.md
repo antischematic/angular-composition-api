@@ -437,10 +437,11 @@ Select a new `AccessorValue` with separate read and write streams.
 
 ```ts
 const count = use(0)
+const countChange = use(count)
 
 const value = select({
-   next: () => count() + 1,
-   value: count,
+   next: () => countChange(count() + 1),
+   value: () => count() - 1,
 })
 
 // write value
