@@ -56,8 +56,10 @@ npm install @mmuscat/angular-composition-api
 yarn add @mmuscat/angular-composition-api
 ```
 
-For change detection to function correctly, you must provide `ZonelessEventManager`
-in your root module. This is required whether zone.js is enabled or not.
+### Setup
+
+Provide `ZonelessEventManager` in your root module. This is required 
+for proper change detection in event handlers.
 
 ```ts
 @NgModule({
@@ -89,9 +91,6 @@ Change detection occurs in the following scenarios (assuming `OnPush` strategy):
 -  When an event binding is executed.
 -  When `subscribe` emits a value, after the observer is called.
 
-Functions returned from the setup function will also trigger change detection if they called
-from a template event binding.
-
 Updates to reactive state are not immediately reflected in the view. If you need an immediate update, call `detectChanges` after updating a value.
 
 Change detection might _not_ occur when:
@@ -100,21 +99,6 @@ Change detection might _not_ occur when:
 -  Imperatively calling state mutating methods on the component instance.
    Unless the mutated state has a `subscribe` observer, this will not trigger
    a change detection run.
-
-For example, when manually creating a component:
-
-```ts
-const componentRef = componentFactoryResolver
-   .resolveComponentFactory(MyComponent)
-   .create()
-
-componentRef.instance.count = 10 // not reactive
-componentRef.instance.countChange(10) // not reactive
-
-componentRef.changeDetectorRef.detectChanges() // now the view will be updated
-```
-
-To propagate these changes you will need to call `detectChanges`.
 
 #### Service
 
@@ -139,6 +123,14 @@ const ServiceWithOptions = new Service(setup, {
    name: "MyService", // descriptive name for error handling
    arguments: [arg1, arg2, ...args],
 })
+
+// inject service
+function setup() {
+   const service = inject(BasicService)
+}
+
+@Component()
+export class MyComponent extends ViewDef(setup) {}
 ```
 
 #### Provide
@@ -205,6 +197,14 @@ export class Child extends ViewDef(child) {}
 
 Equivalent to `Injector.get(ProviderToken)`. Throws `CallContextError` if called outside a `ViewDef`
 or `Service` factory.
+
+```ts
+function setup() {
+   const http = inject(Http)
+   const config = inject(Config, defaultConfig)
+   const parent = inject(FileTree, null, InjectFlags.SkipSelf)
+}
+```
 
 #### Subscribe
 
@@ -273,6 +273,23 @@ export class Pinger extends ViewDef(pinger) {}
 
 In this example, a new inner stream is created every second and will not be disposed even if it takes longer than 1
 second to complete. If the view is destroyed, then all remaining streams are unsubscribed.
+
+Passing `null` will disable automatic teardown of subscriptions. Use this when you want
+the subscription to survive when the context is destroyed. To prevent memory leaks, only
+use this on completable streams.
+
+```ts
+function setup() {
+   const keepAlive = interval(1000).pipe(take(120))
+   subscribe(
+      keepAlive,
+      (count) => {
+         console.log(count)
+      },
+      null,
+   ) // won't unsubscribe when context is destroyed
+}
+```
 
 ### Use API
 
