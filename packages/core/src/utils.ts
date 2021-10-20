@@ -1,36 +1,30 @@
 import {
-   BehaviorSubject,
-   NextObserver,
    PartialObserver,
-   Subject,
    Subscription,
    SubscriptionLike,
    Unsubscribable,
 } from "rxjs"
-import {Emitter, UnsubscribeSignal, Value} from "./interfaces"
-import { Context } from "./core"
+import { Emitter, UnsubscribeSignal, Value } from "./interfaces"
 
-let previous: Set<any>
 let deps: Set<any>
 let tracking = false
 
-export function trackDeps<T>(fn: () => T): [T, any[]] {
+export function trackDeps(subject: {
+   value: any
+   next: Function
+   compute: Function
+   subscribeDeps: Function
+}) {
    const flushed = new Set()
+   const previous = deps
    tracking = true
-   previous = deps
    deps = flushed
-   const value = fn()
+   const value = subject.compute()
    tracking = false
    deps = previous
-   return [value, Array.from(flushed)]
-}
-
-export function computeValue<T>(compute: (value?: T) => T) {
-   return trackDeps(compute)
-}
-
-export function arrayCompare(a: any[], b: any[]) {
-   return a.every((v, i) => v === b[i])
+   subject.value = value
+   subject.subscribeDeps(flushed)
+   subject.next(value)
 }
 
 export function track<T>(source: {
@@ -50,37 +44,16 @@ export function track<T>(source: {
    }
 }
 
-type ValueOrSetter<T> = T | BehaviorSubject<T> | ((value: T) => T)
-
 export function isObject(value: unknown): value is {} {
    return typeof value === "object" && value !== null
 }
 
-export function set<T>(
-   source: BehaviorSubject<T>,
-   observer?: NextObserver<T> | ((value: T) => void),
-): (valueOrSetter: ValueOrSetter<T>) => void {
-   return function (value) {
-      if (value instanceof Function) {
-         source.next(value(source.value))
-      } else if (value instanceof BehaviorSubject) {
-         source.next(value.value)
-      } else {
-         source.next(value)
-      }
-      if (typeof observer === "function") {
-         observer(source.value)
-      } else if (observer) {
-         observer.next(source.value)
-      }
-   }
-}
-
 export function addSignal(
-   teardown: Unsubscribable | Function,
+   teardown: Unsubscribable | (() => void),
    abort: Subscription | AbortSignal,
 ) {
-   const subscription = new Subscription().add(teardown)
+   const subscription = new Subscription()
+   subscription.add(teardown)
    if (abort instanceof AbortSignal) {
       const listener = () => subscription.unsubscribe()
       abort.addEventListener("abort", listener, { once: true })
@@ -113,20 +86,42 @@ export function isObserver(
       : void 0
 }
 
-export function onUpdate(context: Context, signal: 0 | 1) {
-   const subject = new Subject()
-   function action() {
-      subject.next()
-      context.schedule(action, signal)
+export class Notification<T> {
+   constructor(
+      public kind: "N" | "E" | "C",
+      public value: T,
+      public error: unknown,
+      public complete: boolean,
+   ) {}
+
+   static createNext(value: any) {
+      return new Notification("N", value, undefined, false)
    }
-   action()
-   return subject
+
+   static createError(error: any) {
+      return new Notification("E", undefined, error, false)
+   }
+
+   static createComplete() {
+      return new Notification("C", undefined, undefined, true)
+   }
 }
 
-export function beforeUpdate(context: Context) {
-   return onUpdate(context, 0)
-}
-
-export function afterUpdate(context: Context) {
-   return onUpdate(context, 1)
+export function observeNotification<T>(
+   notification: Notification<T>,
+   observer: PartialObserver<T> | ((value: T) => any),
+): any {
+   const { kind, value, error } = notification as any
+   if (typeof kind !== "string") {
+      throw new TypeError('Invalid notification, missing "kind"')
+   }
+   if (typeof observer === "function") {
+      if (kind === "N") return observer(value)
+      return
+   }
+   return kind === "N"
+      ? observer.next?.(value!)
+      : kind === "E"
+      ? observer.error?.(error)
+      : observer.complete?.()
 }

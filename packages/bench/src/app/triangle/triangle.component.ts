@@ -1,17 +1,23 @@
-import {Component} from "@angular/core"
-import {select, Service, subscribe, use, ViewDef} from "@mmuscat/angular-composition-api"
+import { Component } from "@angular/core"
+import {
+   select,
+   Service,
+   subscribe,
+   use,
+   ViewDef,
+} from "@mmuscat/angular-composition-api"
 
 function counter() {
    const count = use(0)
    subscribe(() => {
-      const interval = setInterval(() => count(count() % 10 + 1), 1000)
+      const interval = setInterval(() => count((count() % 10) + 1), 1000)
       return () => clearInterval(interval)
    })
    return count
 }
 
 export const Counter = new Service(counter, {
-   providedIn: "root"
+   providedIn: "root",
 })
 
 function triangle() {
@@ -40,6 +46,6 @@ function triangle() {
    selector: "app-triangle",
    templateUrl: "./triangle.component.html",
    styleUrls: ["./triangle.component.css"],
-   inputs: ["x", "y", "s"]
+   inputs: ["x", "y", "s"],
 })
 export class TriangleComponent extends ViewDef(triangle) {}

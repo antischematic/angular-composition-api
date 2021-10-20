@@ -1,5 +1,5 @@
 import { subscribe, use } from "./common"
-import {auditTime, map, materialize, mergeMap} from "rxjs/operators"
+import { map, materialize, mergeMap, tap } from "rxjs/operators"
 import {
    Component,
    ContentChild,
@@ -11,13 +11,7 @@ import {
    ViewChildren,
 } from "@angular/core"
 import { Value } from "./interfaces"
-import {
-   Context,
-   EffectObserver,
-   inject,
-   Service,
-   ViewDef,
-} from "./core"
+import { EffectObserver, inject, Service, ViewDef } from "./core"
 import { defer, interval, merge, of, Subscription, throwError } from "rxjs"
 import {
    discardPeriodicTasks,
@@ -26,6 +20,7 @@ import {
    tick,
 } from "@angular/core/testing"
 import { configureTest, defineService } from "./core.spec"
+import { onBeforeUpdate, onUpdated } from "./lifecycle"
 import createSpy = jasmine.createSpy
 import objectContaining = jasmine.objectContaining
 
@@ -60,12 +55,6 @@ describe("use", () => {
          value(20)
          expect(value.value).toBe(20)
          expect(value()).toBe(20)
-      })
-      it("should destructure", () => {
-         const [value, valueChange] = use(0)
-
-         expect(value.__ng_value).toBe(true)
-         expect(valueChange.__ng_emitter).toEqual(true)
       })
       it("should update upstream value", () => {
          const value = use(0)
@@ -229,7 +218,7 @@ describe("subscribe", () => {
    it("should subscribe to observables", () => {
       const spy = createSpy()
       function factory() {
-         const deferred = defer(spy)
+         const deferred = of(null).pipe(tap(spy))
          subscribe(deferred)
          return {}
       }
@@ -571,14 +560,10 @@ describe("subscribe", () => {
    it("should emit before and after view updates", () => {
       const count = use(0)
       const spy = createSpy()
-      function create(context: Context) {
-         const beforeUpdate = count.pipe(
-            auditTime(0, context),
-         )
-         const afterUpdate = count.pipe(
-            auditTime(1, context),
-         )
-         subscribe(afterUpdate, () => {
+      function create() {
+         const beforeUpdate = onBeforeUpdate()
+         const updated = onUpdated()
+         subscribe(updated, () => {
             spy("spy3: " + count())
          })
          subscribe(beforeUpdate, () => {

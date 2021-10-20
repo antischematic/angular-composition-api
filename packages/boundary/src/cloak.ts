@@ -1,209 +1,224 @@
+import { isObservable, Observable, Observer, Subject, Subscriber } from "rxjs"
 import {
+   AfterContentInit,
+   ChangeDetectorRef,
+   Component,
    ContentChildren,
    Directive,
+   ElementRef,
    ErrorHandler,
-   Inject,
-   InjectionToken,
+   EventEmitter,
    Input,
    OnDestroy,
-   Optional,
+   Output,
    QueryList,
-   SimpleChanges,
-   TemplateRef,
-   Type,
-   ViewContainerRef,
+   Renderer2,
+   SkipSelf,
 } from "@angular/core"
-import {
-   asapScheduler,
-   asyncScheduler,
-   concat,
-   forkJoin,
-   Observable,
-   partition,
-   Subject,
-   timer,
-} from "rxjs"
-import {
-   distinctUntilChanged,
-   map,
-   scan,
-   share,
-   switchMap,
-   take,
-   takeUntil,
-} from "rxjs/operators"
-import { Fallback } from "./error-boundary"
-import { Renderer } from "./renderer"
 
-export abstract class CloakBoundary {
-   abstract cloak<T>(source: Observable<T>): Observable<T>
-   abstract handleError(error: unknown): void
-}
-
-export interface CloakConfig {
-   leading: number
-   trailing: number
-}
-
-const DEFAULT_CLOAK_CONFIG = {
-   leading: 0,
-   trailing: 1000,
-}
-
-export const NG_CLOAK_CONFIG = new InjectionToken<CloakConfig>(
-   "NG_CLOAK_CONFIG",
-)
-
-export class CloakObserver {
-   closed: boolean
-   thrownError: any
-   next(value: any) {
-      if (this.closed) return
-      this.subscriber.next(value)
+class ValueSubscriber extends Subscriber<any> {
+   next() {
+      super.complete()
       this.unsubscribe()
    }
-   error(error: any) {
-      if (this.closed) return this.subscriber.error(this.thrownError)
-      this.thrownError = error
-      this.errorHandler.handleError(error)
-      this.subscriber.error(error)
+
+   error(error: unknown) {
+      super.error(error)
       this.unsubscribe()
+   }
+
+   complete() {
+      super.complete()
+      this.unsubscribe()
+   }
+
+   unsubscribe() {
+      this.boundary.subscription.remove(this)
+      super.unsubscribe()
+   }
+
+   constructor(private boundary: NgCloak, observer: CloakObserver) {
+      super(observer)
+      boundary.subscription.add(this)
+   }
+}
+
+class CloakObserver implements Observer<any> {
+   next(source: Observable<any>) {
+      const subscriber = new ValueSubscriber(this.boundary, this)
+      subscriber.add(source.subscribe(subscriber))
+   }
+   error(error: unknown) {
+      this.boundary.handleError(error)
    }
    complete() {
-      if (this.closed) return this.subscriber.complete()
-      this.unsubscribe()
+      const { boundary } = this
+      if (boundary.refCount > 0) {
+         boundary.refCount--
+         if (boundary.refCount === 0) {
+            boundary.cloak(false)
+         }
+      }
    }
-   unsubscribe() {
-      if (this.closed) return
-      this.subscriber.complete()
-      this.closed = true
-      this.queue.next(-1)
-   }
-   constructor(
-      private subscriber: any,
-      private queue: Subject<any>,
-      private errorHandler: ErrorHandler,
-   ) {
-      this.closed = false
-   }
+   constructor(private boundary: NgCloak) {}
 }
 
-export class CloakObservable<T> extends Observable<T> {
-   constructor(
-      source: Observable<T>,
-      queue: Subject<number>,
-      errorHandler: ErrorHandler,
-   ) {
-      super((subscriber) => {
-         queue.next(1)
-         return source.subscribe(
-            new CloakObserver(subscriber, queue, errorHandler),
-         )
-      })
-   }
-}
-
-function selectDelay(time: number) {
-   return timer(time, time ? asyncScheduler : asapScheduler)
-}
-
-@Directive({
+@Component({
    selector: "ng-cloak",
+   template: `
+      <ng-content
+         select="fallback, [fallback]"
+         *ngIf="cloaked; else content"
+      ></ng-content>
+      <ng-template #content>
+         <ng-content></ng-content>
+      </ng-template>
+   `,
    providers: [
-      Renderer,
       {
-         provide: CloakBoundary,
+         provide: ErrorHandler,
          useExisting: NgCloak,
       },
    ],
 })
-export class NgCloak implements CloakBoundary, OnDestroy {
-   cloaked: boolean
-   queue: Subject<number>
+export class NgCloak implements AfterContentInit, OnDestroy {
+   cloaked
+   observer
+   subscription
+   queue
+   refCount
+   parent?: NgCloakList
 
-   get fallbackType() {
-      return this.fallback ?? this.fallbackQuery?.first?.ref
+   @Output()
+   cloakChange
+
+   get element() {
+      return this.elementRef.nativeElement
    }
 
-   @Input()
-   fallback?: TemplateRef<void> | Element | Type<any>
-
-   @ContentChildren(Fallback, { descendants: false })
-   fallbackQuery?: QueryList<Fallback>
-
-   cloak(source: Observable<any>) {
-      return new CloakObservable(source, this.queue, this.errorHandler)
+   register(parent: NgCloakList) {
+      this.parent = parent
    }
 
-   render(cloak: boolean) {
-      if (this.cloaked === cloak) return
-      this.cloaked = cloak
-
-      if (cloak) {
-         this.renderer.renderFallback(this.fallbackType, true)
+   handleError(value: unknown) {
+      if (isObservable(value)) {
+         this.refCount++
+         this.queue.next(value)
+         this.cloak(true)
       } else {
-         this.renderer.renderContent(this.fallbackType)
+         this.refCount = 0
+         this.subscription.unsubscribe()
+         this.subscription = this.subscribe()
+         this.cloak(false)
+         this.errorHandler.handleError(value)
       }
    }
 
-   handleError(error: unknown) {
-      this.errorHandler.handleError(error)
+   cloak(cloaked: boolean) {
+      this.cloaked = cloaked
+      if (cloaked) this.changeDetectorRef.detach()
+      else this.changeDetectorRef.reattach()
+      if (!this.parent) this.render()
    }
 
-   next(cloaked: boolean) {
-      this.render(cloaked)
+   render() {
+      this.changeDetectorRef.detectChanges()
    }
 
-   ngOnChanges(changes: SimpleChanges) {
-      if (changes.fallback) {
-         const { currentValue, previousValue } = changes.fallback
-         this.renderer.renderFallback(previousValue, false)
-         this.renderer.renderFallback(currentValue, this.cloaked)
-      }
+   subscribe() {
+      return this.queue.subscribe(this.observer)
+   }
+
+   ngAfterContentInit() {
+      this.cloak(this.refCount > 0)
    }
 
    ngOnDestroy() {
-      this.queue.complete()
+      this.subscription.unsubscribe()
    }
 
    constructor(
-      private errorHandler: ErrorHandler,
-      private viewContainerRef: ViewContainerRef,
-      private renderer: Renderer,
-      @Inject(NG_CLOAK_CONFIG) @Optional() config: CloakConfig,
+      private elementRef: ElementRef,
+      @SkipSelf() private errorHandler: ErrorHandler,
+      public changeDetectorRef: ChangeDetectorRef,
    ) {
-      this.queue = new Subject()
       this.cloaked = false
+      this.refCount = 0
+      this.observer = new CloakObserver(this)
+      this.queue = new Subject<Observable<any>>()
+      this.subscription = this.subscribe()
+      this.cloakChange = new EventEmitter()
+   }
+}
 
-      this.renderer.renderContent(this.fallbackType)
+class CloakListObserver {
+   next() {
+      this.list.render(this.children)
+   }
+   constructor(
+      private list: NgCloakList,
+      private child: NgCloak,
+      private children: NgCloak[],
+   ) {}
+}
 
-      config = config ?? DEFAULT_CLOAK_CONFIG
+@Directive({
+   selector: "cloak-list",
+})
+export class NgCloakList implements AfterContentInit {
+   @Input()
+   revealOrder: "together" | "forwards" | "reverse"
 
-      const [cloak, uncloak] = partition(
-         this.queue.pipe(
-            scan((count, next) => count + next, 0),
-            map(Boolean),
-            distinctUntilChanged(),
-            share(),
-         ),
-         Boolean,
-      )
+   @Input()
+   tail?: "collapsed" | "hidden"
 
-      const debounce = cloak.pipe(
-         switchMap(() => {
-            return concat(
-               selectDelay(config.leading).pipe(
-                  map(() => true),
-                  takeUntil(uncloak),
-               ),
-               forkJoin([
-                  uncloak.pipe(take(1)),
-                  selectDelay(config.trailing),
-               ]).pipe(map(() => false)),
-            )
-         }),
-      )
+   @ContentChildren(NgCloak, { descendants: true })
+   children?: QueryList<NgCloak>
 
-      debounce.subscribe(this)
+   render(children: NgCloak[]) {
+      const {
+         elementRef: { nativeElement },
+         renderer,
+         revealOrder,
+         tail,
+      } = this
+      let child
+      let previous = null
+      let renderChildren: NgCloak[] = children.slice()
+      if (revealOrder === "reverse") {
+         renderChildren = renderChildren.reverse()
+      }
+      while ((child = renderChildren.shift())) {
+         if (tail === "hidden" && child.cloaked) break
+         if (revealOrder === "reverse") {
+            renderer.insertBefore(nativeElement, child, previous)
+         } else {
+            renderer.appendChild(nativeElement, child.element)
+         }
+         previous = child
+         child.render()
+         if (tail === "collapsed" && child.cloaked) break
+      }
+      while ((child = renderChildren.shift())) {
+         renderer.removeChild(nativeElement, child.element)
+      }
+   }
+
+   subscribe(children: NgCloak[]) {
+      for (const child of children) {
+         child.cloakChange.subscribe(
+            new CloakListObserver(this, child, children),
+         )
+      }
+   }
+
+   ngAfterContentInit() {
+      if (this.children) {
+         this.subscribe(this.children.toArray())
+      }
+   }
+
+   constructor(private elementRef: ElementRef, private renderer: Renderer2) {
+      this.revealOrder = "together"
    }
 }

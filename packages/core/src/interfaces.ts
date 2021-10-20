@@ -4,6 +4,7 @@ import {
    ErrorHandler,
    EventEmitter,
    Injector,
+   NgZone,
    Type,
    ViewChild,
    ViewChildren,
@@ -33,7 +34,7 @@ export interface CurrentContext {
    2: Set<Check>
 }
 
-export interface CheckSubject<T> extends Subscribable<T> {
+export interface CheckSubject<T> extends Observable<T> {
    readonly value: T
    readonly [checkPhase]: CheckPhase
 }
@@ -56,16 +57,17 @@ export type State<T, U> = Type<
 
 export type UnsubscribeSignal = Subscription | AbortSignal | null
 
-export type Value<T> = CheckSubject<T> & {
-   readonly __ng_value: true
-   readonly source: Observable<T>
-   readonly pipe: Observable<T>["pipe"]
-   readonly value: T
-   (mutate: (value: T) => any): void
-   (value: T): void
-   (): T
-   next(value: T): void
-} & [ReadonlyValue<T>, Emitter<T>]
+export type Value<T> = CheckSubject<T> &
+   BehaviorSubject<T> & {
+      readonly __ng_value: true
+      readonly source: Observable<T>
+      readonly pipe: Observable<T>["pipe"]
+      readonly value: T
+      (mutate: (value: T) => any): void
+      (value: T): void
+      (): T
+      next(value: T): void
+   }
 
 export interface ReadonlyValue<T> extends CheckSubject<T> {
    readonly __ng_value: true
@@ -75,24 +77,47 @@ export interface ReadonlyValue<T> extends CheckSubject<T> {
    (): T
 }
 
-export interface ValueAccessorOptions<T, U> {
-   next: ((value: T) => void) | Subject<any>
-   value: Subscribable<U> | Value<U> | BehaviorSubject<U> | (() => U)
+export interface Accessor<T, U> {
+   next:
+      | ((value: U) => void)
+      | Subject<U>
+      | Value<U>
+      | ReadonlyValue<U>
+      | Emitter<U>
+      | AccessorValue<any, U>
+   value:
+      | Value<T>
+      | ReadonlyValue<T>
+      | AccessorValue<T, any>
+      | BehaviorSubject<T>
+      | (() => T)
+}
+
+export type AccessorValue<T, U> = CheckSubject<T> & {
+   readonly __ng_value: true
+   readonly __ng_accessor_value: true
+   readonly source: Observable<T>
+   readonly pipe: Observable<T>["pipe"]
+   readonly value: T
+   (mutate: (value: U) => any): void
+   (value: U): void
+   (): T
+   next(value: U): void
 }
 
 export interface EmitterWithParams<T extends (...args: any[]) => any>
-   extends Subscribable<T> {
+   extends Subject<ReturnType<T>> {
    readonly __ng_emitter: true
-   readonly source: Subject<ReturnType<T>>
-   readonly pipe: Subject<ReturnType<T>>["pipe"]
-   (...args: Parameters<T>): void
+   readonly source: Observable<ReturnType<T>>
+   readonly pipe: Observable<ReturnType<T>>["pipe"]
+   (...params: Parameters<T>): void
    next(value: ReturnType<T>): void
 }
 
-export interface Emitter<T> extends Observable<T> {
+export interface Emitter<T> extends Subject<T> {
    readonly __ng_emitter: true
-   readonly source: Subject<T>
-   readonly pipe: Subject<T>["pipe"]
+   readonly source: Observable<T>
+   readonly pipe: Observable<T>["pipe"]
    (value: T): void
    next(value: T): void
 }

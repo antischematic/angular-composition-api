@@ -1,5 +1,9 @@
-import {FactoryProvider, InjectionToken, Type, ɵɵdirectiveInject as inject} from "@angular/core"
-import {ProvidedIn} from "./core";
+import {
+   FactoryProvider,
+   InjectionToken,
+   ɵɵdirectiveInject as inject,
+} from "@angular/core"
+import { ProvidedIn } from "./core"
 
 export type ValueToken<T> = InjectionToken<T> & {
    __ng_value_token: true
@@ -26,20 +30,20 @@ function keygen() {
 function createValueToken<T>(name: string): ValueToken<T>
 function createValueToken<T>(
    name: string,
-   options?: { factory: () => T, providedIn: ProvidedIn },
+   options?: { factory: () => T; providedIn: ProvidedIn },
 ): ValueToken<T>
 function createValueToken(
    name: string,
-   options?: { factory: () => any, providedIn: ProvidedIn   },
+   options?: { factory: () => any; providedIn: ProvidedIn },
 ): ValueToken<any> {
    const providedIn = options?.providedIn ?? "root"
    const ValueToken = new InjectionToken(name, {
       factory: get,
-      providedIn
+      providedIn,
    }) as any
    const Key = new InjectionToken(`keygen:${name}`, {
       factory: keygen,
-      providedIn
+      providedIn,
    })
 
    function get() {

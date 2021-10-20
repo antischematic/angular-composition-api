@@ -1,14 +1,25 @@
 import { CommonModule } from "@angular/common"
-import { Component, ErrorHandler, NgModule } from "@angular/core"
+import {
+   ChangeDetectionStrategy,
+   Component,
+   ErrorHandler,
+   NgModule,
+} from "@angular/core"
 import { CreateTodo, LoadTodosById } from "./api.service"
 import { Todo, TodoModule } from "./todo.component"
 import {
    inject,
-   markDirty,
    subscribe,
    use,
    ViewDef,
 } from "@mmuscat/angular-composition-api"
+import { MatButtonModule } from "@angular/material/button"
+import {
+   MatDialog,
+   MatDialogModule,
+   MatDialogRef,
+} from "@angular/material/dialog"
+import { timer } from "rxjs"
 
 function trackById(index: number, value: any) {
    return value?.id ?? index
@@ -20,8 +31,9 @@ function todoList() {
       creating = use<Todo | null>(null),
       loadTodosById = inject(LoadTodosById),
       createTodo = inject(CreateTodo),
-      error = inject(ErrorHandler)
-   const changesCount = use(0)
+      error = inject(ErrorHandler),
+      changesCount = use(0),
+      dialog = inject(MatDialog)
 
    subscribe(userId, (value) => {
       subscribe(loadTodosById(value), {
@@ -41,7 +53,7 @@ function todoList() {
          }
          case "response": {
             console.log("todo created!", value)
-            markDirty(userId)
+            userId(userId())
             break
          }
       }
@@ -61,7 +73,10 @@ function todoList() {
    })
 
    function explode() {
-      error.handleError(new Error("Boom!"))
+      const dialogRef = dialog.open(DialogText)
+      subscribe(dialogRef.afterClosed(), () => {
+         error.handleError(new Error("Boom!"))
+      })
    }
 
    function toggleAll() {
@@ -88,16 +103,33 @@ function todoList() {
    }
 }
 
+export function dialog() {
+   const dialog = inject(MatDialogRef)
+
+   subscribe(timer(1500), () => {
+      dialog.close()
+   })
+
+   return {}
+}
+
+@Component({
+   template: ` Uh oh... `,
+   changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class DialogText extends ViewDef(dialog) {}
+
 @Component({
    selector: "app-todo-list",
    templateUrl: "./todo-list.component.html",
    providers: [CreateTodo, LoadTodosById],
+   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TodoList extends ViewDef(todoList) {}
 
 @NgModule({
-   imports: [CommonModule, TodoModule],
-   declarations: [TodoList],
+   imports: [CommonModule, TodoModule, MatButtonModule, MatDialogModule],
+   declarations: [TodoList, DialogText],
    exports: [TodoList],
 })
 export class TodoListModule {}

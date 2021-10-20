@@ -4,9 +4,9 @@
 
 export {
    Resource,
-   cancel,
    Mutation,
+   MutateOptions,
    Query,
-   QueryConfig,
+   QueryOptions,
    invalidate,
 } from "./resource"

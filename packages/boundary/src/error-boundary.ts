@@ -1,165 +1,80 @@
 import {
-   AfterContentInit,
    ChangeDetectorRef,
+   Component,
    ContentChildren,
-   Directive,
-   ElementRef,
+   DoCheck,
    ErrorHandler,
-   EventEmitter,
-   Inject,
-   Input,
-   OnChanges,
-   Optional,
+   Injectable,
    Output,
-   PLATFORM_ID,
    QueryList,
-   SimpleChanges,
    SkipSelf,
    TemplateRef,
-   Type,
-   ViewContainerRef,
-   ViewRef,
+   EventEmitter,
 } from "@angular/core"
-import { isPlatformBrowser } from "@angular/common"
-import { Renderer } from "./renderer"
+import { NgIfContext } from "@angular/common"
 
-export class ErrorBoundaryEvent {
-   error: any
-   closed: boolean
-   reset() {
-      if (this.closed) return
-      this.closed = true
-      this.boundary.reset()
-   }
-   constructor(private boundary: ErrorBoundary, error: any) {
-      this.closed = false
-      this.error = error
+@Injectable({ providedIn: "root" })
+export class ErrorLogger {
+   error(error: unknown) {
+      console.error(error)
    }
 }
 
-@Directive({
-   selector: "[fallback]",
-   host: {
-      "[class.ng-cloak]": "true",
-   },
+@Component({
+   selector: "error-boundary",
+   template: `
+      <ng-container *ngIf="error; else template?.first">
+         <ng-content select="fallback, [fallback]"></ng-content>
+      </ng-container>
+   `,
 })
-export class Fallback {
-   ref: any
-   constructor(
-      @Optional() @Inject(ElementRef) elementRef: ElementRef,
-      @Optional() @Inject(TemplateRef) templateRef: TemplateRef<any>,
-   ) {
-      this.ref = templateRef ?? elementRef.nativeElement
-   }
-}
+export class ErrorBoundary implements DoCheck {
+   @Output()
+   error
+   hasError
 
-@Directive({
-   selector: "[catchError]",
-})
-export class CatchError {
-   view?: ViewRef
-   constructor(
-      @Optional() private templateRef: TemplateRef<any>,
-      private viewContainerRef: ViewContainerRef,
-      private errorHandler: ErrorHandler,
-   ) {}
+   @ContentChildren(TemplateRef, { descendants: false })
+   template?: QueryList<TemplateRef<NgIfContext<boolean>>>
 
    ngDoCheck() {
+      if (this.error) return
       try {
-         this.view?.detectChanges()
+         this.changeDetectorRef.detectChanges()
       } catch (error) {
-         this.errorHandler.handleError(error)
+         this.handleError(error)
       }
    }
 
-   ngOnDestroy() {
-      this.view?.destroy()
-   }
-
-   render() {
-      this.view?.destroy()
-      this.view = this.viewContainerRef.createEmbeddedView(this.templateRef)
-      this.view.detach()
-      this.view.detectChanges()
-   }
-}
-
-@Directive({
-   selector: "error-boundary, [errorBoundary]",
-   exportAs: "errorBoundary",
-   providers: [
-      Renderer,
-      {
-         provide: ErrorHandler,
-         useExisting: ErrorBoundary,
-      },
-   ],
-})
-export class ErrorBoundary implements OnChanges, AfterContentInit {
-   readonly platformBrowser: boolean
-
-   event: ErrorBoundaryEvent | null
-
-   @Input()
-   fallback?: Type<any> | Element | TemplateRef<any>
-
-   get catchError() {
-      return this.catchErrorQuery?.first
-   }
-
-   get fallbackType() {
-      return this.fallback ?? this.fallbackQuery?.first?.ref
-   }
-
-   @ContentChildren(Fallback, { descendants: false })
-   fallbackQuery?: QueryList<Fallback>
-
-   @ContentChildren(CatchError, { descendants: false })
-   catchErrorQuery?: QueryList<CatchError>
-
-   @Output()
-   error: EventEmitter<ErrorBoundaryEvent>
-
-   reset() {
-      if (this.event) {
-         this.event.closed = true
-         this.event = null
-         this.renderer.renderContent(this.fallbackType)
-         if (this.catchError) {
-            this.catchError.render()
+   handleError(fault: unknown) {
+      try {
+         this.hasError = true
+         this.changeDetectorRef.detectChanges()
+         this.logger.error(fault)
+         this.error.emit(
+            new ErrorEvent("ErrorBoundary", {
+               error: fault,
+            }),
+         )
+      } catch (doubleFault) {
+         this.errorHandler.handleError(fault)
+         if (fault !== doubleFault) {
+            this.errorHandler.handleError(doubleFault)
          }
       }
    }
 
-   handleError(error: any) {
-      if (this.platformBrowser && !this.event) {
-         this.event = new ErrorBoundaryEvent(this, error)
-         this.renderer.renderFallback(this.fallbackType, true)
-         this.error.emit(this.event)
-      }
-      this.errorHandler.handleError(error)
-   }
-
-   ngOnChanges(changes: SimpleChanges) {
-      const { currentValue, previousValue } = changes.fallback
-      this.renderer.renderFallback(previousValue, false)
-      this.renderer.renderFallback(currentValue, !!this.event)
-   }
-
-   ngAfterContentInit() {
-      if (this.catchError) {
-         this.catchError.render()
-      }
+   retry() {
+      this.hasError = false
+      this.changeDetectorRef.detectChanges()
    }
 
    constructor(
+      public changeDetectorRef: ChangeDetectorRef,
+      public logger: ErrorLogger,
       @SkipSelf() private errorHandler: ErrorHandler,
-      private renderer: Renderer,
-      private changeDetectorRef: ChangeDetectorRef,
-      @Inject(PLATFORM_ID) platformId: Object,
    ) {
-      this.error = new EventEmitter()
-      this.platformBrowser = isPlatformBrowser(platformId)
-      this.event = null
+      this.hasError = false
+      this.error = new EventEmitter<ErrorEvent>()
+      this.changeDetectorRef.detach()
    }
 }

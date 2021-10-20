@@ -1,15 +1,18 @@
-import {Component} from "@angular/core"
-import {inject, select, use, ViewDef} from "@mmuscat/angular-composition-api"
-import {Counter} from "../triangle.component"
+import { Component } from "@angular/core"
+import { inject, select, use, ViewDef } from "@mmuscat/angular-composition-api"
+import { Counter } from "../triangle.component"
 
 function calcStyle(size: number, x: number, y: number) {
    const s = size * 1.3
-   return `width: ${s}px; height: ${s}px; left: ${x}px; top: ${y}px; border-radius: ${s / 2}px; line-height: ${s}px;`;
+   return `width: ${s}px; height: ${s}px; left: ${x}px; top: ${y}px; border-radius: ${
+      s / 2
+   }px; line-height: ${s}px;`
 }
 
 function dot() {
    const count = inject(Counter)
-   const [hover, hoverChange] = use(false)
+   const hover = use(false)
+   const hoverChange = use(hover)
    const x = use(0)
    const y = use(0)
    const size = use(0)
@@ -22,7 +25,7 @@ function dot() {
       x,
       y,
       size,
-      style
+      style,
    }
 }
 
@@ -33,8 +36,8 @@ function dot() {
    host: {
       "(mouseover)": "hoverChange(true)",
       "(mouseleave)": "hoverChange(false)",
-      "[style]": "style"
+      "[style]": "style",
    },
-   inputs: ["x", "y", "size"]
+   inputs: ["x", "y", "size"],
 })
 export class DotComponent extends ViewDef(dot) {}

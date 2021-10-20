@@ -1,6 +1,46 @@
 # Angular Composition API
 
-A lightweight (3kb) library for writing functional Angular applications.
+Composition model for functional reactive Angular applications.
+
+**Features**
+
+-  Small bundle size (4kb min gzipped)
+-  Minimal API
+-  Granular change detection
+-  Better-than `OnPush` performance
+-  Optional Zone.js
+-  Observable inputs and queries
+-  Reactive two-way bindings
+-  Composable components, directives and services
+-  Composable providers
+-  Composable subscriptions
+-  Lifecycle hooks
+-  Computed values
+-  Automatic teardown
+-  RxJS interop (v6 and v7)
+-  Incrementally adoptable
+
+**What it looks like**
+
+```ts
+function setup() {
+   const service = inject(Service)
+   const count = use(0)
+
+   subscribe(count, () => {
+      service.log(count.value)
+   })
+
+   return {
+      count,
+   }
+}
+
+@Component({
+   inputs: ["count"],
+})
+export class MyComponent extends ViewDef(setup) {}
+```
 
 ## Quick Start
 
@@ -16,96 +56,21 @@ npm install @mmuscat/angular-composition-api
 yarn add @mmuscat/angular-composition-api
 ```
 
-```ts
-function setup() {
-   const [count, countChange] = use(0)
-   return {
-      count,
-      countChange,
-   }
-}
+### Setup
 
-@Component({
-   inputs: ["count"],
-   outputs: ["countChange"],
-})
-export class MyComponent extends ViewDef(setup) {}
-```
-
-## Example
-
-### Playground
-
-[View on Stackblitz](https://stackblitz.com/edit/node-x8aq3m)
-
-### Component
+Provide `ZonelessEventManager` in your root module. This is required 
+for proper change detection in event handlers.
 
 ```ts
-function counter() {
-   const [count, countChange] = use(0)
-   const increment = use<void>(Function)
-   const disabled = use(false)
-
-   subscribe(increment, () => {
-      if (disabled.value) return
-      countChange(count() + 1)
-   })
-
-   return {
-      count,
-      countChange,
-      disabled,
-      increment,
-   }
-}
-
-@Component({
-   selector: "app-counter",
-   template: `
-      <p>{{ count }}</p>
-      <button (click)="increment()">Increment</button>
-   `,
-   inputs: ["count", "disabled"],
-   outputs: ["countChange"],
+@NgModule({
+   providers: [
+      {
+         provide: EventManager,
+         useClass: ZonelessEventManager,
+      },
+   ],
 })
-export class Counter extends ViewDef(counter) {}
-```
-
-### Service
-
-```ts
-function getTodosByUserId() {
-   const http = inject(HttpClient)
-   return function (userId: string) {
-      return http.get(url, {
-         params: { userId },
-      })
-   }
-}
-
-export const GetTodosByUserId = new Service(getTodosByUserId, {
-   providedIn: "root", // defaults to null
-})
-
-function todos() {
-   const userId = use("me")
-   const getTodosByUserId = inject(GetTodosByUserId)
-   const todos = use<Todos[]>([])
-   const result = userId.pipe(switchMap(getTodosByUserId))
-
-   subscribe(result, todos)
-
-   return {
-      userId,
-      todos,
-   }
-}
-
-@Component({
-   providers: [GetTodosByUserId], // optional if provided in module
-   inputs: ["userId"],
-})
-export class Todos extends ViewDef(todos) {}
+export class AppModule {}
 ```
 
 ## Api Reference
@@ -117,63 +82,23 @@ export class Todos extends ViewDef(todos) {}
 Creates a context-aware class from a setup function. Values returned from this function are merged with the base class.
 `Value` types are unwrapped in the final class and template view, eg. `Value<number>` becomes `number`.
 
-**Arguments**
-
-The setup function takes a single argument of `Context` that implements the `SchedulerLike` interface.
-
-`markDirty` Marks the current view dirty and schedules change detection if it isn't already
-scheduled.
-
-`detectChanges` Immediately checks and updates the view if it's dirty.
-
-`schedule` Used to schedule observable notifications to be emitted before or after the view has updated.
-
 **Change Detection**
 
-Change detection occurs in the following scenarios (assuming `OnPush`
-strategy):
+Change detection occurs in the following scenarios (assuming `OnPush` strategy):
 
 -  On first render.
 -  When inputs change.
--  When an event binding emits (if zone.js is enabled).
+-  When an event binding is executed.
 -  When `subscribe` emits a value, after the observer is called.
--  When reactive functions are called, after they have finished executing.
-
-Functions returned from the setup function will also trigger change detection if they are
-a top-level field.
-
-```ts
-function setup() {
-   const count = use(0)
-   function increment() {
-      count((val) => val + 1)
-   }
-   return {
-      count,
-      increment, // only top-level functions are reactive
-   }
-}
-```
-
-Change detection might _not_ occur:
-
--  If you manually create a component and mutate a
-   value, you must call `detectChanges` to propagate the change.
 
 Updates to reactive state are not immediately reflected in the view. If you need an immediate update, call `detectChanges` after updating a value.
 
-**Value mutation**
+Change detection might _not_ occur when:
 
-Reactive values can be mutated using a setter function.
-
-```ts
-const values = use<number[]>([])
-const append = use<number>(Function)
-
-subscribe(append, (value) => {
-   values((val) => val.push(value))
-})
-```
+-  Imperatively mutating fields on the component instance.
+-  Imperatively calling state mutating methods on the component instance.
+   Unless the mutated state has a `subscribe` observer, this will not trigger
+   a change detection run.
 
 #### Service
 
@@ -184,30 +109,28 @@ Creates a context-aware, tree-shakable service from the provided setup function.
 ```ts
 function setup(arg1, arg2, ...args) {
    const http = inject(HttpClient)
-   const request = use<Request>(Function)
-   const response = use<Response>()
-   const api = select({
-      next: request,
-      subscribe: response
-   })
-
-   subscribe(request, (req) => {
-      subscribe(http.post(url, req), response)
-   })
-   
-   // return non-primitive value
-   return api
+   return function (data) {
+      return http.post(url, data)
+   }
 }
 
 // without options
-const MyService = new Service(setup)
+const BasicService = new Service(setup)
 
 // all options
-const MyService = new Service(setup, {
+const ServiceWithOptions = new Service(setup, {
    providedIn: "root",
-   name: "MyService",
+   name: "MyService", // descriptive name for error handling
    arguments: [arg1, arg2, ...args],
 })
+
+// inject service
+function setup() {
+   const service = inject(BasicService)
+}
+
+@Component()
+export class MyComponent extends ViewDef(setup) {}
 ```
 
 #### Provide
@@ -275,6 +198,14 @@ export class Child extends ViewDef(child) {}
 Equivalent to `Injector.get(ProviderToken)`. Throws `CallContextError` if called outside a `ViewDef`
 or `Service` factory.
 
+```ts
+function setup() {
+   const http = inject(Http)
+   const config = inject(Config, defaultConfig)
+   const parent = inject(FileTree, null, InjectFlags.SkipSelf)
+}
+```
+
 #### Subscribe
 
 Registers an effect in the current context. If `subscribe` is called inside a `ViewDef`, the subscription is deferred
@@ -324,11 +255,11 @@ behavior).
 ```ts
 function pinger() {
    const ping = inject(PingService)
-   const untilDestroy = subscribe() // cancels when view is destroyed
+   const signal = subscribe() // cancels when view is destroyed
    const state = use<State>()
 
    subscribe(interval(1000), () => {
-      subscribe(ping.pong(), state, untilDestroy)
+      subscribe(ping.pong(), state, signal)
    })
 
    return {
@@ -343,33 +274,20 @@ export class Pinger extends ViewDef(pinger) {}
 In this example, a new inner stream is created every second and will not be disposed even if it takes longer than 1
 second to complete. If the view is destroyed, then all remaining streams are unsubscribed.
 
----
-
-**View Scheduler**
-
-The context can be used to control how observable notifications are delivered to observers. Used with an operator such
-as `auditTime`, you can debounce changes until props change, before or after the DOM is updated. Pass `0` to emit before an update,
-and `1` to emit after an update.
+Passing `null` will disable automatic teardown of subscriptions. Use this when you want
+the subscription to survive when the context is destroyed. To prevent memory leaks, only
+use this on completable streams.
 
 ```ts
-function setup(context: Context) {
-   const count = use(0)
-   const beforeUpdate = scheduled(count, context)
-   const afterUpdate = count.pipe(
-      auditTime(1, context), // pass 0 for before update
-   )
-
-   subscribe(beforeUpdate, (value) => {
-      // executes when props change, before the dom is updated
-   })
-
-   subscribe(afterUpdate, (value) => {
-      // executes when props change, after the dom is updated
-   })
-
-   return {
-      count,
-   }
+function setup() {
+   const keepAlive = interval(1000).pipe(take(120))
+   subscribe(
+      keepAlive,
+      (count) => {
+         console.log(count)
+      },
+      null,
+   ) // won't unsubscribe when context is destroyed
 }
 ```
 
@@ -397,15 +315,6 @@ arr((val) => val.push(10))
 subscribe(num, observer)
 ```
 
-**Readonly Value**
-
-A readonly value can be obtained through destructuring.
-
-```ts
-const value = use(0)
-const [readonly] = use(0)
-```
-
 #### Emitter
 
 Creates an `Emitter` from a `Function` or `Value`.
@@ -423,25 +332,25 @@ add(1)
 sum(1, 2, 3)
 ```
 
-When a `Value` is passed, calling the `Emitter` will also update the value.
-This is useful for creating two-way bindings.
+When a `Value` is passed, calling the `Emitter` will also update the value. Updating the value directly however will
+not trigger the emitter. This is useful for creating two-way bindings.
 
 ```ts
 const count = use(0)
 const countChange = use(count)
-```
 
-Shorthand syntax
+countChange(count() + 1)
+count.value // 1
 
-```ts
-const [count, countChange] = use(0)
+count(10) // will not trigger countChange
 ```
 
 Two-way binding example
 
 ```ts
 function counter() {
-   const [count, countChange] = use(0)
+   const count = use(0)
+   const countChange = use(count)
 
    subscribe(interval(1000), () => {
       countChange(count() + 1)
@@ -462,11 +371,11 @@ export class Counter extends ViewDef(counter) {}
 
 #### Query
 
-Creates a `Value` that will receive a `ContentChild` or `ViewChild`. Queries are checked during the `ngDoCheck`, `ngAfterContentChecked` or `ngAfterViewChecked` lifecycle hook.
+Creates a `ReadonlyValue` that will receive a `ContentChild` or `ViewChild`. Queries are checked during the
+`ngAfterContentChecked` or `ngAfterViewChecked` lifecycle hook.
 
 ```ts
 function setup() {
-   const staticChild = use<TemplateRef<any>>()
    const contentChild = use<TemplateRef<any>>(ContentChild)
    const viewChild = use<TemplateRef<any>>(ViewChild)
 
@@ -477,7 +386,6 @@ function setup() {
    })
 
    return {
-      staticChild,
       contentChild,
       viewChild,
    }
@@ -485,7 +393,6 @@ function setup() {
 
 @Component({
    queries: {
-      staticChild: new ContentChild(TemplateRef, { static: true }),
       contentChild: new ContentChild(TemplateRef),
       viewChild: new ViewChild(TemplateRef),
    },
@@ -504,7 +411,7 @@ function setup() {
    const viewChildren = use<TemplateRef<any>>(ViewChildren)
 
    subscribe(() => {
-      for (const child of contentChildren().toArray()) {
+      for (const child of contentChildren()) {
          console.log(child)
       }
    })
@@ -528,46 +435,31 @@ export class MyComponent extends ViewDef(setup) {}
 
 #### Select
 
-Computes a new `Value` from a reactive observer, `Observable` or `Value`, with an optional `selector` and initial value.
+Selects a new `Value` or `AccessorValue`.
 
-With `Value`
+Examples:
 
-```ts
-const state = use({ count: 0 })
-const count = select(state, (val) => val.count)
-```
-
-With `Observable` and initial value
-
-```ts
-const store = inject(Store)
-const count = select(
-   store.select((val) => val.count),
-   0,
-)
-```
-
-With reactive observer
+Select `Value` with reactive observer
 
 ```ts
 const state = use({ count: 0 })
 const count = select(() => state().count)
 ```
 
-**ValueAccessor**
+Select a new `AccessorValue` with separate read and write streams.
 
-Select can also be used to delegate between separate read and write streams.
+-  `next` can be a `Function` or a `Subject`
+-  `value` can be a `Value`, `AccessorValue`, `BehaviorSubject` or a
+   reactive observer.
 
 ```ts
 const count = use(0)
-const increment = use(Function)
+const countChange = use(count)
 
 const value = select({
-   next: increment,
-   value: () => count() + 1,
+   next: () => countChange(count() + 1),
+   value: () => count() - 1,
 })
-
-subscribe(increment, () => count(count() + 1))
 
 // write value
 value.next()
@@ -576,18 +468,54 @@ value()
 value.value
 ```
 
-#### beforeUpdate/afterUpdate
+#### BeforeUpdate
 
-For convenience, you can observe whenever any property on a `ViewDef` changes
-and react to it either before or after the DOM updates.
+Returns an `Emitter` that will emit whenever the view is about to update. Accepts an optional callback argument.
 
 ```ts
-function setup(context) {
-   subscribe(beforeUpdate(context), () => {
+function setup() {
+   const beforeUpdate = onBeforeUpdate()
+
+   subscribe(beforeUpdate, () => {
       // when the view is about to update
    })
-   subscribe(afterUpdate(context), () => {
+
+   // or
+
+   onBeforeUpdate(() => {
+      // when the view is about to update
+   })
+}
+```
+
+#### Updated
+
+Returns an `Emitter` that will emit after the view has updated. Accepts an optional callback argument.
+
+```ts
+function setup() {
+   const updated = onUpdated()
+
+   subscribe(updated, () => {
       // after the view has updated
+   })
+
+   // or
+
+   onUpdated(() => {
+      // after the view has updated
+   })
+}
+```
+
+#### OnDestroy
+
+Returns an `Emitter` that will emit after the view is destroyed. Accepts an optional callback argument.
+
+```ts
+function setup() {
+   onDestroy(() => {
+      // when the view is destroyed
    })
 }
 ```

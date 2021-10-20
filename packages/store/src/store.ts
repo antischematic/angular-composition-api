@@ -118,7 +118,7 @@ function createStoreProvider(name: string, options: StoreOptions) {
    return Store
 }
 
-export type StateFactory = () => { [key: string]: any }
+export type StateFactory = () => { [key: string]: {} }
 
 export type StoreFactory = ValueToken<Store>
 

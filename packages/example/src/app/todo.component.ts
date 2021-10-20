@@ -1,6 +1,18 @@
-import {Component, ElementRef, NgModule, Renderer2, ViewChild, ViewChildren,} from "@angular/core"
-import {FormsModule} from "@angular/forms"
-import {Context, inject, subscribe, use, ViewDef} from "@mmuscat/angular-composition-api"
+import {
+   Component,
+   ElementRef,
+   NgModule,
+   Renderer2,
+   ViewChild,
+   ViewChildren,
+} from "@angular/core"
+import { FormsModule } from "@angular/forms"
+import {
+   inject,
+   subscribe,
+   use,
+   ViewDef,
+} from "@mmuscat/angular-composition-api"
 
 export interface Todo {
    id?: number
@@ -8,8 +20,7 @@ export interface Todo {
    done: boolean
 }
 
-
-function create(context: Context) {
+function create() {
    const id = use<number>()
    const text = use("")
    const done = use(false)
@@ -45,7 +56,7 @@ function create(context: Context) {
          done: done(),
       })
       if (resetOnSave()) {
-         text('')
+         text("")
       } else {
          text(value)
       }
@@ -55,7 +66,7 @@ function create(context: Context) {
 
    subscribe(() => {
       for (const child of viewChildren()) {
-         console.log('viewChild', child)
+         console.log("viewChild", child)
       }
    })
 
@@ -69,7 +80,7 @@ function create(context: Context) {
       toggleDone,
       setEditorText,
       editText,
-      viewChildren
+      viewChildren,
    }
 }
 

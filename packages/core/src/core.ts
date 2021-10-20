@@ -18,17 +18,17 @@ import {
    ɵɵdirectiveInject as directiveInject,
 } from "@angular/core"
 import {
-   BehaviorSubject,
-   Notification,
    PartialObserver,
+   ReplaySubject,
    SchedulerAction,
    SchedulerLike,
+   Subject,
    Subscribable,
    Subscription,
    TeardownLogic,
-   Unsubscribable,
 } from "rxjs"
 import {
+   AccessorValue,
    Check,
    checkPhase,
    CheckPhase,
@@ -37,20 +37,24 @@ import {
    UnsubscribeSignal,
    Value,
 } from "./interfaces"
-import { addSignal, computeValue, isEmitter, isObject, isValue } from "./utils"
+import {
+   addSignal,
+   isEmitter,
+   isObject,
+   isValue,
+   Notification,
+   observeNotification,
+   trackDeps,
+} from "./utils"
 import { ValueToken } from "./provider"
 
-let currentContext: any
+export let currentContext: any
 const contextMap = new WeakMap<{}, CurrentContext>()
 
-export function beginContext(value: any) {
+export function setContext(value: any) {
    const previousContext = currentContext
    currentContext = value
    return previousContext
-}
-
-export function endContext(previous: any) {
-   currentContext = previous
 }
 
 export class CallContextError extends Error {
@@ -72,10 +76,12 @@ function runInContext<T extends (...args: any[]) => any>(
    fn: T,
    ...args: any[]
 ): any {
-   const previous = beginContext(context)
-   const value = fn(...args)
-   endContext(previous)
-   return value
+   const previous = setContext(context)
+   try {
+      return fn(...args)
+   } finally {
+      setContext(previous)
+   }
 }
 
 function createContext(
@@ -131,40 +137,8 @@ class ContextBinding<T = any> implements Check {
 
 const dirty = new Set<Scheduler>()
 
-let timeoutId: number | undefined
-
-class Action<T> extends Subscription implements SchedulerAction<T> {
-   delay?: number
-   state: any
-   schedule(state?: any, delay?: number): Subscription {
-      this.state = state
-      this.delay = delay
-      this.scheduler.enqueue(this)
-      return this
-   }
-
-   execute(state: any) {
-      if (this.closed) {
-         return new Error("executing a cancelled action")
-      }
-      try {
-         this.work(state)
-      } catch (error) {
-         return error
-      }
-   }
-
-   constructor(
-      private scheduler: Scheduler,
-      private work: (this: Action<any>, state?: T) => void,
-   ) {
-      super()
-   }
-}
-
-export class Scheduler implements SchedulerLike {
+export class Scheduler extends Subject<any> {
    private dirty: boolean
-   actions: Action<any>[][] = [[], []]
    closed: boolean
 
    detectChanges() {
@@ -172,10 +146,10 @@ export class Scheduler implements SchedulerLike {
          this.dirty = false
          dirty.delete(this)
          try {
-            this.flush(0)
+            this.next(0)
             this.ref.detectChanges()
             isDevMode() && this.ref.checkNoChanges()
-            this.flush(1)
+            this.next(1)
          } catch (error) {
             this.errorHandler.handleError(error)
          }
@@ -186,9 +160,6 @@ export class Scheduler implements SchedulerLike {
       if (this.closed) return
       this.dirty = true
       dirty.add(this)
-      if (!currentContext && timeoutId === undefined) {
-         timeoutId = setTimeout(detectChanges)
-      }
    }
 
    unsubscribe() {
@@ -200,42 +171,10 @@ export class Scheduler implements SchedulerLike {
       private ref: ChangeDetectorRef,
       private errorHandler: ErrorHandler,
    ) {
+      super()
       this.dirty = false
       this.closed = false
       this.ref.detach()
-   }
-
-   now(): number {
-      return Date.now()
-   }
-
-   enqueue(action: Action<any>) {
-      this.actions[+(action.delay !== 0)].push(action)
-   }
-
-   flush(step: number) {
-      let action
-      let error
-      const actions = this.actions[step]
-      while ((action = actions.shift()!)) {
-         if ((error = action.execute(action.state))) {
-            break
-         }
-      }
-      if (error) {
-         while ((action = actions.shift()!)) {
-            action.unsubscribe()
-         }
-         throw error
-      }
-   }
-
-   schedule<T>(
-      work: (this: Action<T>, state?: T) => void,
-      delay?: number,
-      state?: T,
-   ): Subscription {
-      return new Action(this, work).schedule(state, delay)
    }
 }
 
@@ -250,24 +189,63 @@ function createBinding(context: any, key: any, value: any) {
    addTeardown(value.subscribe(binding))
 }
 
-function createFunction(exec: Function, errorHandler: ErrorHandler) {
-   return function functionBinding(...args: any[]) {
+let templateContext: any
+
+export function setTemplateContext(context: any) {
+   const previous = templateContext
+   templateContext = context
+   return previous
+}
+
+export function runInTemplate(context: any, handler: Function, ...args: any[]) {
+   const previous = setTemplateContext(context)
+   try {
+      handler(...args)
+   } finally {
+      setTemplateContext(previous)
+   }
+}
+
+function decorateFunction(exec: Function, errorHandler: ErrorHandler) {
+   function decorated(...args: any[]) {
       try {
-         return exec(...args)
+         return runInTemplate(null, exec, ...args)
       } catch (error) {
-         errorHandler.handleError(error)
-      } finally {
-         detectChanges()
+         if (templateContext) {
+            errorHandler.handleError(error)
+         } else {
+            throw error
+         }
+      }
+   }
+   decorated.originalFunction = exec
+   return decorated
+}
+
+function createState(
+   context: any,
+   stateFactory: () => {},
+   error: ErrorHandler,
+) {
+   const state = stateFactory()
+
+   for (let [key, value] of Object.entries(state)) {
+      if (isCheckSubject(value)) {
+         context[key] = value.value
+         createBinding(context, key, value)
+      } else if (typeof value === "function" && !isEmitter(value)) {
+         context[key] = decorateFunction(value, error)
+      } else {
+         Object.defineProperty(
+            context,
+            key,
+            Object.getOwnPropertyDescriptor(state, key)!,
+         )
       }
    }
 }
 
-export interface Context extends SchedulerLike {
-   markDirty(): void
-   detectChanges(): void
-}
-
-function setup(injector: Injector, stateFactory: (context: Context) => {}) {
+function setup(injector: Injector, stateFactory: () => {}) {
    const context: { [key: string]: any } = currentContext
    const error = injector.get(ErrorHandler)
    const scheduler = new Scheduler(injector.get(ChangeDetectorRef), error)
@@ -278,24 +256,14 @@ function setup(injector: Injector, stateFactory: (context: Context) => {}) {
       new Set(),
    ])
 
-   const state = stateFactory(scheduler)
-
-   for (let [key, value] of Object.entries(state)) {
-      if (isCheckSubject(value)) {
-         context[key] = value.value
-         createBinding(context, key, value)
-      } else if (typeof value === "function" && !isEmitter(value)) {
-         context[key] = createFunction(value, error)
-      } else {
-         Object.defineProperty(
-            context,
-            key,
-            Object.getOwnPropertyDescriptor(state, key)!,
-         )
-      }
-   }
-
    addTeardown(scheduler)
+
+   try {
+      createState(context, stateFactory, error)
+   } catch (e) {
+      error.handleError(error)
+      unsubscribe()
+   }
 }
 
 export function check(key: CheckPhase) {
@@ -305,11 +273,13 @@ export function check(key: CheckPhase) {
    }
 }
 
+const emptyObserver = {}
+
 export function subscribe() {
    let effect
    const { effects } = getContext()
    while ((effect = effects.shift())) {
-      effect.subscribe()
+      effect.subscribe(emptyObserver as any)
    }
 }
 
@@ -330,7 +300,7 @@ export function addEffect<T>(
    source?: Subscribable<T> | (() => TeardownLogic),
    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
    signal?: UnsubscribeSignal,
-): Unsubscribable | void {
+): Subscription | void {
    if (!source) {
       const subscription = new Subscription()
       addTeardown(subscription)
@@ -362,10 +332,10 @@ function next(
    scheduler?: Scheduler,
    signal?: UnsubscribeSignal,
 ) {
-   notification.accept(unsubscribe)
+   observeNotification(notification, unsubscribe)
    createContext(currentContext, injector, errorHandler, scheduler)
    try {
-      const teardown = notification.accept(observer as any)
+      const teardown = observeNotification(notification, observer)
       if (signal) {
          addSignal(teardown, signal)
       } else if (signal !== null) {
@@ -374,12 +344,11 @@ function next(
    } catch (error) {
       errorHandler.handleError(error)
    }
-   notification.accept(subscribe)
+   observeNotification(notification, subscribe)
    detectChanges()
 }
 
-function detectChanges() {
-   timeoutId = undefined
+export function detectChanges() {
    let scheduler
    const list = Array.from(dirty)
    dirty.clear()
@@ -388,45 +357,59 @@ function detectChanges() {
    }
 }
 
-export class ComputedSubject<T> extends BehaviorSubject<T> {
-   [checkPhase]: CheckPhase
-   compute
-   subscription!: Subscription
-
-   private subscribeDeps(deps: any[]) {
-      let dep
-      let first = true
-      this.subscription = new Subscription()
-      while ((dep = deps.shift())) {
-         this.subscription.add(
-            dep.subscribe(() => {
-               if (!first) {
-                  this.subscription.unsubscribe()
-                  const [value, deps] = computeValue(this.compute)
-                  this.subscribeDeps(deps)
-                  this.next(value)
-               }
-            }),
-         )
+class ComputedSubscriber extends Subscription {
+   first: boolean
+   next() {
+      if (!this.first) {
+         super.unsubscribe()
+         trackDeps(this.subject)
       }
-      first = false
    }
-
-   constructor(compute: (value?: T) => T) {
-      const [value, deps] = computeValue(compute)
-      super(value)
-      this[checkPhase] = 0
-      this.compute = compute
-      this.subscribeDeps(deps)
+   constructor(private subject: ComputedSubject<any>) {
+      super()
+      this.first = true
    }
 }
 
-export class EffectObserver<T> {
-   closed
+export class ComputedSubject<T> extends ReplaySubject<T> {
+   [checkPhase]: CheckPhase
+   compute
+   value: any
+
+   subscribeDeps(deps: Set<any>) {
+      const subscriber = new ComputedSubscriber(this)
+      for (const dep of deps) {
+         subscriber.add(dep.subscribe(subscriber))
+      }
+      subscriber.first = false
+      // @ts-ignore
+      deps = null
+   }
+
+   constructor(compute: (value?: T) => T) {
+      super(1)
+      this[checkPhase] = 0
+      this.compute = compute
+      trackDeps(this)
+   }
+}
+
+export class EffectObserver<T> extends Subscription {
    next(value: T | Notification<T>) {
       if (this.closed) return
-      if (value instanceof Notification) {
-         return this.call(value)
+      if (isObject(value) && "kind" in value && value.kind.length === 1) {
+         let mappedValue
+         switch (value.kind) {
+            case "N":
+               mappedValue = Notification.createNext(value.value)
+               break
+            case "E":
+               mappedValue = Notification.createError(value.error)
+               break
+            case "C":
+               mappedValue = Notification.createComplete()
+         }
+         return this.call(mappedValue)
       }
       this.call(Notification.createNext(value))
    }
@@ -438,7 +421,7 @@ export class EffectObserver<T> {
       if (this.closed) return
       this.call(Notification.createComplete())
    }
-   subscribe() {
+   subscribe(): Subscription {
       const { source } = this
       let subscription
       if (
@@ -462,16 +445,16 @@ export class EffectObserver<T> {
          subscription = source.subscribe(this)
       }
       if (this.signal) {
-         return addSignal(subscription, this.signal)
+         addSignal(subscription, this.signal)
       }
       return subscription
    }
    unsubscribe() {
       if (this.closed) return
-      this.closed = true
       runInContext(this, unsubscribe)
+      super.unsubscribe()
    }
-   private call(notification: Notification<T>) {
+   private call(notification: Notification<T | undefined>) {
       const { observer, injector, errorHandler, scheduler, signal } = this
       const isError = notification.kind === "E"
       let errorHandled = !isError
@@ -500,7 +483,7 @@ export class EffectObserver<T> {
       private scheduler?: Scheduler,
       private signal?: UnsubscribeSignal,
    ) {
-      this.closed = false
+      super()
       createContext(this, injector, errorHandler, scheduler)
    }
 }
@@ -536,8 +519,6 @@ export function decorate(create: any) {
 
 export type ProvidedIn = Type<any> | "root" | "platform" | "any" | null
 
-const serviceMap = new Map()
-
 function service<T>(
    factory: (...params: any[]) => T,
    options?: ServiceOptions,
@@ -546,17 +527,14 @@ function service<T>(
    class Class {
       static overriddenName = options?.name ?? factory.name
       ngOnDestroy() {
-         runInContext(serviceMap.get(this) ?? this, unsubscribe)
-         serviceMap.delete(this)
+         runInContext(this, unsubscribe)
       }
       constructor() {
          serviceInject(
             NgModuleRef,
             InjectFlags.Self | InjectFlags.Optional,
          )?.onDestroy(() => this.ngOnDestroy())
-         const value = createService(this, factory, options?.arguments)
-         serviceMap.set(value, this)
-         return value
+         return createService(this, factory, options?.arguments)
       }
    }
    return Class as any
@@ -584,23 +562,37 @@ export function inject<T>(
    flags?: InjectFlags,
 ): T {
    const { injector } = getContext()
-   const previous = beginContext(void 0)
+   const previous = setContext(void 0)
    const value = injector.get(token, notFoundValue, flags)
-   endContext(previous)
+   setContext(previous)
    return value
 }
 
-export function markDirty<T>(value: Value<T>): T {
-   value(value.value)
-   return value.value
-}
-
-export function ViewDef<T>(create: (context: Context) => T): ViewDef<T> {
+export function ViewDef<T>(create: () => T): ViewDef<T> {
    return decorate(create)
 }
+type Readonly<T> = {
+   readonly [key in keyof T as T[key] extends AccessorValue<infer A, infer B>
+      ? A extends B
+         ? never
+         : key
+      : T[key] extends Value<any>
+      ? never
+      : key]: T[key]
+}
 
-export type ViewDef<T> = Type<
+type Writable<T> = {
+   [key in keyof T as T[key] extends AccessorValue<infer A, infer B>
+      ? A extends B
+         ? key
+         : never
+      : T[key] extends Value<any>
+      ? key
+      : never]: T[key]
+}
+
+export type ViewDef<T, U = Readonly<T> & Writable<T>> = Type<
    {
-      [key in keyof T]: T[key] extends CheckSubject<infer R> ? R : T[key]
+      [key in keyof U]: U[key] extends CheckSubject<infer R> ? R : U[key]
    }
 >

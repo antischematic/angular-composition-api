@@ -21,12 +21,20 @@ import {
 import { ComponentFixture, TestBed } from "@angular/core/testing"
 import { checkPhase } from "./interfaces"
 import { use } from "./common"
+import { EventManager } from "@angular/platform-browser"
+import { ZonelessEventManager } from "./event-manager"
 import objectContaining = jasmine.objectContaining
 import createSpy = jasmine.createSpy
 
 export function configureTest<T>(View: Type<T>): () => ComponentFixture<T> {
    TestBed.configureTestingModule({
       declarations: [View],
+      providers: [
+         {
+            provide: EventManager,
+            useClass: ZonelessEventManager,
+         },
+      ],
    })
 
    return function createComponent() {
@@ -76,7 +84,6 @@ describe("ViewDef", () => {
          objectContaining({ count: 0, name: "bogus" }),
       )
    })
-
    it("should unwrap marked values", () => {
       const subject = use(1337)
       Object.defineProperty(subject, checkPhase, { value: 0 })
@@ -137,9 +144,11 @@ describe("ViewDef", () => {
       expect(spy).toHaveBeenCalledWith(10)
       expect(spy).toHaveBeenCalledTimes(2)
    })
-   it("should detect changes after calling returned functions", () => {
+   it("should not automatically detect changes when directly calling returned functions", () => {
       function create() {
-         const [count, countChange] = use(0)
+         const count = use(0)
+         const countChange = use(count)
+
          function increment() {
             countChange(count() + 1)
             expect(view.debugElement.nativeElement.textContent).toBe(`0`)
@@ -156,9 +165,9 @@ describe("ViewDef", () => {
       view.detectChanges()
       view.componentInstance.increment()
       expect(view.componentInstance.count).toBe(1)
-      expect(view.debugElement.nativeElement.textContent).toBe(`1`)
+      expect(view.debugElement.nativeElement.textContent).toBe(`0`)
    })
-   it("should catch errors in returned functions", () => {
+   it("should not catch errors when directly calling returned functions", () => {
       function create() {
          function increment() {
             throw new Error("Bogus")
@@ -174,8 +183,9 @@ describe("ViewDef", () => {
       const error = TestBed.inject(ErrorHandler)
       const spy = spyOn(error, "handleError")
       view.detectChanges()
-      view.componentInstance.increment()
-      expect(spy).toHaveBeenCalledOnceWith(new Error("Bogus"))
+      expect(() => view.componentInstance.increment()).toThrow(
+         new Error("Bogus"),
+      )
    })
 })
 
@@ -250,7 +260,7 @@ describe("Context API", () => {
       expect(spy).toHaveBeenCalledTimes(3)
       expect(spy.calls.allArgs()).toEqual([[0], [1], [2]])
    })
-   it("should update view when mutating value", () => {
+   it("should not automatically update view when directly mutating value", () => {
       function create() {
          const value = use<number[]>([])
 
@@ -275,7 +285,7 @@ describe("Context API", () => {
       view.componentInstance.update()
 
       expect(view.componentInstance.value).toEqual([10])
-      expect(view.debugElement.nativeElement.textContent).toBe("10")
+      expect(view.debugElement.nativeElement.textContent).toBe("")
    })
 })
 

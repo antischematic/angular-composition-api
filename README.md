@@ -1,14 +1,35 @@
 # Angular Composition API
 
 Composition API and supporting libraries for writing functional Angular applications.
+[Learn more](https://github.com/mmuscat/angular-composition-api/tree/master/packages/core)
+
+```ts
+function setup() {
+   const service = inject(Service)
+   const count = use(0)
+
+   subscribe(count, () => {
+      service.log(count.value)
+   })
+
+   return {
+      count,
+   }
+}
+```
+
+## RFC
+
+This repository is a reference implementation for this [RFC
+discussion](https://github.com/mmuscat/angular-composition-api/discussions/11).
 
 ## Packages
 
 | Name  | Description |
 |---|---|
-| [Core](https://github.com/mmuscat/angular-composition-api/tree/master/packages/core) | A lightweight (3kb) library for writing functional Angular applications.
-| [Boundary](https://github.com/mmuscat/angular-composition-api/tree/master/packages/boundary) | A lightweight (3kb) implementation of [Error Boundaries](https://reactjs.org/docs/error-boundaries.html) for Angular, with a bit of [Suspense](https://reactjs.org/docs/concurrent-mode-suspense.html).
-| [Store](https://github.com/mmuscat/angular-composition-api/tree/master/packages/store) | A tiny (1kb) state management library for Angular Composition API.
+| [Core](https://github.com/mmuscat/angular-composition-api/tree/master/packages/core) | Composition model for writing functional reactive Angular applications.
+| [Boundary](https://github.com/mmuscat/angular-composition-api/tree/master/packages/boundary) | [Error Boundary](https://reactjs.org/docs/error-boundaries.html) and [Suspense](https://reactjs.org/docs/concurrent-mode-suspense.html) implementation for Angular.
+| [Store](https://github.com/mmuscat/angular-composition-api/tree/master/packages/store) | State management library for Angular Composition API.
 | [Resource](https://github.com/mmuscat/angular-composition-api/tree/master/packages/resource) | Data fetching library for Angular Composition API.
 
 [comment]: <> (| [Example]&#40;https://github.com/mmuscat/angular-composition-api/tree/master/packages/example&#41; | Todo List sandbox.)
