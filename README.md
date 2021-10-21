@@ -1,20 +1,9 @@
 
-<center>
-
 # Angular Composition API
-
-<big>
-
 
 Composition API and supporting libraries for writing functional Angular applications.
 
 [Learn more](https://mmuscat.github.io/angular-composition-api/docs/intro)
-
-</big>
-</center>
-
-<br/>
-
 
 ```ts
 function setup() {

@@ -75,8 +75,4 @@ export class AppModule {}
 
 ## Api Reference
 
-<big>
-
 [Read the docs](https://mmuscat.github.io/angular-composition-api/docs/intro)
-
-</big>
