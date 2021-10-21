@@ -83,15 +83,14 @@ The value of a `ValueToken` is then retrieved using `inject`.
 The `provide` method can only be used with `ValueToken`.
 :::
 
-
 ## Default Value
 
 A default value for `ValueToken` can be set with the `factory` option. This factory supports dependency injection.
 
 ```ts
 const Count = new ValueToken("Count", {
-  factory() {
-    return use(0)
-  }
+   factory() {
+      return use(0)
+   },
 })
 ```

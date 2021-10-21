@@ -94,6 +94,20 @@ export class MyComponent extends ViewDef(setup) {}
 
 7. Executed once when the component is destroyed.
 
+:::tip
+
+The `onBeforeUpdate` and `onUpdated` lifecycle hooks can also be used as observables
+
+```ts
+const beforeUpdate = onBeforeUpdate()
+
+subscribe(beforeUpdate, () => {
+   // mutate state
+})
+```
+
+:::
+
 ### Directives
 
 Directives share the same lifecycle as components.

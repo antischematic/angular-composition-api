@@ -25,10 +25,14 @@ express components, directives and services in terms of functional reactive inpu
 -  RxJS interop (v6 and v7)
 -  Incrementally adoptable
 
+:::caution
+
 ## Project status
 
 This project is currently in public beta. The API is relatively stable but some behaviors may change or be
 clarified over time.
+
+:::
 
 ## Angular compatibility
 

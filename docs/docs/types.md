@@ -19,22 +19,22 @@ const value = use(0)
 It is similar to a
 `BehaviorSubject` in that it:
 
-- Takes an initial value
-- Emits the current value when it is subscribed to
-- Can imperatively inspect the current value through its `value` property accessor
-- Can imperatively set a new value by calling `next`
+-  Takes an initial value
+-  Emits the current value when it is subscribed to
+-  Can imperatively inspect the current value through its `value` property accessor
+-  Can imperatively set a new value by calling `next`
 
 In addition to this, a `Value` can:
 
-- Access its value by invoking it with zero arguments
-- Set its value by invoking it with one argument
-- Be marked as a dependency by reactive observers (see [Subscriptions](subscriptions.md#reactive-observer))
-- Unwrapped by `ViewDef` to a reactive value on the class instance (see [Views](views.md))
+-  Access its value by invoking it with zero arguments
+-  Set its value by invoking it with one argument
+-  Be marked as a dependency by reactive observers (see [Subscriptions](subscriptions.md#reactive-observer))
+-  Unwrapped by `ViewDef` to a reactive value on the class instance (see [Views](views.md))
 
 Where it differs:
 
-- The `Value` type does not implement error or complete observers
-- The `Value` type is an interop observable that inherits from `Function`
+-  The `Value` type does not implement error or complete observers
+-  The `Value` type is an interop observable that inherits from `Function`
 
 Since `Value` does not extend the `Observable` prototype, `instanceof` checks will fail. Should you require this, cast
 `Value` to an `Observable` first using `pipe` or `from`.
@@ -73,9 +73,9 @@ import { select, use } from "@mmuscat/angular-composition-api"
 const value = use(0)
 const accessorValue = select({
    next(nextValue: string) {
-     value.next(parseFloat(nextValue)) 
+      value.next(parseFloat(nextValue))
    },
-   value
+   value,
 })
 ```
 
@@ -104,8 +104,9 @@ basicEmitter(10) // emit
 ```ts title="Example: Create emitter with multiple arguments"
 import { use } from "@mmuscat/angular-composition-api"
 
-const emitterWithParams = use((...args: number[]) => args.reduce((a, b) => a + b, 0))
+const emitterWithParams = use((...args: number[]) =>
+   args.reduce((a, b) => a + b, 0),
+)
 
 emitterWithParams(1, 2, 3) // emit
 ```
-

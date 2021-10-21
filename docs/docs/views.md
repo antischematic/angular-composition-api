@@ -51,11 +51,11 @@ Updates to reactive state are not immediately reflected in the view. If you need
 
 Change detection might _not_ occur when:
 
-- Imperatively mutating fields on the component instance.
-- Imperatively calling state mutating methods on the component instance.
+-  Imperatively mutating fields on the component instance.
+-  Imperatively calling state mutating methods on the component instance.
    Unless the mutated state has a `subscribe` observer, this will not trigger
    a change detection run.
-- Mutating state inside asynchronous callbacks such as `setTimeout` or `Promise` (use `subscribe` instead)
+-  Mutating state inside asynchronous callbacks such as `setTimeout` or `Promise` (use `subscribe` instead)
 
 ## Inputs
 
@@ -75,7 +75,7 @@ function setup() {
 }
 
 @Component({
-   inputs: ["count"]
+   inputs: ["count"],
 })
 export class MyComponent extends ViewDef(setup) {}
 ```
@@ -98,7 +98,7 @@ function setup() {
 }
 
 @Component({
-   outputs: ["increment"]
+   outputs: ["increment"],
 })
 export class MyComponent extends ViewDef(setup) {}
 ```
@@ -114,7 +114,7 @@ import { use, ViewDef } from "@mmuscat/angular-composition-api"
 function setup() {
    const count = use(0)
    const countChange = use(count)
-   
+
    function increment() {
       countChange(count() + 1)
    }
@@ -122,13 +122,13 @@ function setup() {
    return {
       increment,
       count,
-      countChange
+      countChange,
    }
 }
 
 @Component({
    inputs: ["count"],
-   outputs: ["countChange"]
+   outputs: ["countChange"],
 })
 export class MyComponent extends ViewDef(setup) {}
 ```
@@ -152,7 +152,7 @@ function setup() {
    subscribe(child, (value) => {
       console.log(value)
    })
-   
+
    return {
       child,
    }
@@ -160,8 +160,8 @@ function setup() {
 
 @Component({
    queries: {
-      child: new ContentChild(Child)
-   }
+      child: new ContentChild(Child),
+   },
 })
 export class MyComponent extends ViewDef(setup) {}
 ```
@@ -187,8 +187,8 @@ function setup() {
 
 @Component({
    queries: {
-      children: new ViewChildren(Child)
-   }
+      children: new ViewChildren(Child),
+   },
 })
 export class MyComponent extends ViewDef(setup) {}
 ```

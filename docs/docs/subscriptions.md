@@ -120,22 +120,22 @@ import { Child } from "./child.component"
 
 function setup() {
    const children = use<Child>(ContentChildren)
-   
+
    subscribe(() => {
       for (const child of children()) {
          console.log(child)
       }
    })
-   
+
    return {
-      children
+      children,
    }
 }
 
 @Component({
    queries: {
-      children: new ContentChildren(Child)
-   }
+      children: new ContentChildren(Child),
+   },
 })
 export class Parent extends ViewDef(setup) {}
 ```
@@ -148,24 +148,23 @@ of `children` changes, the observer function will be called again.
 To get a better understanding, another application of reactive observers comes from the `select` utility function.
 
 ```ts
-import {Component} from "@angular/core";
-import {select, use, ViewDef} from "@mmuscat/angular-composition-api"
+import { Component } from "@angular/core"
+import { select, use, ViewDef } from "@mmuscat/angular-composition-api"
 
 function setup() {
    const count = use(0)
    const doubled = select(() => count() * 2)
-   
+
    return {
       count,
-      doubled
+      doubled,
    }
 }
 
 @Component({
-   inputs: ["count"]
+   inputs: ["count"],
 })
-export class MyComponent extends ViewDef(setup) {
-}
+export class MyComponent extends ViewDef(setup) {}
 ```
 
 The value of `doubled` is derived from `count` using a reactive observer. Keep in mind that only `Value` can be used
@@ -201,9 +200,9 @@ function setup() {
    const http = inject(HttpClient)
    const result = use<{ data: any }>()
    const pollData = interval(10000).pipe(
-      switchMap(() => http.get("http://www.example.com/api/data").pipe(
-         materialize()
-      )),
+      switchMap(() =>
+         http.get("http://www.example.com/api/data").pipe(materialize()),
+      ),
    )
 
    subscribe(pollData, {
@@ -238,7 +237,7 @@ service. To prevent this, ensure that all error-able streams have an error obser
 
 ## Composition
 
-The execution context of components, directives and services also extends to subscriptions. 
+The execution context of components, directives and services also extends to subscriptions.
 
 :::important
 
@@ -257,7 +256,7 @@ function setup() {
    const http = inject(HttpClient)
    const userId = use()
    const result = use()
-   
+
    subscribe(userId, (id) => {
       if (id) {
          const loadUser = http.post("http://www.example.com/api/data", { id })
@@ -265,14 +264,14 @@ function setup() {
             next: result,
             error(error) {
                console.error(error)
-            }
+            },
          })
       }
    })
-   
+
    return {
       userId,
-      result
+      result,
    }
 }
 
@@ -280,7 +279,7 @@ function setup() {
 export class MyComponent extends ViewDef(setup) {}
 ```
 
-When `userId` emits a new value, a new subscription `loadUser` is created, automatically cancelling the previous 
+When `userId` emits a new value, a new subscription `loadUser` is created, automatically cancelling the previous
 subscription. It is like a more ergonomic version of `switchMap`.
 
 ## Abort Signals
