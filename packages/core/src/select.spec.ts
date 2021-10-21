@@ -1,5 +1,6 @@
 import { select } from "./select"
 import { use } from "./common"
+import {of} from "rxjs";
 
 describe("select", () => {
    it("should create", () => {

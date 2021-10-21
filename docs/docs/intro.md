@@ -2,34 +2,39 @@
 sidebar_position: 1
 ---
 
-# Tutorial Intro
+# Introduction
 
-Let's discover **Docusaurus in less than 5 minutes**.
+Angular Composition API is a composition model for functional reactive Angular applications. It enables developers to
+express components, directives and services in terms of functional reactive inputs and outputs.
 
-## Getting Started
+## Features
 
-Get started by **creating a new site**.
+-  Small bundle size (4kb min gzipped)
+-  Minimal API
+-  Granular change detection
+-  Better-than `OnPush` performance
+-  Optional Zone.js
+-  Observable inputs and queries
+-  Reactive two-way bindings
+-  Composable components, directives and services
+-  Composable providers
+-  Composable subscriptions
+-  Lifecycle hooks
+-  Computed values
+-  Automatic teardown
+-  RxJS interop (v6 and v7)
+-  Incrementally adoptable
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
+## Project status
 
-## Generate a new site
+This project is currently in public beta. The API is relatively stable but some behaviors may change or be
+clarified over time.
 
-Generate a new Docusaurus site using the **classic template**:
+## Angular compatibility
 
-```shell
-npx @docusaurus/init@latest init my-website classic
-```
+This package will maintain compatibility with the latest version of Angular, designated by the package version number.
 
-## Start your site
-
-Run the development server:
-
-```shell
-cd my-website
-
-npx docusaurus start
-```
-
-Your site starts at `http://localhost:3000`.
-
-Open `docs/intro.md` and edit some lines: the site **reloads automatically** and display your changes.
+| Package Version | Supported Angular Version |
+| --------------- | ------------------------- |
+| 0.12XX.X+       | 12.X.X                    |
+| 0.13XX.X+       | 13.X.X                    |
