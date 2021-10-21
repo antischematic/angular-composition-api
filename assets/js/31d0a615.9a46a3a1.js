@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkpackages_docs=self.webpackChunkpackages_docs||[]).push([[1466],{3605:function(a){a.exports=JSON.parse('{"allTagsPath":"/angular-composition-api/blog/tags","slug":"/angular-composition-api/blog/tags/hola","name":"hola","count":1,"permalink":"/angular-composition-api/blog/tags/hola"}')}}]);
