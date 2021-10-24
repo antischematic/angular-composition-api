@@ -2,7 +2,7 @@
    "name": "@mmuscat/angular-composition-api",
    "description": "Composition model for functional reactive Angular applications.",
    "license": "MIT",
-   "homepage": "https://github.com/mmuscat/angular-composition-api/tree/master/packages/core",
+   "homepage": "https://mmuscat.github.io/angular-composition-api",
    "repository": "https://github.com/mmuscat/angular-composition-api",
    "keywords": [
       "Angular",
