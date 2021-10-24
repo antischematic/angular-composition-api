@@ -364,6 +364,8 @@ export function detectChanges() {
 }
 
 export class EffectObserver<T> extends Subscription {
+   computed?: ComputedValue
+
    next(value: T | Notification<T>) {
       if (this.closed) return
       if (isObject(value) && "kind" in value && value.kind.length === 1) {
@@ -392,24 +394,9 @@ export class EffectObserver<T> extends Subscription {
    }
    subscribe(): Subscription {
       const { source } = this
-      let subscription
-      if (
-         typeof source === "function" &&
-         !isEmitter(source) &&
-         !isValue(source)
-      ) {
-         const { injector, errorHandler, scheduler } = this
-         const fn = () =>
-            runInContext(
-               this,
-               next,
-               injector,
-               errorHandler,
-               Notification.createNext(void 0),
-               source,
-               scheduler,
-            )
-         subscription = new ComputedValue(fn).subscribe(this)
+      let subscription: Subscription
+      if (this.computed) {
+         subscription = this.computed.subscribe(this)
       } else {
          subscription = source.subscribe(this)
       }
@@ -420,10 +407,12 @@ export class EffectObserver<T> extends Subscription {
    }
    unsubscribe() {
       if (this.closed) return
+      this.computed?.unsubscribe()
       runInContext(this, unsubscribe)
       super.unsubscribe()
    }
    private call(notification: Notification<T | undefined>) {
+      if (this.closed) return
       const { observer, injector, errorHandler, scheduler, signal } = this
       const isError = notification.kind === "E"
       let errorHandled = !isError
@@ -454,6 +443,24 @@ export class EffectObserver<T> extends Subscription {
    ) {
       super()
       createContext(this, injector, errorHandler, scheduler)
+      if (
+         typeof source === "function" &&
+         !isEmitter(source) &&
+         !isValue(source)
+      ) {
+         const { injector, errorHandler, scheduler } = this
+         const fn = () =>
+            runInContext(
+               this,
+               next,
+               injector,
+               errorHandler,
+               Notification.createNext(void 0),
+               source,
+               scheduler,
+            )
+         this.computed = new ComputedValue(fn)
+      }
    }
 }
 

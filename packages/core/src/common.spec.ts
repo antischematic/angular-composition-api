@@ -614,4 +614,59 @@ describe("subscribe", () => {
       tick(100)
       expect(spy).toHaveBeenCalledTimes(2)
    }))
+
+   it("should create two-way binding", () => {
+      const spy = createSpy()
+      function create() {
+         const count = use(0)
+         const countChange = use(count)
+
+         function increment() {
+            countChange(count() + 1)
+         }
+
+         return {
+            count,
+            countChange,
+            increment
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(create) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      view.detectChanges()
+      view.componentInstance.countChange.subscribe(spy)
+
+      view.componentInstance.increment()
+      view.detectChanges()
+
+      expect(view.componentInstance.count).toBe(1)
+      expect(spy).toHaveBeenCalledOnceWith(1)
+   })
+
+   it("should unsubscribe reactive observers", () => {
+
+      function create() {
+         const count = use(0)
+         const countChange = use(count)
+
+         const sub = subscribe(() => {
+            sub.unsubscribe()
+            countChange(count() + 1)
+            console.log('update')
+         })
+
+         return {
+            count,
+            countChange,
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(create) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      view.detectChanges()
+      expect(view.componentInstance.count).toBe(1)
+   })
 })

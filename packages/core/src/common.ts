@@ -75,10 +75,10 @@ export function use<T>(): Value<T | undefined>
 export function use<T>(value: QueryListType): ReadonlyValue<QueryList<T>>
 export function use<T>(value: QueryType): ReadonlyValue<T | undefined>
 export function use<T>(value: typeof Function): Emitter<T>
+export function use<T>(value: Value<T>): Emitter<T>
 export function use<T>(value: BehaviorSubject<T>): Value<T>
 export function use<T>(value: Subject<T>): Value<T | undefined>
 export function use<T, U>(value: AccessorValue<T, U>): Emitter<T>
-export function use<T>(value: Value<T>): Emitter<T>
 export function use<T>(value: ReadonlyValue<T>): never
 export function use<T>(value: Emitter<T>): Emitter<T>
 export function use<T>(value: Subscribable<T>): ReadonlyValue<T | undefined>

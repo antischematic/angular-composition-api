@@ -9,6 +9,7 @@ import {
 } from "rxjs"
 import { checkPhase } from "./interfaces"
 import { EventEmitter } from "@angular/core"
+import {isValue} from "./utils";
 
 const trackedValues = new Map<any, Set<any>>()
 const pendingObservers = new Set<any>()
@@ -165,12 +166,13 @@ export class DeferredValue extends Value<any> implements Connectable {
 
 export class ComputedValue extends Value<any> {
    dirty: boolean
-   get() {
+   closed: boolean
+   get value() {
       this.observe()
       return super.value
    }
    observe() {
-      if (this.dirty) {
+      if (this.dirty && !this.closed) {
          this.dirty = false
          const previous = setObserver(this)
          const value = this.observer.call()
@@ -178,11 +180,20 @@ export class ComputedValue extends Value<any> {
          setObserver(previous)
       }
    }
+   unsubscribe() {
+      this.closed = true
+   }
+   subscribe(observer: any): Subscription {
+      this.observe()
+      const subscription = super.subscribe(observer);
+      subscription.add(() => this.unsubscribe())
+      return subscription
+   }
 
    constructor(public observer: any) {
       super()
       this.dirty = true
-      this.observe()
+      this.closed = false
    }
 }
 
@@ -275,7 +286,12 @@ export class Emitter extends EventEmitter {
    modifier: (...params: any[]) => any
    next(values: any) {
       values = Array.isArray(values) ? values : [values]
-      return super.next(this.modifier(...values))
+      if (isValue(this.modifier)) {
+         this.modifier(values[0])
+         super.next(this.modifier.value)
+      } else {
+         super.next(this.modifier(...values))
+      }
    }
    constructor(fn: (...params: any[]) => any) {
       super()
