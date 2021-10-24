@@ -1,25 +1,15 @@
 import { select } from "./select"
 import { use } from "./common"
-import {of} from "rxjs";
 
 describe("select", () => {
    it("should create", () => {
       const value = use(10)
-      const sel = select(value)
+      const sel = select(() => value())
       expect(sel).toBeTruthy()
    })
    it("should use reactive observers", () => {
       const value = use(10)
       const double = select(() => value() * 2)
-
-      const a = select({
-         next(value: string) {},
-         value: double,
-      })
-      const b = select({
-         next(value: string) {},
-         value: a,
-      })
 
       const spy = jasmine.createSpy()
       double.subscribe(spy)

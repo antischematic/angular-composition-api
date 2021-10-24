@@ -12,7 +12,7 @@ import {
 } from "@angular/core"
 import { Value } from "./interfaces"
 import { EffectObserver, inject, Service, ViewDef } from "./core"
-import { defer, interval, merge, of, Subscription, throwError } from "rxjs"
+import { interval, merge, of, Subscription, throwError, timer } from "rxjs"
 import {
    discardPeriodicTasks,
    fakeAsync,
@@ -71,13 +71,13 @@ describe("use", () => {
          value.next(20)
          expect(spy).not.toHaveBeenCalled()
       })
-      it("should throw when directly setting readonly value", () => {
-         expect(() => {
-            // @ts-expect-error
-            // noinspection JSConstantReassignment
-            use(0).value = 10
-         }).toThrow()
-      })
+      // it("should throw when directly setting readonly value", () => {
+      //    expect(() => {
+      //       // @ts-expect-error
+      //       // noinspection JSConstantReassignment
+      //       use(0).value = 10
+      //    }).toThrow()
+      // })
       it("should notify observers on subscribe", () => {
          const value = use(0)
          const spy = createSpy()
@@ -132,19 +132,6 @@ describe("QueryList", () => {
       subject(queryList)
       subject.subscribe(spy)
       expect(spy).toHaveBeenCalledOnceWith(subject.value)
-   })
-   it("should complete observers when query list is destroyed", () => {
-      const subject = use(ContentChildren) as Value<QueryList<any>>
-      const queryList = new QueryList()
-      const spy = createSpy()
-      subject.subscribe({
-         next: () => {},
-         complete: spy,
-      })
-      queryList.reset([1, 2, 3])
-      subject.next(queryList)
-      queryList.destroy()
-      expect(spy).toHaveBeenCalledTimes(1)
    })
    it("should notify observers when receiving a new query list", () => {
       const spy = createSpy()
@@ -502,7 +489,7 @@ describe("subscribe", () => {
       const spy = createSpy()
       const signal = new Subscription()
       function create() {
-         subscribe(interval(1000), (v) => spy, signal)
+         subscribe(interval(1000), () => spy, signal)
          return {}
       }
       @Component({ template: `` })
@@ -523,7 +510,7 @@ describe("subscribe", () => {
       const signal = new Subscription()
       function create() {
          subscribe(() => {
-            subscribe(interval(1000), (v) => spy, signal)
+            subscribe(interval(1000), () => spy, signal)
          })
          return {}
       }
@@ -586,6 +573,7 @@ describe("subscribe", () => {
       const view = createView()
       view.detectChanges()
       view.componentInstance.update()
+      view.detectChanges()
       expect(spy.calls.allArgs()).toEqual([
          ["spy1: 0"],
          ["spy2: 0"],
@@ -596,4 +584,34 @@ describe("subscribe", () => {
       ])
       expect(view.debugElement.nativeElement.textContent).toBe(`10`)
    })
+
+   it("should batch state changes before calling observer", fakeAsync(() => {
+      const spy = createSpy()
+
+      function create() {
+         const add1 = use(0)
+         const add2 = use(0)
+         const add3 = use(0)
+
+         subscribe(() => {
+            add1()
+            add2()
+            add3()
+            spy()
+         })
+
+         subscribe(timer(0), () => {
+            add1(1)
+            add2(2)
+            add3(3)
+         })
+         return {}
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(create) {}
+      const createView = configureTest(Test)
+      createView().detectChanges()
+      tick(100)
+      expect(spy).toHaveBeenCalledTimes(2)
+   }))
 })

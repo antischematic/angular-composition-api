@@ -19,9 +19,6 @@ import {
 } from "@angular/core"
 import {
    PartialObserver,
-   ReplaySubject,
-   SchedulerAction,
-   SchedulerLike,
    Subject,
    Subscribable,
    Subscription,
@@ -44,9 +41,9 @@ import {
    isValue,
    Notification,
    observeNotification,
-   trackDeps,
 } from "./utils"
 import { ValueToken } from "./provider"
+import { ComputedValue, flush, setPending } from "./types"
 
 export let currentContext: any
 const contextMap = new WeakMap<{}, CurrentContext>()
@@ -199,9 +196,14 @@ export function setTemplateContext(context: any) {
 
 export function runInTemplate(context: any, handler: Function, ...args: any[]) {
    const previous = setTemplateContext(context)
+   const pending = setPending(true)
    try {
-      handler(...args)
+      return handler(...args)
    } finally {
+      if (!previous) {
+         flush()
+      }
+      setPending(pending)
       setTemplateContext(previous)
    }
 }
@@ -218,7 +220,6 @@ function decorateFunction(exec: Function, errorHandler: ErrorHandler) {
          }
       }
    }
-   decorated.originalFunction = exec
    return decorated
 }
 
@@ -332,6 +333,7 @@ function next(
    scheduler?: Scheduler,
    signal?: UnsubscribeSignal,
 ) {
+   const previous = setPending(true)
    observeNotification(notification, unsubscribe)
    createContext(currentContext, injector, errorHandler, scheduler)
    try {
@@ -345,7 +347,11 @@ function next(
       errorHandler.handleError(error)
    }
    observeNotification(notification, subscribe)
-   detectChanges()
+   flush()
+   setPending(previous)
+   if (!previous) {
+      detectChanges()
+   }
 }
 
 export function detectChanges() {
@@ -354,43 +360,6 @@ export function detectChanges() {
    dirty.clear()
    while ((scheduler = list.shift())) {
       scheduler.detectChanges()
-   }
-}
-
-class ComputedSubscriber extends Subscription {
-   first: boolean
-   next() {
-      if (!this.first) {
-         super.unsubscribe()
-         trackDeps(this.subject)
-      }
-   }
-   constructor(private subject: ComputedSubject<any>) {
-      super()
-      this.first = true
-   }
-}
-
-export class ComputedSubject<T> extends ReplaySubject<T> {
-   [checkPhase]: CheckPhase
-   compute
-   value: any
-
-   subscribeDeps(deps: Set<any>) {
-      const subscriber = new ComputedSubscriber(this)
-      for (const dep of deps) {
-         subscriber.add(dep.subscribe(subscriber))
-      }
-      subscriber.first = false
-      // @ts-ignore
-      deps = null
-   }
-
-   constructor(compute: (value?: T) => T) {
-      super(1)
-      this[checkPhase] = 0
-      this.compute = compute
-      trackDeps(this)
    }
 }
 
@@ -440,7 +409,7 @@ export class EffectObserver<T> extends Subscription {
                source,
                scheduler,
             )
-         subscription = new ComputedSubject(fn).subscribe(this)
+         subscription = new ComputedValue(fn).subscribe(this)
       } else {
          subscription = source.subscribe(this)
       }

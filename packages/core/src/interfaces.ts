@@ -4,7 +4,6 @@ import {
    ErrorHandler,
    EventEmitter,
    Injector,
-   NgZone,
    Type,
    ViewChild,
    ViewChildren,
