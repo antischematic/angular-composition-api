@@ -105,11 +105,11 @@ export class Value<T> implements NextObserver<T> {
    }
    forEach(
       next: (value: any) => void,
-      promiseCtor?: PromiseConstructorLike,
+      promiseCtor: PromiseConstructorLike,
    ): Promise<void> {
       return this.source.forEach(next, promiseCtor)
    }
-   toPromise(promiseCtor?: any): Promise<T> {
+   toPromise(promiseCtor: any): Promise<T | undefined> {
       return this.source.toPromise(promiseCtor)
    }
 
@@ -133,7 +133,7 @@ export class Value<T> implements NextObserver<T> {
       this[checkPhase] = phase
       this.source = new ReplaySubject(1)
       this.source.subscribe((value) => (this._value = value))
-      if (arguments.length > 0) this.source.next(_value)
+      if (arguments.length > 0) this.source.next(_value!)
       return value
    }
 }

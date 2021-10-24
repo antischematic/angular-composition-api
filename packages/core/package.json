@@ -11,7 +11,7 @@
       "Observable",
       "Reactive"
    ],
-   "version": "0.1200.0",
+   "version": "0.1200.1",
    "peerDependencies": {
       "@angular/common": "^12.0.0",
       "@angular/core": "^12.0.0"
