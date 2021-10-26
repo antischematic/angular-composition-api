@@ -19,13 +19,11 @@ import {
 } from "@angular/core"
 import {
    PartialObserver,
-   ReplaySubject,
-   SchedulerAction,
-   SchedulerLike,
    Subject,
    Subscribable,
    Subscription,
    TeardownLogic,
+   Unsubscribable,
 } from "rxjs"
 import {
    AccessorValue,
@@ -33,20 +31,29 @@ import {
    checkPhase,
    CheckPhase,
    CheckSubject,
-   CurrentContext,
    UnsubscribeSignal,
    Value,
 } from "./interfaces"
 import {
-   addSignal,
    isEmitter,
    isObject,
    isValue,
    Notification,
    observeNotification,
-   trackDeps,
 } from "./utils"
 import { ValueToken } from "./provider"
+import { ComputedValue, flush, setPending } from "./types"
+
+export interface CurrentContext {
+   injector: Injector
+   error: ErrorHandler
+   subscription: Subscription
+   effects: EffectObserver[]
+   scheduler: any
+   0: Set<Check>
+   1: Set<Check>
+   2: Set<Check>
+}
 
 export let currentContext: any
 const contextMap = new WeakMap<{}, CurrentContext>()
@@ -86,16 +93,16 @@ function runInContext<T extends (...args: any[]) => any>(
 
 function createContext(
    context: {},
-   injector: Injector,
-   error: ErrorHandler,
+   error?: ErrorHandler,
+   injector?: Injector,
    scheduler?: Scheduler,
    additionalContext?: any,
 ) {
    contextMap.set(context, {
       injector,
       error,
+      scheduler,
       subscription: new Subscription(),
-      scheduler: scheduler!,
       effects: [],
       ...additionalContext,
    })
@@ -108,8 +115,9 @@ interface ServiceOptions {
 }
 
 function createService(context: {}, factory: any, params: any[] = []) {
-   createContext(context, serviceInject(INJECTOR), serviceInject(ErrorHandler))
+   createContext(context, serviceInject(ErrorHandler), serviceInject(INJECTOR))
    const value = runInContext(context, factory, ...params)
+   contextMap.set(value, contextMap.get(context)!)
    runInContext(context, subscribe)
    return value
 }
@@ -199,9 +207,14 @@ export function setTemplateContext(context: any) {
 
 export function runInTemplate(context: any, handler: Function, ...args: any[]) {
    const previous = setTemplateContext(context)
+   const pending = setPending(true)
    try {
-      handler(...args)
+      return handler(...args)
    } finally {
+      if (!previous) {
+         flush()
+      }
+      setPending(pending)
       setTemplateContext(previous)
    }
 }
@@ -218,7 +231,6 @@ function decorateFunction(exec: Function, errorHandler: ErrorHandler) {
          }
       }
    }
-   decorated.originalFunction = exec
    return decorated
 }
 
@@ -250,7 +262,7 @@ function setup(injector: Injector, stateFactory: () => {}) {
    const error = injector.get(ErrorHandler)
    const scheduler = new Scheduler(injector.get(ChangeDetectorRef), error)
 
-   createContext(context, injector, error, scheduler, [
+   createContext(context, error, injector, scheduler, [
       new Set(),
       new Set(),
       new Set(),
@@ -273,18 +285,16 @@ export function check(key: CheckPhase) {
    }
 }
 
-const emptyObserver = {}
-
 export function subscribe() {
    let effect
    const { effects } = getContext()
    while ((effect = effects.shift())) {
-      effect.subscribe(emptyObserver as any)
+      const subscription = effect.subscribe()
+      addSignal(subscription, effect.signal)
    }
 }
 
 export function unsubscribe() {
-   if (!contextMap.has(currentContext)) return
    getContext().subscription.unsubscribe()
 }
 
@@ -296,56 +306,49 @@ export function addTeardown(teardown: TeardownLogic) {
    getContext().subscription.add(teardown)
 }
 
+export function addSignal(
+   teardown?: Unsubscribable | (() => void),
+   abort?: UnsubscribeSignal,
+) {
+   if (!teardown) return
+   const subscription = new Subscription()
+   subscription.add(teardown)
+   if (abort instanceof AbortSignal) {
+      const listener = () => subscription.unsubscribe()
+      abort.addEventListener("abort", listener, { once: true })
+   } else if (abort) {
+      abort.add(subscription)
+   } else if (abort !== null) {
+      addTeardown(subscription)
+   }
+}
+
+const empty = {} as CurrentContext
+
 export function addEffect<T>(
    source?: Subscribable<T> | (() => TeardownLogic),
    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
    signal?: UnsubscribeSignal,
 ): Subscription | void {
-   if (!source) {
-      const subscription = new Subscription()
-      addTeardown(subscription)
-      return subscription
+   const { effects, error } = currentContext ? getContext() : empty
+   const effect = new EffectObserver(source as any, observer, signal, error)
+   effects?.push(effect)
+   if (typeof source === "function" && !isValue(source) && !isEmitter(source)) {
+      const computed = new ComputedValue(() => {
+         try {
+            return source()
+         } catch (error) {
+            effect.handleError(error)
+         }
+      })
+      effect.source = computed
+      effect.observer = (a: any) => a
+      effect.add(() => computed.stop())
    }
-   const { effects, injector, error, scheduler } = getContext()
-   const effect = new EffectObserver<T>(
-      source,
-      observer,
-      error,
-      injector,
-      scheduler,
-      signal,
-   )
-   effects.push(effect)
-   if (signal) {
-      addSignal(effect, signal)
-   } else if (signal !== null) {
-      addTeardown(effect)
+   if (!currentContext) {
+      effect.add(effect.subscribe())
    }
    return effect
-}
-
-function next(
-   injector: Injector,
-   errorHandler: ErrorHandler,
-   notification: Notification<any>,
-   observer: any,
-   scheduler?: Scheduler,
-   signal?: UnsubscribeSignal,
-) {
-   observeNotification(notification, unsubscribe)
-   createContext(currentContext, injector, errorHandler, scheduler)
-   try {
-      const teardown = observeNotification(notification, observer)
-      if (signal) {
-         addSignal(teardown, signal)
-      } else if (signal !== null) {
-         addTeardown(teardown)
-      }
-   } catch (error) {
-      errorHandler.handleError(error)
-   }
-   observeNotification(notification, subscribe)
-   detectChanges()
 }
 
 export function detectChanges() {
@@ -357,134 +360,103 @@ export function detectChanges() {
    }
 }
 
-class ComputedSubscriber extends Subscription {
-   first: boolean
-   next() {
-      if (!this.first) {
-         super.unsubscribe()
-         trackDeps(this.subject)
-      }
-   }
-   constructor(private subject: ComputedSubject<any>) {
-      super()
-      this.first = true
-   }
+function isNotification(
+   nextValue: unknown,
+): nextValue is Notification<unknown> {
+   return !!(
+      isObject(nextValue) && String((<any>nextValue)["kind"]).match(/^[NEC]$/)
+   )
 }
 
-export class ComputedSubject<T> extends ReplaySubject<T> {
-   [checkPhase]: CheckPhase
-   compute
-   value: any
-
-   subscribeDeps(deps: Set<any>) {
-      const subscriber = new ComputedSubscriber(this)
-      for (const dep of deps) {
-         subscriber.add(dep.subscribe(subscriber))
+export class EffectObserver extends Subscription {
+   next(nextValue: Notification<unknown> | unknown): void {
+      if (isNotification(nextValue)) {
+         return this.call(nextValue)
       }
-      subscriber.first = false
-      // @ts-ignore
-      deps = null
+      this.call(Notification.createNext(nextValue))
    }
 
-   constructor(compute: (value?: T) => T) {
-      super(1)
-      this[checkPhase] = 0
-      this.compute = compute
-      trackDeps(this)
-   }
-}
-
-export class EffectObserver<T> extends Subscription {
-   next(value: T | Notification<T>) {
-      if (this.closed) return
-      if (isObject(value) && "kind" in value && value.kind.length === 1) {
-         let mappedValue
-         switch (value.kind) {
-            case "N":
-               mappedValue = Notification.createNext(value.value)
-               break
-            case "E":
-               mappedValue = Notification.createError(value.error)
-               break
-            case "C":
-               mappedValue = Notification.createComplete()
-         }
-         return this.call(mappedValue)
-      }
-      this.call(Notification.createNext(value))
-   }
    error(error: unknown) {
-      if (this.closed) return
       this.call(Notification.createError(error))
    }
+
    complete() {
-      if (this.closed) return
       this.call(Notification.createComplete())
    }
-   subscribe(): Subscription {
-      const { source } = this
-      let subscription
-      if (
-         typeof source === "function" &&
-         !isEmitter(source) &&
-         !isValue(source)
-      ) {
-         const { injector, errorHandler, scheduler } = this
-         const fn = () =>
-            runInContext(
-               this,
-               next,
-               injector,
-               errorHandler,
-               Notification.createNext(void 0),
-               source,
-               scheduler,
-            )
-         subscription = new ComputedSubject(fn).subscribe(this)
+
+   handleError(error: unknown) {
+      if (this.errorHandler) {
+         this.errorHandler.handleError(error)
+         this.unsubscribe()
       } else {
-         subscription = source.subscribe(this)
+         throw error
       }
-      if (this.signal) {
-         addSignal(subscription, this.signal)
-      }
-      return subscription
    }
+
+   call(notification: Notification<unknown>) {
+      if (this.closed) return
+      runInContext(this.that, this.observe, notification)
+   }
+
+   observe(notification: Notification<unknown>) {
+      const previous = setPending(true)
+      try {
+         unsubscribe()
+         createContext(this, this.errorHandler)
+         if (this.observer) {
+            const teardown = observeNotification(notification, this.observer)
+            addSignal(teardown, this.signal)
+         }
+         if (
+            notification.kind === "E" &&
+            (!this.observer || !("error" in this.observer))
+         ) {
+            this.handleError(notification.error)
+         }
+         subscribe()
+      } catch (error) {
+         this.handleError(error)
+      } finally {
+         setPending(previous)
+         flush()
+         if (!previous) {
+            detectChanges()
+         }
+      }
+   }
+
    unsubscribe() {
       if (this.closed) return
-      runInContext(this, unsubscribe)
       super.unsubscribe()
+      runInContext(this.that, unsubscribe)
    }
-   private call(notification: Notification<T | undefined>) {
-      const { observer, injector, errorHandler, scheduler, signal } = this
-      const isError = notification.kind === "E"
-      let errorHandled = !isError
-      errorHandled = errorHandled || (observer && "error" in observer)
-      if (observer) {
-         runInContext(
-            this,
-            next,
-            injector,
-            errorHandler,
-            notification,
-            observer,
-            scheduler,
-            signal,
-         )
+
+   subscribe() {
+      const subscription = new Subscription()
+      const source = this.source
+      if (!source) {
+         return subscription
       }
-      if (!errorHandled) {
-         errorHandler.handleError(notification.error)
+      try {
+         subscription.add(source.subscribe(this))
+      } catch (error) {
+         this.handleError(error)
       }
+      subscription.add(this)
+      return subscription
    }
+
+   that = this
+
    constructor(
-      private source: any,
-      private observer: any,
-      private errorHandler: ErrorHandler,
-      private injector: Injector,
-      private scheduler?: Scheduler,
-      private signal?: UnsubscribeSignal,
+      public source?: Subscribable<any>,
+      public observer?: PartialObserver<any> | ((value: any) => TeardownLogic),
+      public signal?: UnsubscribeSignal,
+      private errorHandler?: ErrorHandler,
    ) {
       super()
-      createContext(this, injector, errorHandler, scheduler)
+      this.observe = this.observe.bind(this)
+      createContext(this, errorHandler)
    }
 }
 
@@ -501,7 +473,7 @@ class View
    ngAfterViewChecked() {
       runInContext(this, check, 2)
       runInContext(this, subscribe)
-      detectChanges()
+      runInContext(this, detectChanges)
    }
    ngOnDestroy() {
       runInContext(this, unsubscribe)

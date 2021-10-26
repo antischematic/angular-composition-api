@@ -1,65 +1,8 @@
-import {
-   PartialObserver,
-   Subscription,
-   SubscriptionLike,
-   Unsubscribable,
-} from "rxjs"
+import { PartialObserver, Subscription } from "rxjs"
 import { Emitter, UnsubscribeSignal, Value } from "./interfaces"
-
-let deps: Set<any>
-let tracking = false
-
-export function trackDeps(subject: {
-   value: any
-   next: Function
-   compute: Function
-   subscribeDeps: Function
-}) {
-   const flushed = new Set()
-   const previous = deps
-   tracking = true
-   deps = flushed
-   const value = subject.compute()
-   tracking = false
-   deps = previous
-   subject.value = value
-   subject.subscribeDeps(flushed)
-   subject.next(value)
-}
-
-export function track<T>(source: {
-   value: T
-   subscribe(value: (value: T) => void): SubscriptionLike
-}): void
-export function track<T>(source: {
-   value: T
-   subscribe(value: PartialObserver<T>): SubscriptionLike
-}): void
-export function track<T>(source: {
-   value: T
-   subscribe(value: PartialObserver<T> | ((value: T) => void)): SubscriptionLike
-}): void {
-   if (tracking) {
-      deps.add(source)
-   }
-}
 
 export function isObject(value: unknown): value is {} {
    return typeof value === "object" && value !== null
-}
-
-export function addSignal(
-   teardown: Unsubscribable | (() => void),
-   abort: Subscription | AbortSignal,
-) {
-   const subscription = new Subscription()
-   subscription.add(teardown)
-   if (abort instanceof AbortSignal) {
-      const listener = () => subscription.unsubscribe()
-      abort.addEventListener("abort", listener, { once: true })
-   } else {
-      abort.add(subscription)
-   }
 }
 
 export function isEmitter(value: any): value is Emitter<any> {

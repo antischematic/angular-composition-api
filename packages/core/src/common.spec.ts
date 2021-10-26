@@ -12,7 +12,7 @@ import {
 } from "@angular/core"
 import { Value } from "./interfaces"
 import { EffectObserver, inject, Service, ViewDef } from "./core"
-import { defer, interval, merge, of, Subscription, throwError } from "rxjs"
+import { interval, merge, of, Subscription, throwError, timer } from "rxjs"
 import {
    discardPeriodicTasks,
    fakeAsync,
@@ -21,6 +21,7 @@ import {
 } from "@angular/core/testing"
 import { configureTest, defineService } from "./core.spec"
 import { onBeforeUpdate, onUpdated } from "./lifecycle"
+import { ComputedValue } from "./types"
 import createSpy = jasmine.createSpy
 import objectContaining = jasmine.objectContaining
 
@@ -71,13 +72,13 @@ describe("use", () => {
          value.next(20)
          expect(spy).not.toHaveBeenCalled()
       })
-      it("should throw when directly setting readonly value", () => {
-         expect(() => {
-            // @ts-expect-error
-            // noinspection JSConstantReassignment
-            use(0).value = 10
-         }).toThrow()
-      })
+      // it("should throw when directly setting readonly value", () => {
+      //    expect(() => {
+      //       // @ts-expect-error
+      //       // noinspection JSConstantReassignment
+      //       use(0).value = 10
+      //    }).toThrow()
+      // })
       it("should notify observers on subscribe", () => {
          const value = use(0)
          const spy = createSpy()
@@ -132,19 +133,6 @@ describe("QueryList", () => {
       subject(queryList)
       subject.subscribe(spy)
       expect(spy).toHaveBeenCalledOnceWith(subject.value)
-   })
-   it("should complete observers when query list is destroyed", () => {
-      const subject = use(ContentChildren) as Value<QueryList<any>>
-      const queryList = new QueryList()
-      const spy = createSpy()
-      subject.subscribe({
-         next: () => {},
-         complete: spy,
-      })
-      queryList.reset([1, 2, 3])
-      subject.next(queryList)
-      queryList.destroy()
-      expect(spy).toHaveBeenCalledTimes(1)
    })
    it("should notify observers when receiving a new query list", () => {
       const spy = createSpy()
@@ -267,7 +255,7 @@ describe("subscribe", () => {
          new Service(factory, { providedIn: "root" }),
       )
       injectService()
-      expect(spy).toHaveBeenCalledTimes(2)
+      expect(spy).toHaveBeenCalledTimes(3)
    })
    it("should not be destroyed more than once", () => {
       const spy = createSpy()
@@ -289,16 +277,17 @@ describe("subscribe", () => {
       const spy = createSpy()
       function factory() {
          const observer = new EffectObserver(
-            () => spy,
+            new ComputedValue(() => {
+               spy()
+            }) as any,
             undefined,
-            {} as any,
-            {} as any,
-            { markForCheck() {}, detectChanges() {} } as any,
+            undefined as any,
+            { handleError() {} } as any,
          )
          subscribe(() => {
-            observer.subscribe()
-            observer.unsubscribe()
-            observer.unsubscribe()
+            const sub = observer.subscribe()
+            sub.unsubscribe()
+            sub.unsubscribe()
             observer.next(void 0)
             observer.error(new Error())
             observer.complete()
@@ -312,9 +301,9 @@ describe("subscribe", () => {
       expect(spy).toHaveBeenCalledTimes(1)
    })
    it("should accept materialized streams", () => {
-      const next = createSpy()
-      const error = createSpy()
-      const complete = createSpy()
+      const next = createSpy("next")
+      const error = createSpy("error")
+      const complete = createSpy("complete")
       function factory() {
          const source = of(10, new Error()).pipe(
             mergeMap((value, index) => (index ? throwError(value) : of(value))),
@@ -411,7 +400,7 @@ describe("subscribe", () => {
       )
       injectService()
       expect(handledError).toHaveBeenCalledOnceWith(new Error())
-      expect(unhandledError).toHaveBeenCalledTimes(6)
+      expect(unhandledError).toHaveBeenCalledTimes(5)
    })
    it("should support nested subscriptions", () => {
       const spy = createSpy()
@@ -439,7 +428,7 @@ describe("subscribe", () => {
          new Service(factory, { providedIn: "root" }),
       )
       injectService()
-      expect(spy).toHaveBeenCalledTimes(2)
+      expect(spy).toHaveBeenCalledTimes(3)
    })
    it("should cleanup nested subscriptions when the root is destroyed", () => {
       const spy = createSpy()
@@ -498,11 +487,11 @@ describe("subscribe", () => {
       expect(spy2).toHaveBeenCalledTimes(1)
    }))
 
-   it("should not cleanup until abort signal is called", fakeAsync(() => {
+   it("should not unsubscribe until abort signal is called", fakeAsync(() => {
       const spy = createSpy()
       const signal = new Subscription()
       function create() {
-         subscribe(interval(1000), (v) => spy, signal)
+         subscribe(interval(1000), () => spy, signal)
          return {}
       }
       @Component({ template: `` })
@@ -523,7 +512,7 @@ describe("subscribe", () => {
       const signal = new Subscription()
       function create() {
          subscribe(() => {
-            subscribe(interval(1000), (v) => spy, signal)
+            subscribe(interval(1000), () => spy, signal)
          })
          return {}
       }
@@ -586,6 +575,7 @@ describe("subscribe", () => {
       const view = createView()
       view.detectChanges()
       view.componentInstance.update()
+      view.detectChanges()
       expect(spy.calls.allArgs()).toEqual([
          ["spy1: 0"],
          ["spy2: 0"],
@@ -595,5 +585,88 @@ describe("subscribe", () => {
          ["spy3: 10"],
       ])
       expect(view.debugElement.nativeElement.textContent).toBe(`10`)
+   })
+
+   it("should batch state changes before calling observer", fakeAsync(() => {
+      const spy = createSpy()
+
+      function create() {
+         const add1 = use(0)
+         const add2 = use(0)
+         const add3 = use(0)
+
+         subscribe(() => {
+            add1()
+            add2()
+            add3()
+            spy()
+         })
+
+         subscribe(timer(0), () => {
+            add1(1)
+            add2(2)
+            add3(3)
+         })
+         return {}
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(create) {}
+      const createView = configureTest(Test)
+      createView().detectChanges()
+      tick(100)
+      expect(spy).toHaveBeenCalledTimes(2)
+   }))
+
+   it("should create two-way binding", () => {
+      const spy = createSpy()
+      function create() {
+         const count = use(0)
+         const countChange = use(count)
+
+         function increment() {
+            countChange(count() + 1)
+         }
+
+         return {
+            count,
+            countChange,
+            increment,
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(create) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      view.detectChanges()
+      view.componentInstance.countChange.subscribe(spy)
+
+      view.componentInstance.increment()
+      view.detectChanges()
+
+      expect(view.componentInstance.count).toBe(1)
+      expect(spy).toHaveBeenCalledOnceWith(1)
+   })
+
+   it("should unsubscribe reactive observers", () => {
+      function create() {
+         const count = use(0)
+         const countChange = use(count)
+
+         const sub = subscribe(() => {
+            sub.unsubscribe()
+            countChange(count() + 1)
+         })
+
+         return {
+            count,
+            countChange,
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(create) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      view.detectChanges()
+      expect(view.componentInstance.count).toBe(1)
    })
 })

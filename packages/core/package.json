@@ -1,8 +1,8 @@
 {
    "name": "@mmuscat/angular-composition-api",
-   "description": "Composition model for functional reactive Angular applications.",
+   "description": "Composition model for reactive Angular applications.",
    "license": "MIT",
-   "homepage": "https://github.com/mmuscat/angular-composition-api/tree/master/packages/core",
+   "homepage": "https://mmuscat.github.io/angular-composition-api",
    "repository": "https://github.com/mmuscat/angular-composition-api",
    "keywords": [
       "Angular",
@@ -11,7 +11,7 @@
       "Observable",
       "Reactive"
    ],
-   "version": "0.1200.0",
+   "version": "0.1200.3",
    "peerDependencies": {
       "@angular/common": "^12.0.0",
       "@angular/core": "^12.0.0"

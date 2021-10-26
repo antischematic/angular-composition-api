@@ -1,0 +1,96 @@
+---
+sidebar_position: 5
+---
+
+import Tabs from "@theme/Tabs"
+
+import TabItem from "@theme/TabItem"
+
+# Providers
+
+When communicating between multiple components in a deeply nested component tree it is becomes impractical to pass
+down state and bubble events using `inputs` and `outputs`, known as prop-drilling. Providers are a way to have shared
+state across component boundaries.
+
+Angular already has a powerful dependency injection system, but there are some limitations.
+
+-  Providers must be provided statically, they cannot be set at runtime.
+-  Reacting to changes in component state via a provider usually involves a lot of ceremony with one or more
+   collaborating services or observables.
+
+Angular Composition API makes it easier to define and consume values through a component's context by allowing
+values to be provided during component creation. This is done by creating a `ValueToken`.
+
+<Tabs defaultValue="parent">
+  <TabItem value="parent" label="parent.component.ts">
+
+```ts
+import { Component } from "@angular/core"
+import { provide, ValueToken, ViewDef } from "@mmuscat/angular-composition-api"
+
+export const Count = new ValueToken<number>("Count")
+
+function setup() {
+   const count = use(0)
+
+   provide(Count, count)
+
+   return {
+      count,
+   }
+}
+
+@Component({
+   inputs: ["count"],
+   providers: [Count.Provider], // or viewProviders
+})
+export class Parent {}
+```
+
+  </TabItem>
+  <TabItem value="child" label="child.component.ts">
+
+```ts
+import { Component } from "@angular/core"
+import { inject, ViewDef } from "@mmuscat/angular-composition-api"
+import { Count } from "./parent.component"
+
+function setup() {
+   const count = inject(Count)
+
+   subscribe(count, console.log)
+
+   return {
+      count,
+   }
+}
+
+@Component()
+export class Child {}
+```
+
+  </TabItem>
+</Tabs>
+
+A `ValueToken` first needs to be added to the `providers` or `viewProviders` array of a component or directive. The
+`ValueToken` can then be set inside the setup function of the component or directive it was provided in using the
+`provide` function. This is particularly useful for sharing `Value` objects, which are not accessible outside of
+`ViewDef`, but any value can be shared this way.
+
+The value of a `ValueToken` is then retrieved using `inject`.
+
+:::caution
+The `provide` method can only be used with `ValueToken`.
+:::
+
+## Default Value
+
+A default value for `ValueToken` can be set with the `factory` option. This factory supports dependency injection.
+
+```ts
+const Count = new ValueToken("Count", {
+   factory() {
+      return use(0)
+   },
+})
+```

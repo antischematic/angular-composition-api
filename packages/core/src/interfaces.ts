@@ -1,37 +1,17 @@
 import {
    ContentChild,
    ContentChildren,
-   ErrorHandler,
    EventEmitter,
-   Injector,
-   NgZone,
    Type,
    ViewChild,
    ViewChildren,
 } from "@angular/core"
-import {
-   BehaviorSubject,
-   Observable,
-   Subject,
-   Subscribable,
-   Subscription,
-} from "rxjs"
+import { BehaviorSubject, Observable, Subject, Subscription } from "rxjs"
 
 export const checkPhase = Symbol("checkPhase")
 
 export interface Check {
    check(): void
-}
-
-export interface CurrentContext {
-   injector: Injector
-   error: ErrorHandler
-   subscription: Subscription
-   effects: EffectObserver<any>[]
-   scheduler: any
-   0: Set<Check>
-   1: Set<Check>
-   2: Set<Check>
 }
 
 export interface CheckSubject<T> extends Observable<T> {
@@ -40,7 +20,6 @@ export interface CheckSubject<T> extends Observable<T> {
 }
 
 export type CheckPhase = 0 | 1 | 2
-export type EffectObserver<T> = Subscribable<T>
 
 export type State<T, U> = Type<
    {
