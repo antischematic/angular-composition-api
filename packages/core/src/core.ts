@@ -330,9 +330,7 @@ export function addEffect<T>(
    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
    signal?: UnsubscribeSignal,
 ): Subscription | void {
-   const { effects, error } = currentContext
-      ? getContext()
-      : empty
+   const { effects, error } = currentContext ? getContext() : empty
    const effect = new EffectObserver(source as any, observer, signal, error)
    effects?.push(effect)
    if (typeof source === "function" && !isValue(source) && !isEmitter(source)) {

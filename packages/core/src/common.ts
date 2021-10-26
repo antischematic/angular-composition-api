@@ -32,7 +32,7 @@ import {
    Notification,
    observeNotification,
 } from "./utils"
-import { addEffect, addTeardown, currentContext } from "./core"
+import { addEffect, addTeardown } from "./core"
 import {
    DeferredValue,
    Emitter as EmitterType,

@@ -21,9 +21,9 @@ import {
 } from "@angular/core/testing"
 import { configureTest, defineService } from "./core.spec"
 import { onBeforeUpdate, onUpdated } from "./lifecycle"
+import { ComputedValue } from "./types"
 import createSpy = jasmine.createSpy
 import objectContaining = jasmine.objectContaining
-import {ComputedValue} from "./types";
 
 describe("use", () => {
    describe("value", () => {
@@ -282,7 +282,7 @@ describe("subscribe", () => {
             }) as any,
             undefined,
             undefined as any,
-            { handleError() {}} as any,
+            { handleError() {} } as any,
          )
          subscribe(() => {
             const sub = observer.subscribe()
@@ -630,7 +630,7 @@ describe("subscribe", () => {
          return {
             count,
             countChange,
-            increment
+            increment,
          }
       }
       @Component({ template: `` })
@@ -648,7 +648,6 @@ describe("subscribe", () => {
    })
 
    it("should unsubscribe reactive observers", () => {
-
       function create() {
          const count = use(0)
          const countChange = use(count)

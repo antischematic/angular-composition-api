@@ -8,7 +8,8 @@ import {
    getContext,
    inject,
    Service,
-   subscribe, unsubscribe,
+   subscribe,
+   unsubscribe,
    ViewDef,
 } from "./core"
 import {

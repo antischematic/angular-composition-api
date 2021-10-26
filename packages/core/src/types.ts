@@ -9,7 +9,7 @@ import {
 } from "rxjs"
 import { checkPhase } from "./interfaces"
 import { EventEmitter } from "@angular/core"
-import {isValue} from "./utils";
+import { isValue } from "./utils"
 
 const trackedValues = new Map<any, Set<any>>()
 const pendingObservers = new Set<any>()
@@ -185,7 +185,7 @@ export class ComputedValue extends Value<any> {
    }
    subscribe(observer: any): Subscription {
       this.observe()
-      const subscription = super.subscribe(observer);
+      const subscription = super.subscribe(observer)
       subscription.add(() => this.stop())
       return subscription
    }
