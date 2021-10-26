@@ -23,6 +23,7 @@ import { configureTest, defineService } from "./core.spec"
 import { onBeforeUpdate, onUpdated } from "./lifecycle"
 import createSpy = jasmine.createSpy
 import objectContaining = jasmine.objectContaining
+import {ComputedValue} from "./types";
 
 describe("use", () => {
    describe("value", () => {
@@ -254,7 +255,7 @@ describe("subscribe", () => {
          new Service(factory, { providedIn: "root" }),
       )
       injectService()
-      expect(spy).toHaveBeenCalledTimes(2)
+      expect(spy).toHaveBeenCalledTimes(3)
    })
    it("should not be destroyed more than once", () => {
       const spy = createSpy()
@@ -276,16 +277,17 @@ describe("subscribe", () => {
       const spy = createSpy()
       function factory() {
          const observer = new EffectObserver(
-            () => spy,
+            new ComputedValue(() => {
+               spy()
+            }) as any,
             undefined,
-            {} as any,
-            {} as any,
-            { markForCheck() {}, detectChanges() {} } as any,
+            undefined as any,
+            { handleError() {}} as any,
          )
          subscribe(() => {
-            observer.subscribe()
-            observer.unsubscribe()
-            observer.unsubscribe()
+            const sub = observer.subscribe()
+            sub.unsubscribe()
+            sub.unsubscribe()
             observer.next(void 0)
             observer.error(new Error())
             observer.complete()
@@ -299,9 +301,9 @@ describe("subscribe", () => {
       expect(spy).toHaveBeenCalledTimes(1)
    })
    it("should accept materialized streams", () => {
-      const next = createSpy()
-      const error = createSpy()
-      const complete = createSpy()
+      const next = createSpy("next")
+      const error = createSpy("error")
+      const complete = createSpy("complete")
       function factory() {
          const source = of(10, new Error()).pipe(
             mergeMap((value, index) => (index ? throwError(value) : of(value))),
@@ -398,7 +400,7 @@ describe("subscribe", () => {
       )
       injectService()
       expect(handledError).toHaveBeenCalledOnceWith(new Error())
-      expect(unhandledError).toHaveBeenCalledTimes(6)
+      expect(unhandledError).toHaveBeenCalledTimes(5)
    })
    it("should support nested subscriptions", () => {
       const spy = createSpy()
@@ -426,7 +428,7 @@ describe("subscribe", () => {
          new Service(factory, { providedIn: "root" }),
       )
       injectService()
-      expect(spy).toHaveBeenCalledTimes(2)
+      expect(spy).toHaveBeenCalledTimes(3)
    })
    it("should cleanup nested subscriptions when the root is destroyed", () => {
       const spy = createSpy()
@@ -485,7 +487,7 @@ describe("subscribe", () => {
       expect(spy2).toHaveBeenCalledTimes(1)
    }))
 
-   it("should not cleanup until abort signal is called", fakeAsync(() => {
+   it("should not unsubscribe until abort signal is called", fakeAsync(() => {
       const spy = createSpy()
       const signal = new Subscription()
       function create() {
@@ -654,7 +656,6 @@ describe("subscribe", () => {
          const sub = subscribe(() => {
             sub.unsubscribe()
             countChange(count() + 1)
-            console.log('update')
          })
 
          return {

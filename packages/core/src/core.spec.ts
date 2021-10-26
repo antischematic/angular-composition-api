@@ -8,7 +8,7 @@ import {
    getContext,
    inject,
    Service,
-   subscribe,
+   subscribe, unsubscribe,
    ViewDef,
 } from "./core"
 import {
@@ -118,10 +118,9 @@ describe("ViewDef", () => {
       const spy = createSpy()
       function create() {
          const count = subject
-         const { injector, error, scheduler } = getContext()
-         addEffect(
-            new EffectObserver<any>(count, spy, error, injector, scheduler),
-         )
+         const { error } = getContext()
+         const effect = new EffectObserver(count, spy, null, error)
+         addEffect(effect)
          return {
             count,
          }
@@ -133,6 +132,7 @@ describe("ViewDef", () => {
       expect(spy).toHaveBeenCalledTimes(0)
       expect(view.componentInstance.count).toBe(1337)
       view.detectChanges()
+      expect(view.debugElement.nativeElement.textContent).toEqual(`1337`)
       expect(spy).toHaveBeenCalledWith(1337)
       expect(spy).toHaveBeenCalledTimes(1)
       view.componentInstance.count = 10
@@ -231,12 +231,12 @@ describe("Service", () => {
 
 describe("Context API", () => {
    it("should throw when using context apis outside of context", () => {
-      expect(addEffect).toThrow(new CallContextError())
+      expect(addEffect).not.toThrow(new CallContextError())
       expect(addCheck).toThrow(new CallContextError())
       expect(addTeardown).toThrow(new CallContextError())
       expect(check).toThrow(new CallContextError())
       expect(subscribe).toThrow(new CallContextError())
-      // expect(unsubscribe).toThrow(new CallContextError())
+      expect(unsubscribe).toThrow(new CallContextError())
    })
    it("should be checked during change detection", () => {
       const spy = createSpy()

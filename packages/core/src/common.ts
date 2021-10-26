@@ -26,7 +26,6 @@ import {
    Value,
 } from "./interfaces"
 import {
-   addSignal,
    isObserver,
    isSignal,
    isValue,
@@ -136,19 +135,6 @@ export function subscribe<T>(
 ): Subscription | void {
    const observer = isObserver(observerOrSignal) ? observerOrSignal : void 0
    signal = isSignal(observerOrSignal) ? observerOrSignal : signal
-
-   if (!currentContext) {
-      const subscription = new Subscription()
-      subscription.add(
-         typeof source === "function"
-            ? source()
-            : source?.subscribe((observer as any) ?? {}),
-      )
-      if (signal) {
-         addSignal(subscription, signal)
-      }
-      return subscription
-   }
 
    if (!source) {
       const subscription = new Subscription()

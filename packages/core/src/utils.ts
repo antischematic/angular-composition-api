@@ -1,22 +1,8 @@
-import { PartialObserver, Subscription, Unsubscribable } from "rxjs"
+import { PartialObserver, Subscription } from "rxjs"
 import { Emitter, UnsubscribeSignal, Value } from "./interfaces"
 
 export function isObject(value: unknown): value is {} {
    return typeof value === "object" && value !== null
-}
-
-export function addSignal(
-   teardown: Unsubscribable | (() => void),
-   abort: Subscription | AbortSignal,
-) {
-   const subscription = new Subscription()
-   subscription.add(teardown)
-   if (abort instanceof AbortSignal) {
-      const listener = () => subscription.unsubscribe()
-      abort.addEventListener("abort", listener, { once: true })
-   } else {
-      abort.add(subscription)
-   }
 }
 
 export function isEmitter(value: any): value is Emitter<any> {

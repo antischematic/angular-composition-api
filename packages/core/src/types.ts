@@ -176,17 +176,17 @@ export class ComputedValue extends Value<any> {
          this.dirty = false
          const previous = setObserver(this)
          const value = this.observer.call()
-         this.next(value)
          setObserver(previous)
+         this.next(value)
       }
    }
-   unsubscribe() {
+   stop() {
       this.closed = true
    }
    subscribe(observer: any): Subscription {
       this.observe()
       const subscription = super.subscribe(observer);
-      subscription.add(() => this.unsubscribe())
+      subscription.add(() => this.stop())
       return subscription
    }
 
