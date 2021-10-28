@@ -49,7 +49,7 @@ export interface CurrentContext {
    error: ErrorHandler
    subscription: Subscription
    effects: EffectObserver[]
-   scheduler: any
+   scheduler: Scheduler
    0: Set<Check>
    1: Set<Check>
    2: Set<Check>
@@ -369,6 +369,7 @@ function isNotification(
 }
 
 export class EffectObserver extends Subscription {
+   that: this
    next(nextValue: Notification<unknown> | unknown): void {
       if (isNotification(nextValue)) {
          return this.call(nextValue)
@@ -413,12 +414,12 @@ export class EffectObserver extends Subscription {
          ) {
             this.handleError(notification.error)
          }
+         flush()
          subscribe()
       } catch (error) {
          this.handleError(error)
       } finally {
          setPending(previous)
-         flush()
          if (!previous) {
             detectChanges()
          }
@@ -432,21 +433,17 @@ export class EffectObserver extends Subscription {
    }
 
    subscribe() {
-      const subscription = new Subscription()
       const source = this.source
       if (!source) {
-         return subscription
+         return this
       }
       try {
-         subscription.add(source.subscribe(this))
+         this.add(source.subscribe(this))
       } catch (error) {
          this.handleError(error)
       }
-      subscription.add(this)
-      return subscription
+      return this
    }
-
-   that = this
 
    constructor(
       public source?: Subscribable<any>,
@@ -455,6 +452,7 @@ export class EffectObserver extends Subscription {
       private errorHandler?: ErrorHandler,
    ) {
       super()
+      this.that = this
       this.observe = this.observe.bind(this)
       createContext(this, errorHandler)
    }
