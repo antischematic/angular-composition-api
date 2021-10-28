@@ -325,6 +325,17 @@ export function addSignal(
 
 const empty = {} as CurrentContext
 
+class ComputedObserver {
+   call() {
+      try {
+         return this.source()
+      } catch (error) {
+         this.effect.handleError(error)
+      }
+   }
+   constructor(private effect: EffectObserver, private source: Function) {}
+}
+
 export function addEffect<T>(
    source?: Subscribable<T> | (() => TeardownLogic),
    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
@@ -334,16 +345,8 @@ export function addEffect<T>(
    const effect = new EffectObserver(source as any, observer, signal, error)
    effects?.push(effect)
    if (typeof source === "function" && !isValue(source) && !isEmitter(source)) {
-      const computed = new ComputedValue(() => {
-         try {
-            return source()
-         } catch (error) {
-            effect.handleError(error)
-         }
-      })
-      effect.source = computed
+      effect.source = new ComputedValue(new ComputedObserver(effect, source))
       effect.observer = defaultFn
-      effect.add(() => computed.stop())
    }
    if (!currentContext) {
       effect.add(effect.subscribe())
@@ -428,12 +431,15 @@ export class EffectObserver extends Subscription {
 
    unsubscribe() {
       if (this.closed) return
+      if (this.source instanceof ComputedValue) {
+         this.source.stop()
+      }
       super.unsubscribe()
       runInContext(this.that, unsubscribe)
    }
 
    subscribe() {
-      const source = this.source
+      const source = this.source as Subscribable<any>
       if (!source) {
          return this
       }
@@ -446,7 +452,7 @@ export class EffectObserver extends Subscription {
    }
 
    constructor(
-      public source?: Subscribable<any>,
+      public source?: Subscribable<any> | ComputedValue,
       public observer?: PartialObserver<any> | ((value: any) => TeardownLogic),
       public signal?: UnsubscribeSignal,
       private errorHandler?: ErrorHandler,
