@@ -42,7 +42,7 @@ import {
    observeNotification,
 } from "./utils"
 import { ValueToken } from "./provider"
-import { ComputedValue, flush, setPending } from "./types"
+import {ComputedValue, defaultFn, flush, setPending} from "./types"
 
 export interface CurrentContext {
    injector: Injector
@@ -342,7 +342,7 @@ export function addEffect<T>(
          }
       })
       effect.source = computed
-      effect.observer = (a: any) => a
+      effect.observer = defaultFn
       effect.add(() => computed.stop())
    }
    if (!currentContext) {

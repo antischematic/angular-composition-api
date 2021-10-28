@@ -277,7 +277,7 @@ export class AccessorValue<TValue, TNext>
    }
 }
 
-function defaultFn(value: any) {
+export function defaultFn(value: any) {
    return value
 }
 
