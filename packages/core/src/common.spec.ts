@@ -450,6 +450,7 @@ describe("subscribe", () => {
       const spy = createSpy()
       function factory() {
          subscribe(() => spy)
+         return {}
       }
       const TestService = new Service(factory, { providedIn: "root" })
       defineService(TestService)

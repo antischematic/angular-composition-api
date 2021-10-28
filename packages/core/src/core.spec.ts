@@ -192,21 +192,27 @@ describe("ViewDef", () => {
 
 describe("Service", () => {
    it("should create", () => {
-      function factory() {}
+      function factory() {
+         return {}
+      }
       const injectService = defineService(new Service(factory), {
          configureTestingModule: true,
       })
       expect(injectService).not.toThrow()
    })
    it("should create tree-shakable provider", () => {
-      function factory() {}
+      function factory() {
+         return {}
+      }
       const injectService = defineService(
          new Service(factory, { providedIn: "root" }),
       )
       expect(injectService).not.toThrow()
    })
    it("should throw if not provided", () => {
-      function factory() {}
+      function factory() {
+         return {}
+      }
       const injectService = defineService(new Service(factory))
       expect(injectService).toThrow()
    })
@@ -308,6 +314,7 @@ describe("Inject", () => {
          expect(inject(Type)).toBeInstanceOf(Type)
          expect(inject(AbstractType)).toBeInstanceOf(AbstractType)
          expect(inject(Token)).toBe(tokenValue)
+         return {}
       }
 
       const injectService = defineService(
@@ -321,6 +328,7 @@ describe("Inject", () => {
 
       function factory() {
          expect(inject(Token, 10)).toBe(10)
+         return {}
       }
 
       const injectService = defineService(

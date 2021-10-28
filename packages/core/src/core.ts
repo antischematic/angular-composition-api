@@ -513,7 +513,7 @@ function service<T>(
 }
 
 export interface ServiceStatic {
-   new <T>(factory: (...params: any[]) => T, options?: ServiceOptions): Type<T>
+   new <T extends {}>(factory: (...params: any[]) => T, options?: ServiceOptions): Type<T>
 }
 
 export const Service: ServiceStatic = service as any
