@@ -1,7 +1,7 @@
 import {
    BehaviorSubject,
    isObservable, Observable,
-   PartialObserver,
+   PartialObserver, ReplaySubject,
    Subject,
    Subscribable,
    Subscription,
@@ -22,7 +22,7 @@ import {
    QueryListType,
    QueryType,
    ReadonlyValue,
-   UnsubscribeSignal,
+   UnsubscribeSignal, UseOptions,
    Value,
 } from "./interfaces"
 import {
@@ -74,35 +74,33 @@ export function use<T>(): Value<T | undefined>
 export function use<T>(value: QueryListType): ReadonlyValue<QueryList<T>>
 export function use<T>(value: QueryType): ReadonlyValue<T | undefined>
 export function use<T>(value: typeof Function): Emitter<T>
-export function use<T>(value: Value<T>): Emitter<T>
-export function use<T>(value: BehaviorSubject<T>): Value<T>
-export function use<T>(value: Subject<T>): Value<T | undefined>
-export function use<T, U>(value: AccessorValue<T, U>): Emitter<T>
+export function use<T>(value: Value<T>, options?: UseOptions<T>): Emitter<T>
+export function use<T, U>(value: AccessorValue<T, U>, options?: UseOptions<T>): Emitter<T>
 export function use<T>(value: ReadonlyValue<T>): never
 export function use<T>(value: Emitter<T>): Emitter<T>
-export function use<T>(value: Observable<T>): ReadonlyValue<T | undefined>
+export function use<T>(value: Observable<T>, options?: UseOptions<T>): Value<T | undefined>
 export function use<T extends (...args: any) => any>(
    value: EmitterWithParams<T>,
 ): EmitterWithParams<T>
 export function use<T extends (...args: any[]) => any>(
    value: T,
 ): EmitterWithParams<T>
-export function use<T>(value: T): Value<T>
-export function use(value?: any): unknown {
+export function use<T>(value: T, options?: UseOptions<T>): Value<T>
+export function use(value?: any, options?: UseOptions<unknown>): unknown {
    if (isQuery(value)) {
       const phase = queryMap.get(value)!
       if (value === ContentChildren || value === ViewChildren) {
          return new DeferredValue(new QueryListValue(), phase)
       }
-      return new ValueType(void 0, phase)
+      return new ValueType(void 0, phase, options)
    }
    if (isValue(value) || typeof value === "function") {
       return new EmitterType(value)
    }
    if (isObservable(value)) {
-      return new DeferredValue(value)
+      return new DeferredValue(value, 5, options)
    }
-   return new ValueType(value)
+   return new ValueType(value, 5, options)
 }
 
 export function subscribe<T>(): Subscription

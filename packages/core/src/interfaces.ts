@@ -6,7 +6,7 @@ import {
    ViewChild,
    ViewChildren,
 } from "@angular/core"
-import {BehaviorSubject, Observable, Subject, Subscribable, Subscription} from "rxjs"
+import { BehaviorSubject, Observable, Subject, Subscription } from "rxjs"
 
 export const checkPhase = Symbol("checkPhase")
 
@@ -92,3 +92,7 @@ export interface Emitter<T> extends EventEmitter<T> {
 export type QueryType = typeof ContentChild | typeof ViewChild
 
 export type QueryListType = typeof ViewChildren | typeof ContentChildren
+
+export interface UseOptions<T> {
+   distinct?: (oldValue: T, newValue: T) => boolean
+}
