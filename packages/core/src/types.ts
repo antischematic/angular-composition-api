@@ -7,7 +7,7 @@ import {
    Subscription,
    Unsubscribable,
 } from "rxjs"
-import { checkPhase } from "./interfaces"
+import {CheckPhase, checkPhase} from "./interfaces"
 import { EventEmitter } from "@angular/core"
 import { isValue } from "./utils"
 
@@ -79,6 +79,9 @@ export class Value<T> implements NextObserver<T> {
    set value(nextValue: T) {
       this.next(nextValue)
    }
+   isDirty(value: T) {
+      return this.value !== value
+   }
    call(this: any, context: any, ...args: any[]) {
       return this(...args)
    }
@@ -114,7 +117,7 @@ export class Value<T> implements NextObserver<T> {
       return this.source.toPromise(promiseCtor)
    }
 
-   constructor(public _value?: T, public phase = 0) {
+   constructor(public _value?: T, public phase: CheckPhase = 5) {
       const value: this = Object.setPrototypeOf(function Value(
          nextValue?: any,
       ): T | void {
@@ -156,7 +159,7 @@ export class DeferredValue extends Value<any> implements Connectable {
       return new ConnectedSubscriber(this, observer)
    }
 
-   constructor(public subscribable: Subscribable<any>, phase = 0) {
+   constructor(public subscribable: Subscribable<any>, phase: CheckPhase = 5) {
       super()
       this.refCount = 0
       this.phase = phase

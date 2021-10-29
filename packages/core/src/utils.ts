@@ -50,6 +50,18 @@ export class Notification<T> {
    }
 }
 
+export function accept<T>(observer: PartialObserver<any> | ((value: T) => any), value: T, error: unknown,  kind: string) {
+   if (typeof observer === "function") {
+      if (kind === "N") return observer(value)
+      return
+   }
+   return kind === "N"
+      ? observer.next?.(value!)
+      : kind === "E"
+         ? observer.error?.(error)
+         : observer.complete?.()
+}
+
 export function observeNotification<T>(
    notification: Notification<T>,
    observer: PartialObserver<T> | ((value: T) => any),
@@ -58,13 +70,5 @@ export function observeNotification<T>(
    if (typeof kind !== "string") {
       throw new TypeError('Invalid notification, missing "kind"')
    }
-   if (typeof observer === "function") {
-      if (kind === "N") return observer(value)
-      return
-   }
-   return kind === "N"
-      ? observer.next?.(value!)
-      : kind === "E"
-      ? observer.error?.(error)
-      : observer.complete?.()
+   return accept(observer, value, error, kind)
 }

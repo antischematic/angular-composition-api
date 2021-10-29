@@ -12,20 +12,14 @@ import {
    unsubscribe,
    ViewDef,
 } from "./core"
-import {
-   Component,
-   ErrorHandler,
-   Injectable,
-   InjectionToken,
-   Type,
-} from "@angular/core"
-import { ComponentFixture, TestBed } from "@angular/core/testing"
-import { checkPhase } from "./interfaces"
-import { use } from "./common"
-import { EventManager } from "@angular/platform-browser"
-import { ZonelessEventManager } from "./event-manager"
-import objectContaining = jasmine.objectContaining
-import createSpy = jasmine.createSpy
+import {Component, ErrorHandler, Injectable, InjectionToken, Type,} from "@angular/core"
+import {ComponentFixture, TestBed} from "@angular/core/testing"
+import {checkPhase} from "./interfaces"
+import {use} from "./common"
+import {EventManager} from "@angular/platform-browser"
+import {ZonelessEventManager} from "./event-manager"
+import objectContaining = jasmine.objectContaining;
+import createSpy = jasmine.createSpy;
 
 export function configureTest<T>(View: Type<T>): () => ComponentFixture<T> {
    TestBed.configureTestingModule({
@@ -119,7 +113,7 @@ describe("ViewDef", () => {
       const spy = createSpy()
       function create() {
          const count = subject
-         const { error } = getContext()
+         const error = getContext(2)
          const effect = new EffectObserver(count, spy, null, error)
          addEffect(effect)
          return {
@@ -253,9 +247,9 @@ describe("Context API", () => {
                spy(value)
             },
          })
-         addCheck(0, subject(0))
-         addCheck(1, subject(1))
-         addCheck(2, subject(2))
+         addCheck(5, subject(0))
+         addCheck(6, subject(1))
+         addCheck(7, subject(2))
          return {}
       }
       @Component({ template: `` })

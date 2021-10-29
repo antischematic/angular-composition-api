@@ -60,10 +60,10 @@ export class QueryListValue extends QueryList<any> {
 }
 
 const queryMap = new Map<Function, CheckPhase>([
-   [ContentChild, 1],
-   [ContentChildren, 1],
-   [ViewChild, 2],
-   [ViewChildren, 2],
+   [ContentChild, 6],
+   [ContentChildren, 6],
+   [ViewChild, 7],
+   [ViewChildren, 7],
 ])
 
 function isQuery(value: any) {

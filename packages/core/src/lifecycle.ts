@@ -1,4 +1,4 @@
-import { addTeardown, getContext } from "./core"
+import {addTeardown, getContext} from "./core"
 import { subscribe, use } from "./common"
 import { Subject } from "rxjs"
 
@@ -13,7 +13,7 @@ class ScheduleObserver {
 
 function schedule(callback: () => void = Function, phase: 0 | 1) {
    const emitter = use(callback)
-   const { scheduler } = getContext()
+   const scheduler = getContext(4)!
 
    subscribe(scheduler, new ScheduleObserver(phase, emitter))
 

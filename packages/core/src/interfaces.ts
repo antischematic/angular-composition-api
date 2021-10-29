@@ -19,7 +19,7 @@ export interface CheckSubject<T> extends Observable<T> {
    readonly [checkPhase]: CheckPhase
 }
 
-export type CheckPhase = 0 | 1 | 2
+export type CheckPhase = 5 | 6 | 7
 
 export type State<T, U> = Type<
    {
