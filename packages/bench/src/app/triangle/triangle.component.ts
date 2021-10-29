@@ -6,13 +6,11 @@ import {
    use,
    ViewDef,
 } from "@mmuscat/angular-composition-api"
+import {animationFrameScheduler, interval} from "rxjs";
 
 function counter() {
    const count = use(0)
-   subscribe(() => {
-      const interval = setInterval(() => count((count() % 10) + 1), 1000)
-      return () => clearInterval(interval)
-   })
+   subscribe(interval(1000, animationFrameScheduler), () => count((count() % 10) + 1))
    return count
 }
 

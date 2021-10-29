@@ -167,10 +167,10 @@ export class Scheduler extends Subject<any> {
 
    detectChanges() {
       if (this.dirty && !this.closed) {
-         this.dirty = false
-         dirty.delete(this)
          try {
             this.next(0)
+            dirty.delete(this)
+            this.dirty = false
             this.ref.detectChanges()
             isDevMode() && this.ref.checkNoChanges()
             this.next(1)
@@ -181,7 +181,7 @@ export class Scheduler extends Subject<any> {
    }
 
    markDirty() {
-      if (this.closed) return
+      if (this.closed || this.dirty) return
       this.dirty = true
       dirty.add(this)
    }
@@ -275,12 +275,12 @@ function createState(
 
 function setup(injector: Injector, stateFactory: () => {}) {
    const context: { [key: string]: any } = currentContext
-   const error = injector.get(ErrorHandler)
-   const scheduler = new Scheduler(injector.get(ChangeDetectorRef), error)
+   const errorHandler = injector.get(ErrorHandler)
+   const scheduler = new Scheduler(injector.get(ChangeDetectorRef), errorHandler)
 
    createContext(
       context,
-      error,
+      errorHandler,
       injector,
       scheduler,
       new Set(),
@@ -291,9 +291,9 @@ function setup(injector: Injector, stateFactory: () => {}) {
    addTeardown(scheduler)
 
    try {
-      createState(context, stateFactory, error)
-   } catch (e) {
-      error.handleError(error)
+      createState(context, stateFactory, errorHandler)
+   } catch (error) {
+      errorHandler.handleError(error)
       unsubscribe()
    }
 }
