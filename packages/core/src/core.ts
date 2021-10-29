@@ -35,6 +35,7 @@ import {
    Value,
 } from "./interfaces"
 import {
+   accept,
    isEmitter,
    isObject,
    isValue,
@@ -42,18 +43,29 @@ import {
    observeNotification,
 } from "./utils"
 import { ValueToken } from "./provider"
-import { ComputedValue, flush, setPending } from "./types"
+import { ComputedValue, defaultFn, flush, setPending } from "./types"
 
-export interface CurrentContext {
-   injector: Injector
-   error: ErrorHandler
-   subscription: Subscription
-   effects: EffectObserver[]
-   scheduler: any
-   0: Set<Check>
-   1: Set<Check>
-   2: Set<Check>
+const enum Context {
+   SUBSCRIPTION,
+   EFFECTS,
+   ERROR_HANDLER,
+   INJECT,
+   SCHEDULER,
+   DO_CHECK,
+   CONTENT_CHECK,
+   VIEW_CHECK,
 }
+
+export type CurrentContext = readonly [
+   Subscription | undefined,
+   EffectObserver[] | undefined,
+   ErrorHandler | undefined,
+   Injector | undefined,
+   Scheduler | undefined,
+   Set<Check> | undefined,
+   Set<Check> | undefined,
+   Set<Check> | undefined,
+]
 
 export let currentContext: any
 const contextMap = new WeakMap<{}, CurrentContext>()
@@ -70,10 +82,10 @@ export class CallContextError extends Error {
    }
 }
 
-export function getContext() {
+export function getContext<T extends 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7>(key: T) {
    const context = contextMap.get(currentContext)
    if (context) {
-      return context
+      return context[key]
    }
    throw new CallContextError()
 }
@@ -96,16 +108,20 @@ function createContext(
    error?: ErrorHandler,
    injector?: Injector,
    scheduler?: Scheduler,
-   additionalContext?: any,
+   check?: Set<any>,
+   contentCheck?: Set<any>,
+   viewCheck?: Set<any>,
 ) {
-   contextMap.set(context, {
-      injector,
+   contextMap.set(context, [
+      new Subscription(),
+      [],
       error,
+      injector,
       scheduler,
-      subscription: new Subscription(),
-      effects: [],
-      ...additionalContext,
-   })
+      check,
+      contentCheck,
+      viewCheck,
+   ])
 }
 
 interface ServiceOptions {
@@ -130,7 +146,7 @@ class ContextBinding<T = any> implements Check {
    }
    check() {
       const value = this.context[this.key]
-      if (this.source.value !== value) {
+      if (this.source.isDirty(value)) {
          this.scheduler.markDirty()
          this.source.next(value)
       }
@@ -151,10 +167,10 @@ export class Scheduler extends Subject<any> {
 
    detectChanges() {
       if (this.dirty && !this.closed) {
-         this.dirty = false
-         dirty.delete(this)
          try {
             this.next(0)
+            dirty.delete(this)
+            this.dirty = false
             this.ref.detectChanges()
             isDevMode() && this.ref.checkNoChanges()
             this.next(1)
@@ -165,7 +181,7 @@ export class Scheduler extends Subject<any> {
    }
 
    markDirty() {
-      if (this.closed) return
+      if (this.closed || this.dirty) return
       this.dirty = true
       dirty.add(this)
    }
@@ -191,8 +207,8 @@ function isCheckSubject(value: any): value is CheckSubject<any> {
 }
 
 function createBinding(context: any, key: any, value: any) {
-   const { scheduler } = getContext()
-   const binding = new ContextBinding(context, key, value, scheduler)
+   const scheduler = getContext(Context.SCHEDULER)
+   const binding = new ContextBinding(context, key, value, scheduler!)
    addCheck(value[checkPhase], binding)
    addTeardown(value.subscribe(binding))
 }
@@ -259,51 +275,55 @@ function createState(
 
 function setup(injector: Injector, stateFactory: () => {}) {
    const context: { [key: string]: any } = currentContext
-   const error = injector.get(ErrorHandler)
-   const scheduler = new Scheduler(injector.get(ChangeDetectorRef), error)
+   const errorHandler = injector.get(ErrorHandler)
+   const scheduler = new Scheduler(injector.get(ChangeDetectorRef), errorHandler)
 
-   createContext(context, error, injector, scheduler, [
+   createContext(
+      context,
+      errorHandler,
+      injector,
+      scheduler,
       new Set(),
       new Set(),
       new Set(),
-   ])
+   )
 
    addTeardown(scheduler)
 
    try {
-      createState(context, stateFactory, error)
-   } catch (e) {
-      error.handleError(error)
+      createState(context, stateFactory, errorHandler)
+   } catch (error) {
+      errorHandler.handleError(error)
       unsubscribe()
    }
 }
 
 export function check(key: CheckPhase) {
-   const context = getContext()
-   for (const subject of context[key]) {
+   const checks = getContext(key)
+   for (const subject of checks!) {
       subject.check()
    }
 }
 
 export function subscribe() {
    let effect
-   const { effects } = getContext()
-   while ((effect = effects.shift())) {
+   const effects = getContext(Context.EFFECTS)
+   while ((effect = effects!.shift())) {
       const subscription = effect.subscribe()
       addSignal(subscription, effect.signal)
    }
 }
 
 export function unsubscribe() {
-   getContext().subscription.unsubscribe()
+   getContext(Context.SUBSCRIPTION)?.unsubscribe()
 }
 
 export function addCheck(key: CheckPhase, subject: any) {
-   getContext()[key].add(subject)
+   getContext(key)!.add(subject)
 }
 
 export function addTeardown(teardown: TeardownLogic) {
-   getContext().subscription.add(teardown)
+   getContext(Context.SUBSCRIPTION)!.add(teardown)
 }
 
 export function addSignal(
@@ -323,27 +343,32 @@ export function addSignal(
    }
 }
 
-const empty = {} as CurrentContext
+class ComputedObserver {
+   call() {
+      try {
+         return this.source()
+      } catch (error) {
+         this.effect.handleError(error)
+      }
+   }
+   constructor(private effect: EffectObserver, private source: Function) {}
+}
 
 export function addEffect<T>(
    source?: Subscribable<T> | (() => TeardownLogic),
    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
    signal?: UnsubscribeSignal,
 ): Subscription | void {
-   const { effects, error } = currentContext ? getContext() : empty
+   let effects: EffectObserver[] | undefined, error: ErrorHandler | undefined
+   if (currentContext) {
+      effects = getContext(Context.EFFECTS)
+      error = getContext(Context.ERROR_HANDLER)
+   }
    const effect = new EffectObserver(source as any, observer, signal, error)
    effects?.push(effect)
    if (typeof source === "function" && !isValue(source) && !isEmitter(source)) {
-      const computed = new ComputedValue(() => {
-         try {
-            return source()
-         } catch (error) {
-            effect.handleError(error)
-         }
-      })
-      effect.source = computed
-      effect.observer = (a: any) => a
-      effect.add(() => computed.stop())
+      effect.source = new ComputedValue(new ComputedObserver(effect, source))
+      effect.observer = defaultFn
    }
    if (!currentContext) {
       effect.add(effect.subscribe())
@@ -369,19 +394,23 @@ function isNotification(
 }
 
 export class EffectObserver extends Subscription {
+   context: this
    next(nextValue: Notification<unknown> | unknown): void {
       if (isNotification(nextValue)) {
-         return this.call(nextValue)
+         return observeNotification(nextValue, this)
       }
-      this.call(Notification.createNext(nextValue))
+      this.call("N", nextValue)
    }
 
    error(error: unknown) {
-      this.call(Notification.createError(error))
+      this.call("E", void 0, error)
+      if (!this.observer || !("error" in this.observer)) {
+         this.handleError(error)
+      }
    }
 
    complete() {
-      this.call(Notification.createComplete())
+      this.call("C")
    }
 
    handleError(error: unknown) {
@@ -393,32 +422,31 @@ export class EffectObserver extends Subscription {
       }
    }
 
-   call(notification: Notification<unknown>) {
+   call(kind: "N" | "E" | "C", value?: unknown, error?: unknown) {
       if (this.closed) return
-      runInContext(this.that, this.observe, notification)
+      runInContext(this.context, this.observe, this, kind, value, error)
    }
 
-   observe(notification: Notification<unknown>) {
+   observe(
+      effect: this,
+      kind: "N" | "E" | "C",
+      value: unknown,
+      error: unknown,
+   ) {
       const previous = setPending(true)
       try {
          unsubscribe()
-         createContext(this, this.errorHandler)
-         if (this.observer) {
-            const teardown = observeNotification(notification, this.observer)
-            addSignal(teardown, this.signal)
+         createContext(effect.context, effect.errorHandler)
+         if (effect.observer) {
+            const teardown = accept(effect.observer, value, error, kind)
+            addSignal(teardown, effect.signal)
          }
-         if (
-            notification.kind === "E" &&
-            (!this.observer || !("error" in this.observer))
-         ) {
-            this.handleError(notification.error)
-         }
+         flush()
          subscribe()
       } catch (error) {
-         this.handleError(error)
+         effect.handleError(error)
       } finally {
          setPending(previous)
-         flush()
          if (!previous) {
             detectChanges()
          }
@@ -427,35 +455,34 @@ export class EffectObserver extends Subscription {
 
    unsubscribe() {
       if (this.closed) return
+      if (this.source instanceof ComputedValue) {
+         this.source.stop()
+      }
       super.unsubscribe()
-      runInContext(this.that, unsubscribe)
+      runInContext(this.context, unsubscribe)
    }
 
    subscribe() {
-      const subscription = new Subscription()
-      const source = this.source
+      const source = this.source as Subscribable<any>
       if (!source) {
-         return subscription
+         return this
       }
       try {
-         subscription.add(source.subscribe(this))
+         this.add(source.subscribe(this))
       } catch (error) {
          this.handleError(error)
       }
-      subscription.add(this)
-      return subscription
+      return this
    }
 
-   that = this
-
    constructor(
-      public source?: Subscribable<any>,
+      public source?: Subscribable<any> | ComputedValue,
       public observer?: PartialObserver<any> | ((value: any) => TeardownLogic),
       public signal?: UnsubscribeSignal,
       private errorHandler?: ErrorHandler,
    ) {
       super()
-      this.observe = this.observe.bind(this)
+      this.context = this
       createContext(this, errorHandler)
    }
 }
@@ -465,13 +492,13 @@ class View
    implements DoCheck, AfterContentChecked, AfterViewChecked, OnDestroy
 {
    ngDoCheck() {
-      runInContext(this, check, 0)
+      runInContext(this, check, Context.DO_CHECK)
    }
    ngAfterContentChecked() {
-      runInContext(this, check, 1)
+      runInContext(this, check, Context.CONTENT_CHECK)
    }
    ngAfterViewChecked() {
-      runInContext(this, check, 2)
+      runInContext(this, check, Context.VIEW_CHECK)
       runInContext(this, subscribe)
       runInContext(this, detectChanges)
    }
@@ -513,7 +540,10 @@ function service<T>(
 }
 
 export interface ServiceStatic {
-   new <T>(factory: (...params: any[]) => T, options?: ServiceOptions): Type<T>
+   new <T extends {}>(
+      factory: (...params: any[]) => T,
+      options?: ServiceOptions,
+   ): Type<T>
 }
 
 export const Service: ServiceStatic = service as any
@@ -533,7 +563,7 @@ export function inject<T>(
    notFoundValue?: T,
    flags?: InjectFlags,
 ): T {
-   const { injector } = getContext()
+   const injector = getContext(Context.INJECT)!
    const previous = setContext(void 0)
    const value = injector.get(token, notFoundValue, flags)
    setContext(previous)

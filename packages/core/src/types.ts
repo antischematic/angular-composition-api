@@ -7,7 +7,7 @@ import {
    Subscription,
    Unsubscribable,
 } from "rxjs"
-import { checkPhase } from "./interfaces"
+import {CheckPhase, checkPhase, UseOptions} from "./interfaces"
 import { EventEmitter } from "@angular/core"
 import { isValue } from "./utils"
 
@@ -72,12 +72,16 @@ export class Value<T> implements NextObserver<T> {
    [observable]() {
       return this
    }
+   check: (oldValue: T, newValue: T) => boolean
    source: ReplaySubject<T>
    get value(): T {
       return this._value!
    }
    set value(nextValue: T) {
       this.next(nextValue)
+   }
+   isDirty(value: T) {
+      return !this.check(this.value, value)
    }
    call(this: any, context: any, ...args: any[]) {
       return this(...args)
@@ -99,10 +103,7 @@ export class Value<T> implements NextObserver<T> {
       trigger(this)
    }
    asObservable(): Observable<T> {
-      const observable = new Observable<T>()
-      // noinspection JSDeprecatedSymbols
-      observable.source = this as any
-      return observable
+      return this.source.asObservable()
    }
    forEach(
       next: (value: any) => void,
@@ -114,7 +115,7 @@ export class Value<T> implements NextObserver<T> {
       return this.source.toPromise(promiseCtor)
    }
 
-   constructor(public _value?: T, public phase = 0) {
+   constructor(public _value?: T, public phase: CheckPhase = 5, options?: UseOptions<T>) {
       const value: this = Object.setPrototypeOf(function Value(
          nextValue?: any,
       ): T | void {
@@ -132,6 +133,7 @@ export class Value<T> implements NextObserver<T> {
       this)
       this.__ng_value = true
       this[checkPhase] = phase
+      this.check = options?.distinct ?? Object.is
       this.source = new ReplaySubject(1)
       this.source.subscribe((value) => (this._value = value))
       if (arguments.length > 0) this.source.next(_value!)
@@ -156,10 +158,11 @@ export class DeferredValue extends Value<any> implements Connectable {
       return new ConnectedSubscriber(this, observer)
    }
 
-   constructor(public subscribable: Subscribable<any>, phase = 0) {
+   constructor(public subscribable: Subscribable<any>, phase: CheckPhase = 5, options?: UseOptions<any>) {
       super()
       this.refCount = 0
       this.phase = phase
+      this.check = options?.distinct ?? Object.is
       this.subscription = Subscription.EMPTY
    }
 }
@@ -277,7 +280,7 @@ export class AccessorValue<TValue, TNext>
    }
 }
 
-function defaultFn(value: any) {
+export function defaultFn(value: any) {
    return value
 }
 
@@ -292,6 +295,9 @@ export class Emitter extends EventEmitter {
       } else {
          super.next(this.modifier(...values))
       }
+   }
+   emit(values: any) {
+      this.next(values)
    }
    constructor(fn: (...params: any[]) => any) {
       super()

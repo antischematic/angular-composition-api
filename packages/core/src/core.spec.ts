@@ -12,15 +12,8 @@ import {
    unsubscribe,
    ViewDef,
 } from "./core"
-import {
-   Component,
-   ErrorHandler,
-   Injectable,
-   InjectionToken,
-   Type,
-} from "@angular/core"
+import { Component, Injectable, InjectionToken, Type } from "@angular/core"
 import { ComponentFixture, TestBed } from "@angular/core/testing"
-import { checkPhase } from "./interfaces"
 import { use } from "./common"
 import { EventManager } from "@angular/platform-browser"
 import { ZonelessEventManager } from "./event-manager"
@@ -87,7 +80,6 @@ describe("ViewDef", () => {
    })
    it("should unwrap marked values", () => {
       const subject = use(1337)
-      Object.defineProperty(subject, checkPhase, { value: 0 })
       function create() {
          return {
             count: subject,
@@ -119,7 +111,7 @@ describe("ViewDef", () => {
       const spy = createSpy()
       function create() {
          const count = subject
-         const { error } = getContext()
+         const error = getContext(2)
          const effect = new EffectObserver(count, spy, null, error)
          addEffect(effect)
          return {
@@ -181,8 +173,6 @@ describe("ViewDef", () => {
       class Test extends ViewDef(create) {}
       const createView = configureTest(Test)
       const view = createView()
-      const error = TestBed.inject(ErrorHandler)
-      const spy = spyOn(error, "handleError")
       view.detectChanges()
       expect(() => view.componentInstance.increment()).toThrow(
          new Error("Bogus"),
@@ -192,21 +182,27 @@ describe("ViewDef", () => {
 
 describe("Service", () => {
    it("should create", () => {
-      function factory() {}
+      function factory() {
+         return {}
+      }
       const injectService = defineService(new Service(factory), {
          configureTestingModule: true,
       })
       expect(injectService).not.toThrow()
    })
    it("should create tree-shakable provider", () => {
-      function factory() {}
+      function factory() {
+         return {}
+      }
       const injectService = defineService(
          new Service(factory, { providedIn: "root" }),
       )
       expect(injectService).not.toThrow()
    })
    it("should throw if not provided", () => {
-      function factory() {}
+      function factory() {
+         return {}
+      }
       const injectService = defineService(new Service(factory))
       expect(injectService).toThrow()
    })
@@ -247,9 +243,9 @@ describe("Context API", () => {
                spy(value)
             },
          })
-         addCheck(0, subject(0))
-         addCheck(1, subject(1))
-         addCheck(2, subject(2))
+         addCheck(5, subject(0))
+         addCheck(6, subject(1))
+         addCheck(7, subject(2))
          return {}
       }
       @Component({ template: `` })
@@ -308,6 +304,7 @@ describe("Inject", () => {
          expect(inject(Type)).toBeInstanceOf(Type)
          expect(inject(AbstractType)).toBeInstanceOf(AbstractType)
          expect(inject(Token)).toBe(tokenValue)
+         return {}
       }
 
       const injectService = defineService(
@@ -321,6 +318,7 @@ describe("Inject", () => {
 
       function factory() {
          expect(inject(Token, 10)).toBe(10)
+         return {}
       }
 
       const injectService = defineService(

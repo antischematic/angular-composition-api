@@ -94,6 +94,12 @@ describe("use", () => {
          value.subscribe(spy)
          expect(spy).toHaveBeenCalledOnceWith(10)
       })
+      it("should use custom dirty check", () => {
+         const value = use({ count: 0 }, {
+            distinct: (prev, next) => prev.count === next.count
+         })
+         expect((<any>value).isDirty({ count: 10 })).toBeTrue()
+      })
    })
    describe("emitter", () => {
       it("should create", () => {
@@ -450,6 +456,7 @@ describe("subscribe", () => {
       const spy = createSpy()
       function factory() {
          subscribe(() => spy)
+         return {}
       }
       const TestService = new Service(factory, { providedIn: "root" })
       defineService(TestService)
