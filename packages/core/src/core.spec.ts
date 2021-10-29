@@ -12,14 +12,13 @@ import {
    unsubscribe,
    ViewDef,
 } from "./core"
-import {Component, ErrorHandler, Injectable, InjectionToken, Type,} from "@angular/core"
-import {ComponentFixture, TestBed} from "@angular/core/testing"
-import {checkPhase} from "./interfaces"
-import {use} from "./common"
-import {EventManager} from "@angular/platform-browser"
-import {ZonelessEventManager} from "./event-manager"
-import objectContaining = jasmine.objectContaining;
-import createSpy = jasmine.createSpy;
+import { Component, Injectable, InjectionToken, Type } from "@angular/core"
+import { ComponentFixture, TestBed } from "@angular/core/testing"
+import { use } from "./common"
+import { EventManager } from "@angular/platform-browser"
+import { ZonelessEventManager } from "./event-manager"
+import objectContaining = jasmine.objectContaining
+import createSpy = jasmine.createSpy
 
 export function configureTest<T>(View: Type<T>): () => ComponentFixture<T> {
    TestBed.configureTestingModule({
@@ -81,7 +80,6 @@ describe("ViewDef", () => {
    })
    it("should unwrap marked values", () => {
       const subject = use(1337)
-      Object.defineProperty(subject, checkPhase, { value: 0 })
       function create() {
          return {
             count: subject,
@@ -175,8 +173,6 @@ describe("ViewDef", () => {
       class Test extends ViewDef(create) {}
       const createView = configureTest(Test)
       const view = createView()
-      const error = TestBed.inject(ErrorHandler)
-      const spy = spyOn(error, "handleError")
       view.detectChanges()
       expect(() => view.componentInstance.increment()).toThrow(
          new Error("Bogus"),

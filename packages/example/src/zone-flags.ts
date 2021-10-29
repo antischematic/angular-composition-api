@@ -1,0 +1,14 @@
+(<any>window).__Zone_disable_MessagePort = true;
+(<any>window).__Zone_disable_notification = true;
+(<any>window).__Zone_disable_mediaQuery = true;
+(<any>window).__Zone_disable_geolocation = true;
+(<any>window).__Zone_disable_XHR = true;
+(<any>window).__Zone_enable_cross_context_check = true;
+(<any>window).__Zone_disable_IE_check = true;
+(<any>window).__Zone_disable_canvas = true;
+(<any>window).__Zone_disable_FileReader = true;
+(<any>window).__Zone_disable_IntersectionObserver = true;
+(<any>window).__Zone_disable_MutationObserver = true;
+(<any>window).__Zone_disable_EventTarget = true;
+(<any>window).__Zone_disable_blocking = true;
+(<any>window).__Zone_disable_requestAnimationFrame = true;
