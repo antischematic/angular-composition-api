@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkpackages_docs=self.webpackChunkpackages_docs||[]).push([[461],{7025:function(e){e.exports=JSON.parse('{"permalink":"/angular-composition-api/blog","page":1,"postsPerPage":10,"totalPages":1,"totalCount":4,"previousPage":null,"nextPage":null,"blogDescription":"Blog","blogTitle":"Blog"}')}}]);
