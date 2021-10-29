@@ -102,10 +102,7 @@ export class Value<T> implements NextObserver<T> {
       trigger(this)
    }
    asObservable(): Observable<T> {
-      const observable = new Observable<T>()
-      // noinspection JSDeprecatedSymbols
-      observable.source = this as any
-      return observable
+      return this.source.asObservable()
    }
    forEach(
       next: (value: any) => void,
@@ -295,6 +292,9 @@ export class Emitter extends EventEmitter {
       } else {
          super.next(this.modifier(...values))
       }
+   }
+   emit(values: any) {
+      this.next(values)
    }
    constructor(fn: (...params: any[]) => any) {
       super()

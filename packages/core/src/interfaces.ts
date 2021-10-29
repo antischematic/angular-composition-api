@@ -6,7 +6,7 @@ import {
    ViewChild,
    ViewChildren,
 } from "@angular/core"
-import { BehaviorSubject, Observable, Subject, Subscription } from "rxjs"
+import {BehaviorSubject, Observable, Subject, Subscribable, Subscription} from "rxjs"
 
 export const checkPhase = Symbol("checkPhase")
 
@@ -39,8 +39,6 @@ export type UnsubscribeSignal = Subscription | AbortSignal | null
 export type Value<T> = CheckSubject<T> &
    BehaviorSubject<T> & {
       readonly __ng_value: true
-      readonly source: Observable<T>
-      readonly pipe: Observable<T>["pipe"]
       readonly value: T
       (mutate: (value: T) => any): void
       (value: T): void
@@ -50,8 +48,6 @@ export type Value<T> = CheckSubject<T> &
 
 export interface ReadonlyValue<T> extends CheckSubject<T> {
    readonly __ng_value: true
-   readonly source: Observable<T>
-   readonly pipe: Observable<T>["pipe"]
    readonly value: T
    (): T
 }
@@ -72,11 +68,9 @@ export interface Accessor<T, U> {
       | (() => T)
 }
 
-export type AccessorValue<T, U> = CheckSubject<T> & {
+export interface AccessorValue<T, U> extends CheckSubject<T> {
    readonly __ng_value: true
    readonly __ng_accessor_value: true
-   readonly source: Observable<T>
-   readonly pipe: Observable<T>["pipe"]
    readonly value: T
    (mutate: (value: U) => any): void
    (value: U): void
@@ -85,20 +79,14 @@ export type AccessorValue<T, U> = CheckSubject<T> & {
 }
 
 export interface EmitterWithParams<T extends (...args: any[]) => any>
-   extends Subject<ReturnType<T>> {
+   extends EventEmitter<ReturnType<T>> {
    readonly __ng_emitter: true
-   readonly source: Observable<ReturnType<T>>
-   readonly pipe: Observable<ReturnType<T>>["pipe"]
    (...params: Parameters<T>): void
-   next(value: ReturnType<T>): void
 }
 
-export interface Emitter<T> extends Subject<T> {
+export interface Emitter<T> extends EventEmitter<T> {
    readonly __ng_emitter: true
-   readonly source: Observable<T>
-   readonly pipe: Observable<T>["pipe"]
    (value: T): void
-   next(value: T): void
 }
 
 export type QueryType = typeof ContentChild | typeof ViewChild

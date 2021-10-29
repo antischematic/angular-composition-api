@@ -1,6 +1,6 @@
 import {
    BehaviorSubject,
-   isObservable,
+   isObservable, Observable,
    PartialObserver,
    Subject,
    Subscribable,
@@ -80,7 +80,7 @@ export function use<T>(value: Subject<T>): Value<T | undefined>
 export function use<T, U>(value: AccessorValue<T, U>): Emitter<T>
 export function use<T>(value: ReadonlyValue<T>): never
 export function use<T>(value: Emitter<T>): Emitter<T>
-export function use<T>(value: Subscribable<T>): ReadonlyValue<T | undefined>
+export function use<T>(value: Observable<T>): ReadonlyValue<T | undefined>
 export function use<T extends (...args: any) => any>(
    value: EmitterWithParams<T>,
 ): EmitterWithParams<T>
@@ -107,26 +107,26 @@ export function use(value?: any): unknown {
 
 export function subscribe<T>(): Subscription
 export function subscribe<T>(observer: () => TeardownLogic): Subscription
-export function subscribe<T>(source: Subscribable<T>): Subscription
+export function subscribe<T>(source: Observable<T>): Subscription
 export function subscribe<T>(
-   source: Subscribable<T>,
+   source: Observable<T>,
    observer: PartialObserver<T>,
 ): Subscription
 export function subscribe<T>(
-   source: Subscribable<T>,
+   source: Observable<T>,
    observer: (value: T) => TeardownLogic,
 ): Subscription
 export function subscribe<T>(
-   source: Subscribable<T>,
+   source: Observable<T>,
    signal: UnsubscribeSignal,
 ): void
 export function subscribe<T>(
-   source: Subscribable<T>,
+   source: Observable<T>,
    observer: PartialObserver<T> | ((value: T) => TeardownLogic),
    signal: UnsubscribeSignal,
 ): void
 export function subscribe<T>(
-   source?: Subscribable<T> | (() => TeardownLogic),
+   source?: Observable<T> | (() => TeardownLogic),
    observerOrSignal?:
       | PartialObserver<T>
       | ((value: T) => TeardownLogic)
