@@ -4,13 +4,20 @@ sidebar_position: 4
 
 # Services
 
-Creates a context-aware, tree-shakable service from the provided setup function. If the
-`providedIn` option is set to null, or omitted, you must provide the service in a `NgModule`,
-`Directive` or `Component`. Start or retrieve the service with `inject`. Services can return any non-primitive value.
+Angular Composition API encourages small reusable services. These are created from an injectable factory function.
+A service can return any non-primitive value.
+
+:::important
+
+Remember to import `inject` from this package, not the one in `@angular/core`.
+
+:::
+
+## Examples
 
 ```ts title="Example: Basic service"
 import { HttpClient } from "@angular/common/http"
-import { Service } from "@mmuscat/angular-composition-api"
+import { Service, inject } from "@mmuscat/angular-composition-api"
 import { environment } from "./environment"
 
 function setup() {
@@ -52,3 +59,20 @@ function setup() {
 })
 export class MyComponent extends ViewDef(setup) {}
 ```
+
+:::note
+
+If the `providedIn` option is set to null, or omitted, you must provide the service in a `NgModule`,
+`Directive` or `Component`. Start or retrieve the service with `inject`.
+
+:::
+
+## Composition
+
+`Service` supports a subset of composition APIs that are available in `ViewDef`. The main differences are:
+
+- `Value` objects returned from a `Service` are not unwrapped
+- `subscribe` is executed immediately after a `Service` is created
+- `onDestroy` lifecycle is available for teardown logic, other hooks will have no effect
+- The `provide` API is not available
+

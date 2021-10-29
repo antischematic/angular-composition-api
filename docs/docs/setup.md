@@ -2,7 +2,9 @@
 sidebar_position: 2
 ---
 
-# Get Started
+# Setup
+
+## Installation
 
 Install via NPM
 
@@ -16,7 +18,7 @@ Install via Yarn
 yarn add @mmuscat/angular-composition-api
 ```
 
-## Setup
+## Configuration
 
 After the package is installed, provide `ZonelessEventManager` in the root module of your application. This is required
 for proper change detection in Angular template event handlers, even when zones are enabled.

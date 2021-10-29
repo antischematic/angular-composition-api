@@ -39,6 +39,41 @@ Where it differs:
 Since `Value` does not extend the `Observable` prototype, `instanceof` checks will fail. Should you require this, cast
 `Value` to an `Observable` first using `pipe` or `from`.
 
+### Custom check
+
+Input bindings are checked using strict equality by default. This can be customised by passing a `distinct`
+option when creating a `Value`. For example, shallow checking an array.
+
+```ts title="input binding with custom check"
+import { Component } from "@angular/core"
+import { use, ViewDef } from "@mmuscat/angular-composition-api"
+import shallowEqual from "shallowequal"
+
+function setup() {
+   const results = use([], { distinct: shallowEqual })
+
+   subscribe(results, () => {
+      console.log(results)
+   })
+   
+   return {
+      results
+   }
+}
+
+@Component({
+   inputs: ["results"]
+})
+export class MyComponent extends ViewDef(setup) {}
+```
+
+:::note
+
+Use `distinct` sparingly, as it is called on every change detection cycle and may cause performance issues if the
+check expression is expensive.
+
+:::
+
 ## Deferred Value
 
 A deferred `Value` has an initial state of `undefined`, and does not start emitting values until its initial value has
