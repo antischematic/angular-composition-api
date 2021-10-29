@@ -57,8 +57,7 @@
         "@schematics/angular:interceptor": {
           "skipTests": true
         },
-        "@schematics/angular:module": {
-        },
+        "@schematics/angular:module": {},
         "@schematics/angular:pipe": {
           "skipTests": true
         },
@@ -333,7 +332,11 @@
             ],
             "scripts": []
           }
-        }
+        },
+         "deploy": {
+            "builder": "angular-cli-ghpages:deploy",
+            "options": {}
+         }
       }
     }
   },
