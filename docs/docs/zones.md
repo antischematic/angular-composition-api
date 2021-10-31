@@ -16,7 +16,6 @@ Next to `polyfills.ts`, create a `zone-flags.ts` with the following content:
 (window as any).__Zone_disable_mediaQuery = true;
 (window as any).__Zone_disable_geolocation = true;
 (window as any).__Zone_disable_XHR = true;
-(window as any).__Zone_enable_cross_context_check = true;
 (window as any).__Zone_disable_IE_check = true;
 (window as any).__Zone_disable_canvas = true;
 (window as any).__Zone_disable_FileReader = true;
