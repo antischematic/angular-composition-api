@@ -2,7 +2,7 @@ import { provide, ValueToken } from "./provider"
 import { TestBed } from "@angular/core/testing"
 import { Component, DebugElement } from "@angular/core"
 import { By } from "@angular/platform-browser"
-import { inject, ViewDef } from "./core"
+import { inject, Service, ViewDef } from "./core"
 
 const Value = new ValueToken("Value", {
    factory() {
@@ -53,14 +53,16 @@ describe("provide", () => {
    })
    it("should provide a value", () => {
       function test() {
+
          provide(Value, 10)
+         return {}
       }
 
       TestBed.configureTestingModule({
          providers: [
             {
                provide: test,
-               useFactory: test,
+               useClass: new Service(test),
             },
          ],
       })

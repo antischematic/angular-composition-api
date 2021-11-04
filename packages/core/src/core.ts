@@ -4,7 +4,7 @@ import {
    ChangeDetectorRef,
    Directive,
    DoCheck,
-   ErrorHandler,
+   ErrorHandler, Inject,
    inject as serviceInject,
    Injectable,
    InjectFlags,
@@ -15,7 +15,6 @@ import {
    OnDestroy,
    ProviderToken,
    Type,
-   ɵɵdirectiveInject as directiveInject,
 } from "@angular/core"
 import {
    PartialObserver,
@@ -273,7 +272,7 @@ function createState(
    }
 }
 
-function setup(injector: Injector, stateFactory: () => {}) {
+function setup(injector: Injector) {
    const context: { [key: string]: any } = currentContext
    const errorHandler = injector.get(ErrorHandler)
    const scheduler = new Scheduler(injector.get(ChangeDetectorRef), errorHandler)
@@ -291,7 +290,7 @@ function setup(injector: Injector, stateFactory: () => {}) {
    addTeardown(scheduler)
 
    try {
-      createState(context, stateFactory, errorHandler)
+      createState(context, context.__setup, errorHandler)
    } catch (error) {
       errorHandler.handleError(error)
       unsubscribe()
@@ -488,9 +487,10 @@ export class EffectObserver extends Subscription {
 }
 
 @Directive()
-class View
+abstract class View
    implements DoCheck, AfterContentChecked, AfterViewChecked, OnDestroy
 {
+   abstract __setup(): any
    ngDoCheck() {
       runInContext(this, check, Context.DO_CHECK)
    }
@@ -505,13 +505,16 @@ class View
    ngOnDestroy() {
       runInContext(this, unsubscribe)
    }
+
+   constructor(@Inject(INJECTOR) injector: Injector) {
+      runInContext(this, setup, injector)
+   }
 }
 
-export function decorate(create: any) {
+export function decorate(setup: any) {
    return class extends View {
-      constructor() {
-         super()
-         runInContext(this, setup, directiveInject(INJECTOR), create)
+      __setup() {
+         return setup()
       }
    } as any
 }

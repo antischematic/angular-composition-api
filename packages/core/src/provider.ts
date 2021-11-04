@@ -1,9 +1,11 @@
 import {
    FactoryProvider,
+   inject,
+   InjectFlags,
    InjectionToken,
-   ɵɵdirectiveInject as inject,
+   Injector,
 } from "@angular/core"
-import { ProvidedIn } from "./core"
+import { getContext, ProvidedIn } from "./core"
 
 export type ValueToken<T> = InjectionToken<T> & {
    __ng_value_token: true
@@ -73,6 +75,10 @@ function createValueToken(
 export const ValueToken: ValueTokenStatic = createValueToken as any
 
 export function provide<T>(token: ValueToken<T>, value: T): void {
-   const key = inject((<any>token).key) as {}
+   const key = getContext(3)?.get(
+      (<any>token).key,
+      Injector.THROW_IF_NOT_FOUND,
+      InjectFlags.Self,
+   ) as {}
    valueMap.set(key, value)
 }
