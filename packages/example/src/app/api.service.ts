@@ -1,5 +1,5 @@
 import { HttpClient } from "@angular/common/http"
-import { timer } from "rxjs"
+import {share, timer} from "rxjs"
 import { map } from "rxjs/operators"
 import {
    use,
@@ -8,7 +8,7 @@ import {
    subscribe,
 } from "@mmuscat/angular-composition-api"
 import { Todo } from "./todo.component"
-import { NgCloak } from "@mmuscat/angular-error-boundary"
+import {ErrorHandler} from "@angular/core";
 
 let database = [
    {
@@ -30,13 +30,13 @@ let database = [
 
 function loadTodosById() {
    const http = inject(HttpClient)
-   const boundary = inject(NgCloak)
+   const boundary = inject(ErrorHandler)
    return function (userId: string) {
       console.log("Loading from fake server. userId:", userId)
       // http.get() for real application
-      return boundary
-         .cloak(timer(1000))
-         .pipe(map(() => database.sort(() => Math.random())))
+      const result = timer(1000).pipe(map(() => database.sort(() => Math.random())), share())
+      boundary.handleError(result)
+      return result
    }
 }
 

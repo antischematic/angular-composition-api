@@ -10,6 +10,7 @@ import {
    SkipSelf,
    TemplateRef,
    EventEmitter,
+   AfterViewInit,
 } from "@angular/core"
 import { NgIfContext } from "@angular/common"
 
@@ -23,12 +24,18 @@ export class ErrorLogger {
 @Component({
    selector: "error-boundary",
    template: `
-      <ng-container *ngIf="error; else template?.first">
+      <ng-container *ngIf="hasError; else template?.first ?? null">
          <ng-content select="fallback, [fallback]"></ng-content>
       </ng-container>
    `,
+   providers: [
+      {
+         provide: ErrorHandler,
+         useExisting: ErrorBoundary,
+      },
+   ],
 })
-export class ErrorBoundary implements DoCheck {
+export class ErrorBoundary implements DoCheck, AfterViewInit {
    @Output()
    error
    hasError
@@ -37,12 +44,16 @@ export class ErrorBoundary implements DoCheck {
    template?: QueryList<TemplateRef<NgIfContext<boolean>>>
 
    ngDoCheck() {
-      if (this.error) return
+      if (this.hasError) return
       try {
          this.changeDetectorRef.detectChanges()
       } catch (error) {
          this.handleError(error)
       }
+   }
+
+   ngAfterViewInit() {
+      this.changeDetectorRef.detach()
    }
 
    handleError(fault: unknown) {
@@ -75,6 +86,5 @@ export class ErrorBoundary implements DoCheck {
    ) {
       this.hasError = false
       this.error = new EventEmitter<ErrorEvent>()
-      this.changeDetectorRef.detach()
    }
 }

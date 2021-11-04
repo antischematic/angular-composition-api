@@ -1,7 +1,6 @@
 # Angular Error Boundary
 
-A lightweight (3kb) implementation of [Error Boundaries](https://reactjs.org/docs/error-boundaries.html) for Angular,
-with a bit of [Suspense](https://reactjs.org/docs/concurrent-mode-suspense.html).
+[Error Boundaries](https://reactjs.org/docs/error-boundaries.html) for Angular, with a bit of [Suspense](https://reactjs.org/docs/concurrent-mode-suspense.html).
 
 ## Quick Start
 
@@ -42,10 +41,6 @@ Add error boundaries to your components.
    <fallback>Something went wrong</fallback>
 </error-boundary>
 ```
-
-[comment]: <> (## Example)
-
-[comment]: <> ([View demo on Stackblitz]&#40;https://stackblitz.com/edit/angular-error-boundary?file=src%2Fapp%2Fapp.component.html&#41;)
 
 ## Handling async errors
 
@@ -185,11 +180,9 @@ item has its own cloak boundary.
 
 ```html
 <cloak-list revealOrder="forwards" tail="collapsed">
-  <li *ngFor="let item of items">
-     <ng-cloak>
-        <my-brand [item]="item"></my-brand>
-        <fallback>Loading...</fallback>
-     </ng-cloak>
-  </li>
+  <ng-cloak *ngFor="let item of items">
+     <my-brand [item]="item"></my-brand>
+     <fallback>Loading...</fallback>
+  </ng-cloak>
 </cloak-list>
 ```
