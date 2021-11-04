@@ -2,7 +2,7 @@
    "name": "@mmuscat/angular-error-boundary",
    "description": "Error Boundaries for Angular, with a bit of Suspense.",
    "license": "MIT",
-   "homepage": "https://github.com/mmuscat/angular-composition-api/tree/master/packages/boundary",
+   "homepage": "https://mmuscat.github.io/angular-composition-api/docs/boundary/setup",
    "repository": "https://github.com/mmuscat/angular-composition-api/tree/master/packages/boundary",
    "keywords": [
       "Angular",

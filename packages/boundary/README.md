@@ -1,6 +1,6 @@
 # Angular Error Boundary
 
-[Error Boundaries](https://reactjs.org/docs/error-boundaries.html) for Angular, with a bit of [Suspense](https://reactjs.org/docs/concurrent-mode-suspense.html). Click here to [Learn More](h)
+[Error Boundaries](https://reactjs.org/docs/error-boundaries.html) for Angular, with a bit of [Suspense](https://reactjs.org/docs/concurrent-mode-suspense.html). Click here to [Learn More](https://mmuscat.github.io/angular-composition-api/docs/boundary/setup)
 
 ## Quick Start
 
