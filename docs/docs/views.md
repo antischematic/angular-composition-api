@@ -261,9 +261,7 @@ function setup() {
    return {}
 }
 
-@Component({
-   template: ` <button (click)="handleClick($event)">Click</button> `,
-})
+@Component()
 export class MyComponent extends ViewDef(setup) {}
 ```
 
