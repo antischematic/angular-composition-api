@@ -1,12 +1,12 @@
-import { subscribe, use } from "./common"
+import {listen, subscribe, use} from "./common"
 import { map, materialize, mergeMap, tap } from "rxjs/operators"
 import {
    Component,
    ContentChild,
-   ContentChildren,
-   ErrorHandler,
+   ContentChildren, ElementRef,
+   ErrorHandler, HostListener, Injector,
    NgModuleRef,
-   QueryList,
+   QueryList, Renderer2,
    ViewChild,
    ViewChildren,
 } from "@angular/core"
@@ -24,6 +24,7 @@ import { onBeforeUpdate, onUpdated } from "./lifecycle"
 import { ComputedValue } from "./types"
 import createSpy = jasmine.createSpy
 import objectContaining = jasmine.objectContaining
+import {isEmitter} from "./utils";
 
 describe("use", () => {
    describe("value", () => {
@@ -675,5 +676,142 @@ describe("subscribe", () => {
       const view = createView()
       view.detectChanges()
       expect(view.componentInstance.count).toBe(1)
+   })
+})
+
+describe("listen", () => {
+   it("should call callback", () => {
+      const spy = createSpy()
+      const event = new MouseEvent("")
+      function setup() {
+         const callback = listen<MouseEvent>(spy)
+         return {
+            callback
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(setup) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      view.detectChanges()
+      view.componentInstance.callback(event)
+      expect(spy).toHaveBeenCalledOnceWith(event)
+   })
+
+   it("should be observable", () => {
+      const spy = createSpy()
+      const event = new MouseEvent("")
+      function setup() {
+         const callback = listen<MouseEvent>(() => {})
+         subscribe(callback, spy)
+         return {
+            callback
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(setup) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      view.detectChanges()
+      view.componentInstance.callback(event)
+      expect(spy).toHaveBeenCalledOnceWith(event)
+   })
+
+   it("should create host listener", () => {
+      const spy = createSpy()
+      const observerSpy = createSpy()
+      const observerSpy2 = createSpy()
+      const event = new MouseEvent("click")
+      function setup() {
+         const callback = listen<MouseEvent>("click", spy)
+         const callback2 = listen<MouseEvent>("click")
+         subscribe(callback, observerSpy)
+         subscribe(callback2, observerSpy2)
+         return {
+            callback
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(setup) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      const nativeElement = view.nativeElement as HTMLElement
+      view.detectChanges()
+      nativeElement.dispatchEvent(event)
+      expect(spy).toHaveBeenCalledOnceWith(event)
+      expect(observerSpy).toHaveBeenCalledOnceWith(event)
+   })
+
+   it("should create dom listener", () => {
+      const spy = createSpy()
+      const observerSpy = createSpy()
+      const observerSpy2 = createSpy()
+      const event = new MouseEvent("click")
+      const element = document.createElement("div")
+      function setup() {
+         const callback = listen<MouseEvent>(element, "click", spy)
+         const callback2 = listen<MouseEvent>(element, "click")
+         subscribe(callback, observerSpy)
+         subscribe(callback2, observerSpy2)
+         return {
+            callback
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(setup) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      view.detectChanges()
+      element.dispatchEvent(event)
+      expect(spy).toHaveBeenCalledOnceWith(event)
+      expect(observerSpy).toHaveBeenCalledOnceWith(event)
+      expect(observerSpy2).toHaveBeenCalledOnceWith(event)
+   })
+
+   it("should handle errors", () => {
+      const event = new MouseEvent("click")
+      function setup() {
+         const callback = listen<MouseEvent>(() => {
+            throw new Error("Boom")
+         })
+         return {
+            callback
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(setup) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      const errorHandler = TestBed.inject(ErrorHandler)
+      const spy = spyOn(errorHandler, "handleError")
+      view.detectChanges()
+      view.componentInstance.callback(event)
+      expect(spy).toHaveBeenCalledOnceWith(new Error("Boom"))
+   })
+
+   it("should use observable targets", () => {
+      const spy = createSpy()
+      const observerSpy = createSpy()
+      const observerSpy2 = createSpy()
+      const event = new MouseEvent("click")
+      const element = use(document.createElement("div"))
+      function setup() {
+         const callback = listen<MouseEvent>(element, "click", spy)
+         const callback2 = listen<MouseEvent>(element, "click")
+         subscribe(callback, observerSpy)
+         subscribe(callback2, observerSpy2)
+         return {
+            callback
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(setup) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      view.detectChanges()
+      element.value.dispatchEvent(event)
+      expect(spy).toHaveBeenCalledOnceWith(event)
+      expect(observerSpy).toHaveBeenCalledOnceWith(event)
+      expect(observerSpy2).toHaveBeenCalledOnceWith(event)
    })
 })

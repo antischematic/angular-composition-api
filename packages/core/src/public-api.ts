@@ -8,9 +8,8 @@ export {
    CallContextError,
    decorate,
    ViewDef,
-   detectChanges,
 } from "./core"
-export { use, subscribe } from "./common"
+export { use, subscribe, listen } from "./common"
 export {
    CheckSubject,
    checkPhase,

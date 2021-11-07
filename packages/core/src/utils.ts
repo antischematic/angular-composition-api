@@ -1,5 +1,5 @@
-import { PartialObserver, Subscription } from "rxjs"
-import { Emitter, UnsubscribeSignal, Value } from "./interfaces"
+import {PartialObserver, Subscription} from "rxjs"
+import {Emitter, Notification, UnsubscribeSignal, Value} from "./interfaces"
 
 export function isObject(value: unknown): value is {} {
    return typeof value === "object" && value !== null
@@ -27,27 +27,6 @@ export function isObserver(
    return (observer && "next" in observer) || typeof observer === "function"
       ? observer
       : void 0
-}
-
-export class Notification<T> {
-   constructor(
-      public kind: "N" | "E" | "C",
-      public value: T,
-      public error: unknown,
-      public complete: boolean,
-   ) {}
-
-   static createNext(value: any) {
-      return new Notification("N", value, undefined, false)
-   }
-
-   static createError(error: any) {
-      return new Notification("E", undefined, error, false)
-   }
-
-   static createComplete() {
-      return new Notification("C", undefined, undefined, true)
-   }
 }
 
 export function accept<T>(observer: PartialObserver<any> | ((value: T) => any), value: T, error: unknown,  kind: string) {

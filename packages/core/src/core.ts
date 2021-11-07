@@ -29,7 +29,7 @@ import {
    Check,
    checkPhase,
    CheckPhase,
-   CheckSubject,
+   CheckSubject, Notification,
    UnsubscribeSignal,
    Value,
 } from "./interfaces"
@@ -38,7 +38,6 @@ import {
    isEmitter,
    isObject,
    isValue,
-   Notification,
    observeNotification,
 } from "./utils"
 import { ValueToken } from "./provider"
@@ -220,39 +219,9 @@ export function setTemplateContext(context: any) {
    return previous
 }
 
-export function runInTemplate(context: any, handler: Function, ...args: any[]) {
-   const previous = setTemplateContext(context)
-   const pending = setPending(true)
-   try {
-      return handler(...args)
-   } finally {
-      if (!previous) {
-         flush()
-      }
-      setPending(pending)
-      setTemplateContext(previous)
-   }
-}
-
-function decorateFunction(exec: Function, errorHandler: ErrorHandler) {
-   function decorated(...args: any[]) {
-      try {
-         return runInTemplate(null, exec, ...args)
-      } catch (error) {
-         if (templateContext) {
-            errorHandler.handleError(error)
-         } else {
-            throw error
-         }
-      }
-   }
-   return decorated
-}
-
 function createState(
    context: any,
    stateFactory: () => {},
-   error: ErrorHandler,
 ) {
    const state = stateFactory()
 
@@ -260,8 +229,6 @@ function createState(
       if (isCheckSubject(value)) {
          context[key] = value.value
          createBinding(context, key, value)
-      } else if (typeof value === "function" && !isEmitter(value)) {
-         context[key] = decorateFunction(value, error)
       } else {
          Object.defineProperty(
             context,
@@ -290,7 +257,7 @@ function setup(injector: Injector) {
    addTeardown(scheduler)
 
    try {
-      createState(context, context.__setup, errorHandler)
+      createState(context, context.__setup)
    } catch (error) {
       errorHandler.handleError(error)
       unsubscribe()
@@ -358,12 +325,13 @@ export function addEffect<T>(
    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
    signal?: UnsubscribeSignal,
 ): Subscription | void {
-   let effects: EffectObserver[] | undefined, error: ErrorHandler | undefined
+   let effects: EffectObserver[] | undefined, error: ErrorHandler | undefined, injector: Injector | undefined
    if (currentContext) {
       effects = getContext(Context.EFFECTS)
       error = getContext(Context.ERROR_HANDLER)
+      injector = getContext(Context.INJECT)
    }
-   const effect = new EffectObserver(source as any, observer, signal, error)
+   const effect = new EffectObserver(source as any, observer, signal, error, injector)
    effects?.push(effect)
    if (typeof source === "function" && !isValue(source) && !isEmitter(source)) {
       effect.source = new ComputedValue(new ComputedObserver(effect, source))
@@ -435,7 +403,7 @@ export class EffectObserver extends Subscription {
       const previous = setPending(true)
       try {
          unsubscribe()
-         createContext(effect.context, effect.errorHandler)
+         createContext(effect.context, effect.errorHandler, effect.injector)
          if (effect.observer) {
             const teardown = accept(effect.observer, value, error, kind)
             addSignal(teardown, effect.signal)
@@ -479,6 +447,7 @@ export class EffectObserver extends Subscription {
       public observer?: PartialObserver<any> | ((value: any) => TeardownLogic),
       public signal?: UnsubscribeSignal,
       private errorHandler?: ErrorHandler,
+      private injector?: Injector
    ) {
       super()
       this.context = this

@@ -6,7 +6,7 @@ import {
    ViewChild,
    ViewChildren,
 } from "@angular/core"
-import { BehaviorSubject, Observable, Subject, Subscription } from "rxjs"
+import {BehaviorSubject, Observable, Subject, Subscription} from "rxjs"
 
 export const checkPhase = Symbol("checkPhase")
 
@@ -95,4 +95,11 @@ export type QueryListType = typeof ViewChildren | typeof ContentChildren
 
 export interface UseOptions<T> {
    distinct?: (oldValue: T, newValue: T) => boolean
+}
+
+export interface Notification<T> {
+   kind: "N" | "E" | "C",
+   value: T,
+   error: unknown,
+   complete: boolean,
 }

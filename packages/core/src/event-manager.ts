@@ -1,10 +1,10 @@
 import { Injectable } from "@angular/core"
 import { EventManager } from "@angular/platform-browser"
-import { detectChanges, runInTemplate } from "./core"
+import { detectChanges } from "./core"
 
-function wrapHandlerInTemplateContext(handler: Function) {
+function wrapHandlerInDetectChanges(handler: Function) {
    return function handlerWrappedInDetectChanges(...args: any[]) {
-      runInTemplate(handler, handler, ...args)
+      handler(...args)
       detectChanges()
    }
 }
@@ -16,7 +16,7 @@ export class ZonelessEventManager extends EventManager {
       eventName: string,
       handler: Function,
    ): Function {
-      handler = wrapHandlerInTemplateContext(handler)
+      handler = wrapHandlerInDetectChanges(handler)
       return super.addEventListener(element, eventName, handler)
    }
 }

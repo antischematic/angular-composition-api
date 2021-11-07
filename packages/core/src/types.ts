@@ -95,6 +95,9 @@ export class Value<T> implements NextObserver<T> {
    subscribe(observer: any) {
       return this.source.subscribe(observer)
    }
+   lift(operator: any) {
+      return this.source.lift(operator)
+   }
    pipe(this: any, ...observers: any) {
       return this.source.pipe(...observers)
    }

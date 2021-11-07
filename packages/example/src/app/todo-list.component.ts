@@ -9,6 +9,7 @@ import { CreateTodo, LoadTodosById } from "./api.service"
 import { Todo, TodoModule } from "./todo.component"
 import {
    inject,
+   listen,
    subscribe,
    use,
    ViewDef,
@@ -33,7 +34,10 @@ function todoList() {
       createTodo = inject(CreateTodo),
       error = inject(ErrorHandler),
       changesCount = use(0),
-      dialog = inject(MatDialog)
+      dialog = inject(MatDialog),
+      explode = listen<void>(() => {
+         throw new Error("Boom")
+      })
 
    subscribe(userId, (value) => {
       subscribe(loadTodosById(value), {
@@ -71,13 +75,6 @@ function todoList() {
    subscribe(() => {
       console.log("change count:", changesCount())
    })
-
-   function explode() {
-      const dialogRef = dialog.open(DialogText)
-      subscribe(dialogRef.afterClosed(), () => {
-         error.handleError(new Error("Boom!"))
-      })
-   }
 
    function toggleAll() {
       const done = todos().some((todo) => !todo.done)

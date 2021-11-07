@@ -4,7 +4,13 @@ sidebar_position: 2
 
 # Boundary: Introduction
 
-This package adds [Error Boundaries](https://reactjs.org/docs/error-boundaries.html) to Angular, with a bit of [Suspense](https://reactjs.org/docs/concurrent-mode-suspense.html).
+[Error Boundaries](https://reactjs.org/docs/error-boundaries.html) to Angular, with a bit of [Suspense](https://reactjs.org/docs/concurrent-mode-suspense.html).
+
+:::caution
+
+This package is still being developed, and may contain breaking changes between each release.
+
+:::
 
 ## Get Started
 
@@ -74,21 +80,20 @@ additional setup required.
 -  When `subscribe` receives an error notification without an error observer.
 -  When a `subscribe` observer throws an error
 -  During `ViewDef` or `Service` setup
--  When an event binding emits (experimental, with caveats). The event binding must be a plain function returned from
-   the top level of a `ViewDef` setup function.
-   ```ts
+-  When `listen` throws an error. This is useful for catching errors in event bindings.
+   ```ts title="Example: Event handler"
    function setup() {
-      function eventHandlerThatThrows() {
+      const eventHandlerThatThrows = listen((event) => {
          throw new Error("Oops")
-      }
+      })
       return {
-         eventHandlerThatThrows // must be returned from the top level
+         eventHandlerThatThrows
       }
    }
    
    @Component({
      template: `
-       <button (click)="eventHandlerThatThrows()">Boom</button>
+       <button (click)="eventHandlerThatThrows($event)">Boom</button>
      `
    })
    ```
