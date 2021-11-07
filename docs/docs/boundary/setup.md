@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Boundary: Introduction
 
-[Error Boundaries](https://reactjs.org/docs/error-boundaries.html) to Angular, with a bit of [Suspense](https://reactjs.org/docs/concurrent-mode-suspense.html).
+[Error Boundaries](https://reactjs.org/docs/error-boundaries.html) for Angular, with a bit of [Suspense](https://reactjs.org/docs/concurrent-mode-suspense.html).
 
 :::caution
 
