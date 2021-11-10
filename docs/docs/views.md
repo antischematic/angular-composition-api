@@ -294,3 +294,36 @@ function setup() {
 })
 export class MyComponent extends ViewDef(setup) {}
 ```
+
+## Attributes
+
+To get static attributes during component creation, use the `attribute` selector. This is useful when casting boolean
+attributes, for example. The second argument is a function used to casting the attribute value to another type.
+
+```ts title="Example: Boolean attributes"
+import { Component } from "@angular/core"
+import { attribute, ViewDef } from "@mmuscat/angular-composition-api"
+
+function setup() {
+   const disabled = attribute("disabled", Boolean)
+   
+   return {
+      disabled
+   }
+}
+
+@Component({
+   selector: 'my-button',
+   template: `
+      <button [disabled]="disabled">
+         <ng-content></ng-content>
+      </button>
+   `,
+   inputs: ["disabled"]
+})
+export class ButtonComponent extends ViewDef(setup) {}
+```
+
+```html title="Example: Boolean attribute usage"
+<my-button disabled></button>
+```

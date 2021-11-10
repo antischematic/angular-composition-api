@@ -535,7 +535,7 @@ export function inject<T>(
    notFoundValue?: T,
    flags?: InjectFlags,
 ): T {
-   const injector = getContext(Context.INJECT)!
+   const injector = currentContext ? getContext(Context.INJECT)! : serviceInject(INJECTOR)
    const previous = setContext(void 0)
    const value = injector.get(token, notFoundValue, flags)
    setContext(previous)

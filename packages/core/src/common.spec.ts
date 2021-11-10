@@ -1,4 +1,4 @@
-import {listen, subscribe, use} from "./common"
+import { attribute, listen, subscribe, use } from "./common"
 import { map, materialize, mergeMap, tap } from "rxjs/operators"
 import {
    Component,
@@ -25,6 +25,7 @@ import { ComputedValue } from "./types"
 import createSpy = jasmine.createSpy
 import objectContaining = jasmine.objectContaining
 import {isEmitter} from "./utils";
+import { By } from "@angular/platform-browser"
 
 describe("use", () => {
    describe("value", () => {
@@ -813,5 +814,119 @@ describe("listen", () => {
       expect(spy).toHaveBeenCalledOnceWith(event)
       expect(observerSpy).toHaveBeenCalledOnceWith(event)
       expect(observerSpy2).toHaveBeenCalledOnceWith(event)
+   })
+})
+
+describe("attribute", () => {
+   it("should get the attribute", () => {
+      function setup() {
+         const name = attribute("name")
+         return {
+            name
+         }
+      }
+      @Component({
+         selector: "test",
+         template: ``,
+         inputs: ["name"]
+      })
+      class Test extends ViewDef(setup) {}
+
+      @Component({
+         template: `
+            <test name="test"></test>
+         `
+      })
+      class Host {}
+
+      configureTest(Test)
+      const createView = configureTest(Host)
+      const view = createView()
+      expect(view.debugElement.query(By.directive(Test)).componentInstance.name).toBe("test")
+   })
+
+   it("should convert boolean attribute", () => {
+      function setup() {
+         const disabled = attribute("disabled", Boolean)
+         return {
+            disabled
+         }
+      }
+      @Component({
+         selector: "test",
+         template: ``,
+         inputs: ["disabled"]
+      })
+      class Test extends ViewDef(setup) {}
+
+      @Component({
+         template: `
+            <test disabled></test>
+         `
+      })
+      class Host {}
+
+      configureTest(Test)
+      const createView = configureTest(Host)
+      const view = createView()
+      view.detectChanges()
+      expect(view.debugElement.query(By.directive(Test)).componentInstance.disabled).toBe(true)
+   })
+
+   it("should convert number value", () => {
+      function setup() {
+         const count = attribute("count", Number)
+         return {
+            count
+         }
+      }
+      @Component({
+         selector: "test",
+         template: ``,
+         inputs: ["count"]
+      })
+      class Test extends ViewDef(setup) {}
+
+      @Component({
+         template: `
+            <test count="10"></test>
+         `
+      })
+      class Host {}
+
+      configureTest(Test)
+      const createView = configureTest(Host)
+      const view = createView()
+      view.detectChanges()
+      expect(view.debugElement.query(By.directive(Test)).componentInstance.count).toBe(10)
+   })
+
+   it("should work as binding", () => {
+      function setup() {
+         const count = attribute("count", Number)
+         return {
+            count
+         }
+      }
+      @Component({
+         selector: "test",
+         template: ``,
+         inputs: ["count"]
+      })
+      class Test extends ViewDef(setup) {}
+
+      @Component({
+         template: `
+            <test [count]="10"></test>
+         `
+      })
+      class Host {}
+
+      configureTest(Test)
+      const createView = configureTest(Host)
+      const view = createView()
+      expect(view.debugElement.query(By.directive(Test)).componentInstance.count).toBe(0)
+      view.detectChanges()
+      expect(view.debugElement.query(By.directive(Test)).componentInstance.count).toBe(10)
    })
 })

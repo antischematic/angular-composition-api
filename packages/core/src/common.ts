@@ -1,14 +1,9 @@
-import {
-   isObservable,
-   Observable,
-   PartialObserver,
-   Subscription,
-   TeardownLogic,
-} from "rxjs"
+import { isObservable, Observable, PartialObserver, Subscription, TeardownLogic } from "rxjs"
 import {
    ContentChild,
    ContentChildren,
    ElementRef,
+   InjectionToken,
    QueryList,
    Renderer2,
    ViewChild,
@@ -28,11 +23,8 @@ import {
 } from "./interfaces"
 import { accept, isObserver, isSignal, isValue } from "./utils"
 import { addEffect, addTeardown, inject } from "./core"
-import {
-   DeferredValue,
-   Emitter as EmitterType,
-   Value as ValueType,
-} from "./types"
+import { DeferredValue, Emitter as EmitterType, Value as ValueType } from "./types"
+import { select } from "./select"
 
 export class QueryListValue extends QueryList<any> {
    subscription?: Subscription
@@ -203,4 +195,29 @@ export function listen() {
    }
    subscribe(emitter, handler!)
    return emitter
+}
+
+export const Attribute = new InjectionToken("Attribute", {
+   factory() {
+      return function getAttribute(qualifiedName: string) {
+         const { nativeElement } = inject<ElementRef<HTMLElement>>(ElementRef)
+         return nativeElement.getAttribute(qualifiedName)
+      }
+   }
+})
+
+const noCast = (value: string | null) => value
+
+export function attribute<T>(qualifiedName: string, cast: (value: string | null) => T): Value<T>
+export function attribute(qualifiedName: string): Value<string | null>
+export function attribute(qualifiedName: string, cast = noCast): unknown {
+   const getAttribute = inject(Attribute)
+   const attr = getAttribute(qualifiedName)
+   const value = use(cast(attr === "" ? qualifiedName : attr))
+   return select({
+      next(nextValue: any) {
+         value(cast(nextValue === "" ? qualifiedName : nextValue))
+      },
+      value
+   })
 }
