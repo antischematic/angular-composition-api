@@ -298,7 +298,7 @@ export class MyComponent extends ViewDef(setup) {}
 ## Attributes
 
 To get static attributes during component creation, use the `attribute` selector. This is useful when casting boolean
-attributes, for example. The second argument is a function used to casting the attribute value to another type.
+attributes, for example. The second argument is a function used to cast the attribute value to another type.
 
 ```ts title="Example: Boolean attributes"
 import { Component } from "@angular/core"
