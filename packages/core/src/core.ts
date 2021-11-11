@@ -565,7 +565,9 @@ type Writable<T> = {
       : never]: T[key]
 }
 
-export type ViewDef<T, U = Readonly<T> & Writable<T>> = Type<
+export type ViewDef<T, U = Readonly<T> & Writable<T>> = Type<{
+      [key in keyof T]: T[key] extends CheckSubject<infer R> ? R : T[key]
+   } &
    {
       [key in keyof U]: U[key] extends CheckSubject<infer R> ? R : U[key]
    }
