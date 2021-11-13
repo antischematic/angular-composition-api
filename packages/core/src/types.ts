@@ -9,7 +9,7 @@ import {
 } from "rxjs"
 import {CheckPhase, checkPhase, UseOptions} from "./interfaces"
 import { EventEmitter } from "@angular/core"
-import { isValue } from "./utils"
+import {isEmitter, isValue} from "./utils"
 
 const trackedValues = new Map<any, Set<any>>()
 const pendingObservers = new Set<any>()
@@ -282,7 +282,7 @@ export class AccessorValue<TValue, TNext>
 
    constructor(accessor: Accessor<TValue, TNext>) {
       let { value } = accessor
-      if (typeof value === "function") {
+      if (typeof value === "function" && !isValue(value) && !isEmitter(value)) {
          value = new ComputedValue(value)
       }
       super("value" in value ? value["value"] : void 0)

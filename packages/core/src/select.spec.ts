@@ -145,4 +145,21 @@ describe("combine", () => {
       })
       expect(spy).toHaveBeenCalledWith(expected)
    })
+
+   it("should be triggered by upstream value changes", () => {
+      const count = use(0)
+      const disabled = use(false)
+      const state = combine({
+         count,
+         disabled
+      })
+
+      count(10)
+      disabled(true)
+
+      expect(state()).toEqual({
+         count: 10,
+         disabled: true
+      })
+   })
 })

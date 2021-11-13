@@ -1,4 +1,4 @@
-import {PartialObserver, Subscription} from "rxjs"
+import {Observable, PartialObserver, Subscription} from "rxjs"
 import {Emitter, ExpandValue, Notification, UnsubscribeSignal, Value} from "./interfaces"
 
 export function isObject(value: unknown): value is {} {

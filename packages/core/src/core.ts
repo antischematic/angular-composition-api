@@ -337,7 +337,7 @@ export function addEffect<T>(
       effect.source = new ComputedValue(new ComputedObserver(effect, source))
       effect.observer = defaultFn
    }
-   if (!currentContext) {
+   if (!injector) {
       effect.add(effect.subscribe())
    }
    return effect
