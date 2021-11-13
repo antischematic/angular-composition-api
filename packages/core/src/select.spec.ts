@@ -1,5 +1,5 @@
-import { select } from "./select"
-import { use } from "./common"
+import {combine, select} from "./select"
+import {subscribe, use} from "./common"
 
 describe("select", () => {
    it("should create", () => {
@@ -56,5 +56,93 @@ describe("select", () => {
       expect(double.value).toBe(20)
       expect(spy).toHaveBeenCalledTimes(2)
       expect(spy).toHaveBeenCalledWith(20)
+   })
+})
+
+describe("combine", () => {
+   it("should unwrap values", () => {
+      const count = use(0)
+      const disabled = use(false)
+      const plain = "plain"
+      const state = combine({
+         count,
+         nested: {
+            disabled,
+            plain,
+         },
+      })
+      expect(state()).toEqual({
+         count: 0,
+         nested: {
+            disabled: false,
+            plain: "plain"
+         }
+      })
+   })
+   it("should assign values", () => {
+      const count = use(0)
+      const disabled = use(false)
+      const plain = "plain"
+      const object = {
+         count,
+         nested: {
+            disabled,
+            plain,
+         },
+      }
+      const state = combine(object)
+      const expected = {
+         count: 10,
+         nested: {
+            disabled: true,
+            plain: "still plain"
+         }
+      }
+
+      state(expected)
+
+      expect(state()).toEqual(expected)
+      expect(count()).toBe(10)
+      expect(disabled()).toBe(true)
+      expect(object.nested.plain).toBe("still plain")
+   })
+   it("should subscribe values", () => {
+      const spy = jasmine.createSpy()
+      const count = use(0)
+      const disabled = use(false)
+      const plain = "plain"
+      const object = {
+         count,
+         nested: {
+            disabled,
+            plain,
+         },
+      }
+      const state = combine(object)
+      const expected = {
+         count: 10,
+         nested: {
+            disabled: true,
+            plain: "still plain"
+         }
+      }
+
+      subscribe(state, spy)
+
+      state(expected)
+
+      expect(state()).toEqual(expected)
+      expect(count()).toBe(10)
+      expect(disabled()).toBe(true)
+      expect(object.nested.plain).toBe("still plain")
+      expect(spy).toHaveBeenCalledTimes(2)
+      expect(spy).toHaveBeenCalledWith({
+         count: 0,
+         nested: {
+            disabled: false,
+            plain
+         }
+      })
+      expect(spy).toHaveBeenCalledWith(expected)
    })
 })

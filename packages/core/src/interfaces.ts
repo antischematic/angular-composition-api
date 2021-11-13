@@ -6,7 +6,7 @@ import {
    ViewChild,
    ViewChildren,
 } from "@angular/core"
-import {BehaviorSubject, Observable, Subject, Subscription} from "rxjs"
+import {BehaviorSubject, NextObserver, Observable, Subject, Subscription,} from "rxjs"
 
 export const checkPhase = Symbol("checkPhase")
 
@@ -37,7 +37,7 @@ export type State<T, U> = Type<
 export type UnsubscribeSignal = Subscription | AbortSignal | null
 
 export type Value<T> = CheckSubject<T> &
-   BehaviorSubject<T> & {
+   NextObserver<T> & {
       readonly __ng_value: true
       readonly value: T
       (mutate: (value: T) => any): void
@@ -98,8 +98,12 @@ export interface UseOptions<T> {
 }
 
 export interface Notification<T> {
-   kind: "N" | "E" | "C",
-   value: T,
-   error: unknown,
-   complete: boolean,
+   kind: "N" | "E" | "C"
+   value: T
+   error: unknown
+   complete: boolean
+}
+
+export type ExpandValue<T> = T extends Value<infer R> ? R : {
+   [key in keyof T]: ExpandValue<T[key]>
 }

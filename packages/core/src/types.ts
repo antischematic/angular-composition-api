@@ -247,6 +247,12 @@ export class AccessorValue<TValue, TNext>
    subscription: Unsubscribable
    subscribable: Subscribable<TValue>
    accessor: Accessor<TValue, TNext>
+   connected: boolean
+
+   get value() {
+      this.connect()
+      return super.value
+   }
 
    next(value: TNext): void
    next(value: never): void
@@ -258,11 +264,15 @@ export class AccessorValue<TValue, TNext>
    }
 
    connect() {
-      this.disconnect()
-      this.subscription = this.subscribable.subscribe(this.source)
+      if (!this.connected) {
+         this.disconnect()
+         this.connected = true
+         this.subscription = this.subscribable.subscribe(this.source)
+      }
    }
 
    disconnect() {
+      this.connected = false
       this.subscription.unsubscribe()
    }
 
@@ -280,6 +290,7 @@ export class AccessorValue<TValue, TNext>
       this.refCount = 0
       this.subscription = Subscription.EMPTY
       this.subscribable = value
+      this.connected = false
    }
 }
 

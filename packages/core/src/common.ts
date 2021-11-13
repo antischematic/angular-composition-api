@@ -13,7 +13,7 @@ import {
    AccessorValue,
    CheckPhase,
    Emitter,
-   EmitterWithParams,
+   EmitterWithParams, ExpandValue,
    QueryListType,
    QueryType,
    ReadonlyValue,
@@ -21,7 +21,17 @@ import {
    UseOptions,
    Value,
 } from "./interfaces"
-import { accept, isObserver, isSignal, isValue } from "./utils"
+import {
+   accept,
+   access,
+   get,
+   getPath,
+   isObject,
+   isObserver,
+   isSignal,
+   isValue,
+   walk
+} from "./utils"
 import { addEffect, addTeardown, inject } from "./core"
 import { DeferredValue, Emitter as EmitterType, Value as ValueType } from "./types"
 import { select } from "./select"

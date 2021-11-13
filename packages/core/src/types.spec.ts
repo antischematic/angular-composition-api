@@ -74,9 +74,6 @@ describe("types", () => {
          // noinspection JSUnusedLocalSymbols
          const observable: Observable<number> = number
          // noinspection JSUnusedLocalSymbols
-         const subject: Subject<number> = number
-         // noinspection JSUnusedLocalSymbols
-         const behavior: BehaviorSubject<number> = number
 
          // Observable interop
          // noinspection JSUnusedLocalSymbols

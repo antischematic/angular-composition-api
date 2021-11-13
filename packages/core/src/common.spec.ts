@@ -1,4 +1,4 @@
-import { attribute, listen, subscribe, use } from "./common"
+import {attribute, listen, subscribe, use} from "./common"
 import { map, materialize, mergeMap, tap } from "rxjs/operators"
 import {
    Component,
@@ -24,7 +24,7 @@ import { onBeforeUpdate, onUpdated } from "./lifecycle"
 import { ComputedValue } from "./types"
 import createSpy = jasmine.createSpy
 import objectContaining = jasmine.objectContaining
-import {isEmitter} from "./utils";
+import {access, isEmitter} from "./utils";
 import { By } from "@angular/platform-browser"
 
 describe("use", () => {

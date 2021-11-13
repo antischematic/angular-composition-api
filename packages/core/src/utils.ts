@@ -1,5 +1,5 @@
 import {PartialObserver, Subscription} from "rxjs"
-import {Emitter, Notification, UnsubscribeSignal, Value} from "./interfaces"
+import {Emitter, ExpandValue, Notification, UnsubscribeSignal, Value} from "./interfaces"
 
 export function isObject(value: unknown): value is {} {
    return typeof value === "object" && value !== null
@@ -50,4 +50,36 @@ export function observeNotification<T>(
       throw new TypeError('Invalid notification, missing "kind"')
    }
    return accept(observer, value, error, kind)
+}
+
+export function getPath(value: any, path: string[]): any {
+   if (!path.length) return value
+   return path.reduceRight((val: any, key) => val[key], value)
+}
+
+export function walk<T extends { [key: string]: any }>(object: T, next: (value: any, path: string[]) => any, path: string[] = []): { [key: string]: any } {
+   return Object.getOwnPropertyNames(object).reduce((acc, key ) => {
+      const value = object[key]
+      const currentPath = [key, ...path]
+      if (isObject(value)) {
+         acc[key] = walk(value, next, currentPath)
+      } else {
+         acc[key] = next(value, currentPath)
+      }
+      return acc
+   }, {} as any)
+}
+
+export function get<T extends {}>(value: T): ExpandValue<T>
+export function get<T>(value: Value<T>): T
+export function get(value: any) {
+   if (isValue(value)) return value()
+   return walk(value, (current) => isValue(current) ? current() : current)
+}
+
+export function access<T extends {}>(value: T): ExpandValue<T>
+export function access<T>(value: Value<T>): T
+export function access(value: any) {
+   if (isValue(value)) return value.value
+   return walk(value, (current) => isValue(current) ? current.value : current)
 }
