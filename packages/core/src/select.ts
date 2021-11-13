@@ -41,11 +41,11 @@ export function combine<T extends {}>(object: T): Value<ExpandValue<T>> {
                target[key] = val
             }
          })
-         setPending(previous)
-         flush()
          if (shouldTrigger) {
             computed(computed.value)
          }
+         setPending(previous)
+         flush()
       },
       value: computed,
    }) as Value<ExpandValue<T>>
