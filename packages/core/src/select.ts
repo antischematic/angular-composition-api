@@ -5,7 +5,12 @@ import {
    ExpandValue,
    Value,
 } from "./interfaces"
-import {AccessorValue as AccessorValueType, ComputedValue, flush, setPending} from "./types"
+import {
+   AccessorValue as AccessorValueType,
+   ComputedValue,
+   flush,
+   setPending,
+} from "./types"
 import { get, getPath, isEmitter, isValue, walk } from "./utils"
 
 export function select<T, U>(accessor: Accessor<T, U>): AccessorValue<T, U>

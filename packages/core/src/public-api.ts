@@ -2,13 +2,7 @@
  * Public API Surface of angular-composition-api
  */
 
-export {
-   Service,
-   inject,
-   CallContextError,
-   decorate,
-   ViewDef,
-} from "./core"
+export { Service, inject, CallContextError, decorate, ViewDef } from "./core"
 export { use, subscribe, listen, Attribute, attribute } from "./common"
 export {
    CheckSubject,
@@ -22,7 +16,7 @@ export {
    EmitterWithParams,
    Accessor,
    AccessorValue,
-   ExpandValue
+   ExpandValue,
 } from "./interfaces"
 export { select, combine } from "./select"
 export { ValueToken, provide, EmptyValueError } from "./provider"

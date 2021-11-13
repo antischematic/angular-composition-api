@@ -53,7 +53,6 @@ describe("provide", () => {
    })
    it("should provide a value", () => {
       function test() {
-
          provide(Value, 10)
          return {}
       }

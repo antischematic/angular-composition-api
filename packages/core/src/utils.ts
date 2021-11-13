@@ -1,5 +1,11 @@
-import {Observable, PartialObserver, Subscription} from "rxjs"
-import {Emitter, ExpandValue, Notification, UnsubscribeSignal, Value} from "./interfaces"
+import { PartialObserver, Subscription } from "rxjs"
+import {
+   Emitter,
+   ExpandValue,
+   Notification,
+   UnsubscribeSignal,
+   Value,
+} from "./interfaces"
 
 export function isObject(value: unknown): value is {} {
    return typeof value === "object" && value !== null
@@ -29,7 +35,12 @@ export function isObserver(
       : void 0
 }
 
-export function accept<T>(observer: PartialObserver<any> | ((value: T) => any), value: T, error: unknown,  kind: string) {
+export function accept<T>(
+   observer: PartialObserver<any> | ((value: T) => any),
+   value: T,
+   error: unknown,
+   kind: string,
+) {
    if (typeof observer === "function") {
       if (kind === "N") return observer(value)
       return
@@ -37,8 +48,8 @@ export function accept<T>(observer: PartialObserver<any> | ((value: T) => any), 
    return kind === "N"
       ? observer.next?.(value!)
       : kind === "E"
-         ? observer.error?.(error)
-         : observer.complete?.()
+      ? observer.error?.(error)
+      : observer.complete?.()
 }
 
 export function observeNotification<T>(
@@ -57,8 +68,12 @@ export function getPath(value: any, path: string[]): any {
    return path.reduceRight((val: any, key) => val[key], value)
 }
 
-export function walk<T extends { [key: string]: any }>(object: T, next: (value: any, path: string[]) => any, path: string[] = []): { [key: string]: any } {
-   return Object.getOwnPropertyNames(object).reduce((acc, key ) => {
+export function walk<T extends { [key: string]: any }>(
+   object: T,
+   next: (value: any, path: string[]) => any,
+   path: string[] = [],
+): { [key: string]: any } {
+   return Object.getOwnPropertyNames(object).reduce((acc, key) => {
       const value = object[key]
       const currentPath = [key, ...path]
       if (isObject(value)) {
@@ -74,12 +89,12 @@ export function get<T extends {}>(value: T): ExpandValue<T>
 export function get<T>(value: Value<T>): T
 export function get(value: any) {
    if (isValue(value)) return value()
-   return walk(value, (current) => isValue(current) ? current() : current)
+   return walk(value, (current) => (isValue(current) ? current() : current))
 }
 
 export function access<T extends {}>(value: T): ExpandValue<T>
 export function access<T>(value: Value<T>): T
 export function access(value: any) {
    if (isValue(value)) return value.value
-   return walk(value, (current) => isValue(current) ? current.value : current)
+   return walk(value, (current) => (isValue(current) ? current.value : current))
 }

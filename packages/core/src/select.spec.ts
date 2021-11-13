@@ -1,5 +1,5 @@
-import {combine, select} from "./select"
-import {subscribe, use} from "./common"
+import { combine, select } from "./select"
+import { subscribe, use } from "./common"
 
 describe("select", () => {
    it("should create", () => {
@@ -75,8 +75,8 @@ describe("combine", () => {
          count: 0,
          nested: {
             disabled: false,
-            plain: "plain"
-         }
+            plain: "plain",
+         },
       })
    })
    it("should assign values", () => {
@@ -95,8 +95,8 @@ describe("combine", () => {
          count: 10,
          nested: {
             disabled: true,
-            plain: "still plain"
-         }
+            plain: "still plain",
+         },
       }
 
       state(expected)
@@ -123,8 +123,8 @@ describe("combine", () => {
          count: 10,
          nested: {
             disabled: true,
-            plain: "still plain"
-         }
+            plain: "still plain",
+         },
       }
 
       subscribe(state, spy)
@@ -140,8 +140,8 @@ describe("combine", () => {
          count: 0,
          nested: {
             disabled: false,
-            plain
-         }
+            plain,
+         },
       })
       expect(spy).toHaveBeenCalledWith(expected)
    })
@@ -151,7 +151,7 @@ describe("combine", () => {
       const disabled = use(false)
       const state = combine({
          count,
-         disabled
+         disabled,
       })
 
       count(10)
@@ -159,7 +159,7 @@ describe("combine", () => {
 
       expect(state()).toEqual({
          count: 10,
-         disabled: true
+         disabled: true,
       })
    })
 })

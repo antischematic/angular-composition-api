@@ -1,4 +1,4 @@
-import {addTeardown, getContext} from "./core"
+import { addTeardown, getContext } from "./core"
 import { subscribe, use } from "./common"
 import { Subject } from "rxjs"
 

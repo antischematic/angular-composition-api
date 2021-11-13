@@ -4,7 +4,8 @@ import {
    ChangeDetectorRef,
    Directive,
    DoCheck,
-   ErrorHandler, Inject,
+   ErrorHandler,
+   Inject,
    inject as serviceInject,
    Injectable,
    InjectFlags,
@@ -29,7 +30,8 @@ import {
    Check,
    checkPhase,
    CheckPhase,
-   CheckSubject, Notification,
+   CheckSubject,
+   Notification,
    UnsubscribeSignal,
    Value,
 } from "./interfaces"
@@ -219,10 +221,7 @@ export function setTemplateContext(context: any) {
    return previous
 }
 
-function createState(
-   context: any,
-   stateFactory: () => {},
-) {
+function createState(context: any, stateFactory: () => {}) {
    const state = stateFactory()
 
    for (let [key, value] of Object.entries(state)) {
@@ -242,7 +241,10 @@ function createState(
 function setup(injector: Injector) {
    const context: { [key: string]: any } = currentContext
    const errorHandler = injector.get(ErrorHandler)
-   const scheduler = new Scheduler(injector.get(ChangeDetectorRef), errorHandler)
+   const scheduler = new Scheduler(
+      injector.get(ChangeDetectorRef),
+      errorHandler,
+   )
 
    createContext(
       context,
@@ -325,13 +327,21 @@ export function addEffect<T>(
    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
    signal?: UnsubscribeSignal,
 ): Subscription | void {
-   let effects: EffectObserver[] | undefined, error: ErrorHandler | undefined, injector: Injector | undefined
+   let effects: EffectObserver[] | undefined,
+      error: ErrorHandler | undefined,
+      injector: Injector | undefined
    if (currentContext) {
       effects = getContext(Context.EFFECTS)
       error = getContext(Context.ERROR_HANDLER)
       injector = getContext(Context.INJECT)
    }
-   const effect = new EffectObserver(source as any, observer, signal, error, injector)
+   const effect = new EffectObserver(
+      source as any,
+      observer,
+      signal,
+      error,
+      injector,
+   )
    effects?.push(effect)
    if (typeof source === "function" && !isValue(source) && !isEmitter(source)) {
       effect.source = new ComputedValue(new ComputedObserver(effect, source))
@@ -447,7 +457,7 @@ export class EffectObserver extends Subscription {
       public observer?: PartialObserver<any> | ((value: any) => TeardownLogic),
       public signal?: UnsubscribeSignal,
       private errorHandler?: ErrorHandler,
-      private injector?: Injector
+      private injector?: Injector,
    ) {
       super()
       this.context = this
@@ -535,7 +545,9 @@ export function inject<T>(
    notFoundValue?: T,
    flags?: InjectFlags,
 ): T {
-   const injector = currentContext ? getContext(Context.INJECT)! : serviceInject(INJECTOR)
+   const injector = currentContext
+      ? getContext(Context.INJECT)!
+      : serviceInject(INJECTOR)
    const previous = setContext(void 0)
    const value = injector.get(token, notFoundValue, flags)
    setContext(previous)
@@ -565,10 +577,11 @@ type Writable<T> = {
       : never]: T[key]
 }
 
-export type ViewDef<T, U = Readonly<T> & Writable<T>> = Type<{
+export type ViewDef<T, U = Readonly<T> & Writable<T>> = Type<
+   {
       [key in keyof T]: T[key] extends CheckSubject<infer R> ? R : T[key]
    } &
-   {
-      [key in keyof U]: U[key] extends CheckSubject<infer R> ? R : U[key]
-   }
+      {
+         [key in keyof U]: U[key] extends CheckSubject<infer R> ? R : U[key]
+      }
 >

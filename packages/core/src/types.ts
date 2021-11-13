@@ -7,9 +7,9 @@ import {
    Subscription,
    Unsubscribable,
 } from "rxjs"
-import {CheckPhase, checkPhase, UseOptions} from "./interfaces"
+import { CheckPhase, checkPhase, UseOptions } from "./interfaces"
 import { EventEmitter } from "@angular/core"
-import {isEmitter, isValue} from "./utils"
+import { isEmitter, isValue } from "./utils"
 
 const trackedValues = new Map<any, Set<any>>()
 const pendingObservers = new Set<any>()
@@ -118,7 +118,11 @@ export class Value<T> implements NextObserver<T> {
       return this.source.toPromise(promiseCtor)
    }
 
-   constructor(public _value?: T, public phase: CheckPhase = 5, options?: UseOptions<T>) {
+   constructor(
+      public _value?: T,
+      public phase: CheckPhase = 5,
+      options?: UseOptions<T>,
+   ) {
       const value: this = Object.setPrototypeOf(function Value(
          nextValue?: any,
       ): T | void {
@@ -161,7 +165,11 @@ export class DeferredValue extends Value<any> implements Connectable {
       return new ConnectedSubscriber(this, observer)
    }
 
-   constructor(public subscribable: Subscribable<any>, phase: CheckPhase = 5, options?: UseOptions<any>) {
+   constructor(
+      public subscribable: Subscribable<any>,
+      phase: CheckPhase = 5,
+      options?: UseOptions<any>,
+   ) {
       super()
       this.refCount = 0
       this.phase = phase

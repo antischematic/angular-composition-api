@@ -6,7 +6,13 @@ import {
    ViewChild,
    ViewChildren,
 } from "@angular/core"
-import {BehaviorSubject, NextObserver, Observable, Subject, Subscription,} from "rxjs"
+import {
+   BehaviorSubject,
+   NextObserver,
+   Observable,
+   Subject,
+   Subscription,
+} from "rxjs"
 
 export const checkPhase = Symbol("checkPhase")
 
@@ -104,6 +110,8 @@ export interface Notification<T> {
    complete: boolean
 }
 
-export type ExpandValue<T> = T extends Value<infer R> ? R : {
-   [key in keyof T]: ExpandValue<T[key]>
-}
+export type ExpandValue<T> = T extends Value<infer R>
+   ? R
+   : {
+        [key in keyof T]: ExpandValue<T[key]>
+     }

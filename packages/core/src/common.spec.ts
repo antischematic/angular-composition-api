@@ -1,12 +1,12 @@
-import {attribute, listen, subscribe, use} from "./common"
+import { attribute, listen, subscribe, use } from "./common"
 import { map, materialize, mergeMap, tap } from "rxjs/operators"
 import {
    Component,
    ContentChild,
-   ContentChildren, ElementRef,
-   ErrorHandler, HostListener, Injector,
+   ContentChildren,
+   ErrorHandler,
    NgModuleRef,
-   QueryList, Renderer2,
+   QueryList,
    ViewChild,
    ViewChildren,
 } from "@angular/core"
@@ -22,10 +22,9 @@ import {
 import { configureTest, defineService } from "./core.spec"
 import { onBeforeUpdate, onUpdated } from "./lifecycle"
 import { ComputedValue } from "./types"
+import { By } from "@angular/platform-browser"
 import createSpy = jasmine.createSpy
 import objectContaining = jasmine.objectContaining
-import {access, isEmitter} from "./utils";
-import { By } from "@angular/platform-browser"
 
 describe("use", () => {
    describe("value", () => {
@@ -97,9 +96,12 @@ describe("use", () => {
          expect(spy).toHaveBeenCalledOnceWith(10)
       })
       it("should use custom dirty check", () => {
-         const value = use({ count: 0 }, {
-            distinct: (prev, next) => prev.count === next.count
-         })
+         const value = use(
+            { count: 0 },
+            {
+               distinct: (prev, next) => prev.count === next.count,
+            },
+         )
          expect((<any>value).isDirty({ count: 10 })).toBeTrue()
       })
    })
@@ -687,7 +689,7 @@ describe("listen", () => {
       function setup() {
          const callback = listen<MouseEvent>(spy)
          return {
-            callback
+            callback,
          }
       }
       @Component({ template: `` })
@@ -706,7 +708,7 @@ describe("listen", () => {
          const callback = listen<MouseEvent>(() => {})
          subscribe(callback, spy)
          return {
-            callback
+            callback,
          }
       }
       @Component({ template: `` })
@@ -729,7 +731,7 @@ describe("listen", () => {
          subscribe(callback, observerSpy)
          subscribe(callback2, observerSpy2)
          return {
-            callback
+            callback,
          }
       }
       @Component({ template: `` })
@@ -755,7 +757,7 @@ describe("listen", () => {
          subscribe(callback, observerSpy)
          subscribe(callback2, observerSpy2)
          return {
-            callback
+            callback,
          }
       }
       @Component({ template: `` })
@@ -776,7 +778,7 @@ describe("listen", () => {
             throw new Error("Boom")
          })
          return {
-            callback
+            callback,
          }
       }
       @Component({ template: `` })
@@ -802,7 +804,7 @@ describe("listen", () => {
          subscribe(callback, observerSpy)
          subscribe(callback2, observerSpy2)
          return {
-            callback
+            callback,
          }
       }
       @Component({ template: `` })
@@ -822,47 +824,45 @@ describe("attribute", () => {
       function setup() {
          const name = attribute("name")
          return {
-            name
+            name,
          }
       }
       @Component({
          selector: "test",
          template: ``,
-         inputs: ["name"]
+         inputs: ["name"],
       })
       class Test extends ViewDef(setup) {}
 
       @Component({
-         template: `
-            <test name="test"></test>
-         `
+         template: ` <test name="test"></test> `,
       })
       class Host {}
 
       configureTest(Test)
       const createView = configureTest(Host)
       const view = createView()
-      expect(view.debugElement.query(By.directive(Test)).componentInstance.name).toBe("test")
+      expect(
+         view.debugElement.query(By.directive(Test)).componentInstance.name,
+      ).toBe("test")
    })
 
    it("should convert boolean attribute", () => {
       function setup() {
          const disabled = attribute("disabled", Boolean)
          return {
-            disabled
+            disabled,
          }
       }
       @Component({
          selector: "test",
          template: ``,
-         inputs: ["disabled"]
+         inputs: ["disabled"],
       })
       class Test extends ViewDef(setup) {}
 
       @Component({
-         template: `
-            <test disabled></test>
-         `
+         template: ` <test disabled></test> `,
       })
       class Host {}
 
@@ -870,27 +870,27 @@ describe("attribute", () => {
       const createView = configureTest(Host)
       const view = createView()
       view.detectChanges()
-      expect(view.debugElement.query(By.directive(Test)).componentInstance.disabled).toBe(true)
+      expect(
+         view.debugElement.query(By.directive(Test)).componentInstance.disabled,
+      ).toBe(true)
    })
 
    it("should convert number value", () => {
       function setup() {
          const count = attribute("count", Number)
          return {
-            count
+            count,
          }
       }
       @Component({
          selector: "test",
          template: ``,
-         inputs: ["count"]
+         inputs: ["count"],
       })
       class Test extends ViewDef(setup) {}
 
       @Component({
-         template: `
-            <test count="10"></test>
-         `
+         template: ` <test count="10"></test> `,
       })
       class Host {}
 
@@ -898,35 +898,39 @@ describe("attribute", () => {
       const createView = configureTest(Host)
       const view = createView()
       view.detectChanges()
-      expect(view.debugElement.query(By.directive(Test)).componentInstance.count).toBe(10)
+      expect(
+         view.debugElement.query(By.directive(Test)).componentInstance.count,
+      ).toBe(10)
    })
 
    it("should work as binding", () => {
       function setup() {
          const count = attribute("count", Number)
          return {
-            count
+            count,
          }
       }
       @Component({
          selector: "test",
          template: ``,
-         inputs: ["count"]
+         inputs: ["count"],
       })
       class Test extends ViewDef(setup) {}
 
       @Component({
-         template: `
-            <test [count]="10"></test>
-         `
+         template: ` <test [count]="10"></test> `,
       })
       class Host {}
 
       configureTest(Test)
       const createView = configureTest(Host)
       const view = createView()
-      expect(view.debugElement.query(By.directive(Test)).componentInstance.count).toBe(0)
+      expect(
+         view.debugElement.query(By.directive(Test)).componentInstance.count,
+      ).toBe(0)
       view.detectChanges()
-      expect(view.debugElement.query(By.directive(Test)).componentInstance.count).toBe(10)
+      expect(
+         view.debugElement.query(By.directive(Test)).componentInstance.count,
+      ).toBe(10)
    })
 })
