@@ -1,7 +1,7 @@
 import {
    AfterContentChecked,
    AfterViewChecked,
-   ChangeDetectorRef, ComponentFactoryResolver,
+   ChangeDetectorRef,
    Directive,
    DoCheck,
    ErrorHandler,
@@ -16,7 +16,7 @@ import {
    OnDestroy,
    ProviderToken,
    Type,
-   ɵNG_COMP_DEF
+   ɵNG_COMP_DEF,
 } from "@angular/core"
 import {
    PartialObserver,
@@ -195,7 +195,7 @@ export class Scheduler extends Subject<any> {
    constructor(
       private ref: ChangeDetectorRef,
       private errorHandler: ErrorHandler,
-      private isComponent: boolean
+      private isComponent: boolean,
    ) {
       super()
       this.dirty = false
@@ -246,7 +246,7 @@ function setup(injector: Injector) {
    const scheduler = new Scheduler(
       injector.get(ChangeDetectorRef),
       errorHandler,
-      ɵNG_COMP_DEF in Object.getPrototypeOf(context).constructor
+      ɵNG_COMP_DEF in Object.getPrototypeOf(context).constructor,
    )
 
    createContext(
