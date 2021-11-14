@@ -162,4 +162,14 @@ describe("combine", () => {
          disabled: true,
       })
    })
+
+   it("should accept Value", () => {
+      const count = use(0)
+      const state = combine(count)
+
+      state(10)
+      expect(count()).toBe(10)
+      count(20)
+      expect(state()).toBe(20)
+   })
 })

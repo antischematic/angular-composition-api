@@ -26,6 +26,7 @@ export function select(
 }
 
 export function combine<T extends {}>(object: T): Value<ExpandValue<T>> {
+   if (isValue(object)) return object
    const computed = select(() => get(object))
    return select({
       next(nextValue: any) {

@@ -1,7 +1,7 @@
 import {
    AfterContentChecked,
    AfterViewChecked,
-   ChangeDetectorRef,
+   ChangeDetectorRef, ComponentFactoryResolver,
    Directive,
    DoCheck,
    ErrorHandler,
@@ -16,6 +16,7 @@ import {
    OnDestroy,
    ProviderToken,
    Type,
+   ɵNG_COMP_DEF
 } from "@angular/core"
 import {
    PartialObserver,
@@ -194,11 +195,14 @@ export class Scheduler extends Subject<any> {
    constructor(
       private ref: ChangeDetectorRef,
       private errorHandler: ErrorHandler,
+      private isComponent: boolean
    ) {
       super()
       this.dirty = false
       this.closed = false
-      this.ref.detach()
+      if (isComponent) {
+         this.ref.detach()
+      }
    }
 }
 
@@ -221,9 +225,7 @@ export function setTemplateContext(context: any) {
    return previous
 }
 
-function createState(context: any, stateFactory: () => {}) {
-   const state = stateFactory()
-
+function createState(context: any, state: any) {
    for (let [key, value] of Object.entries(state)) {
       if (isCheckSubject(value)) {
          context[key] = value.value
@@ -244,6 +246,7 @@ function setup(injector: Injector) {
    const scheduler = new Scheduler(
       injector.get(ChangeDetectorRef),
       errorHandler,
+      ɵNG_COMP_DEF in Object.getPrototypeOf(context).constructor
    )
 
    createContext(
@@ -259,7 +262,7 @@ function setup(injector: Injector) {
    addTeardown(scheduler)
 
    try {
-      createState(context, context.__setup)
+      createState(context, context.__setup())
    } catch (error) {
       errorHandler.handleError(error)
       unsubscribe()
