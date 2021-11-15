@@ -172,4 +172,43 @@ describe("combine", () => {
       count(20)
       expect(state()).toBe(20)
    })
+
+   it("should assign partial value", () => {
+      const count = use(0)
+      const disabled = use(false)
+      const plain = "plain"
+      const object = {
+         count,
+         nested: {
+            disabled,
+            plain,
+         },
+      }
+      const state = combine(object)
+      const expected = {
+         nested: {
+            disabled: true,
+         },
+      }
+
+      state(expected)
+
+      expect(state()).toEqual({
+         count: 0,
+         nested: {
+            disabled: true,
+            plain: "plain",
+         },
+      })
+      expect(count()).toBe(0)
+      expect(disabled()).toBe(true)
+      expect(object.nested.plain).toBe("plain")
+   })
+
+   it("should throw when setting unknown key", () => {
+      const state = combine({ })
+      expect(() => state({ nested: { deep: { count: 0 } } })).toThrowError(
+         `Target object does not have existing key "count" in object path "nested.deep"`,
+      )
+   })
 })

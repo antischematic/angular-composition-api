@@ -25,7 +25,10 @@ export function select(
    return new AccessorValueType(source as any)
 }
 
-export function combine<T extends {}>(object: T): Value<ExpandValue<T>> {
+
+export function combine<T>(object: Value<T>): Value<T>
+export function combine<T extends {}>(object: T): AccessorValue<ExpandValue<T>, ExpandValue<T, true>>
+export function combine<T extends {}>(object: T): AccessorValue<ExpandValue<T>, ExpandValue<any, true>> | Value<T> {
    if (isValue(object)) return object
    const computed = select(() => get(object))
    return select({
@@ -35,6 +38,9 @@ export function combine<T extends {}>(object: T): Value<ExpandValue<T>> {
          walk(nextValue, (val, path) => {
             const [key, ...rest] = path
             const target = getPath(object, rest)
+            if (!target || !(key in target)) {
+               throw new Error(`Target object does not have existing key "${key}" in object path "${rest.reverse().join(".")}"`)
+            }
             if (isValue(target[key])) {
                shouldTrigger = false
                target[key](val)
@@ -49,5 +55,5 @@ export function combine<T extends {}>(object: T): Value<ExpandValue<T>> {
          flush()
       },
       value: computed,
-   }) as Value<ExpandValue<T>>
+   }) as AccessorValue<ExpandValue<T>, ExpandValue<any, true>>
 }

@@ -110,8 +110,14 @@ export interface Notification<T> {
    complete: boolean
 }
 
-export type ExpandValue<T> = T extends Value<infer R>
+export type ExpandValue<T, TPartial extends boolean = false> = T extends Value<
+   infer R
+>
    ? R
-   : {
-        [key in keyof T]: ExpandValue<T[key]>
-     }
+   : true extends TPartial ?
+        {
+           [key in keyof T]?: ExpandValue<T[key], TPartial>
+        }
+     : {
+      [key in keyof T]: ExpandValue<T[key], TPartial>
+   }
