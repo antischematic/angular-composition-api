@@ -145,6 +145,9 @@ class ContextBinding<T = any> implements Check {
       context[this.key] = value
       scheduler.markDirty()
    }
+   error(error: unknown) {
+      this.errorHandler.handleError(error)
+   }
    check() {
       const value = this.context[this.key]
       if (this.source.isDirty(value)) {
@@ -157,6 +160,7 @@ class ContextBinding<T = any> implements Check {
       private key: keyof T,
       private source: any,
       private scheduler: Scheduler,
+      private errorHandler: ErrorHandler
    ) {}
 }
 
@@ -211,18 +215,9 @@ function isCheckSubject(value: any): value is CheckSubject<any> {
 }
 
 function createBinding(context: any, key: any, value: any) {
-   const scheduler = getContext(Context.SCHEDULER)
-   const binding = new ContextBinding(context, key, value, scheduler!)
+   const binding = new ContextBinding(context, key, value, getContext(Context.SCHEDULER)!, getContext(Context.ERROR_HANDLER)!)
    addCheck(value[checkPhase], binding)
    addTeardown(value.subscribe(binding))
-}
-
-let templateContext: any
-
-export function setTemplateContext(context: any) {
-   const previous = templateContext
-   templateContext = context
-   return previous
 }
 
 function createState(context: any, state: any) {
