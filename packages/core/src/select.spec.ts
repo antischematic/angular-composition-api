@@ -1,5 +1,6 @@
 import { combine, select } from "./select"
 import { subscribe, use } from "./common"
+import { access, get } from "./utils"
 
 describe("select", () => {
    it("should create", () => {
@@ -89,6 +90,10 @@ describe("combine", () => {
             disabled,
             plain,
          },
+         deep: use({
+            count: 0,
+            disabled: false
+         })
       }
       const state = combine(object)
       const expected = {
@@ -97,6 +102,10 @@ describe("combine", () => {
             disabled: true,
             plain: "still plain",
          },
+         deep: {
+            count: 10,
+            disabled: true
+         }
       }
 
       state(expected)
@@ -105,6 +114,7 @@ describe("combine", () => {
       expect(count()).toBe(10)
       expect(disabled()).toBe(true)
       expect(object.nested.plain).toBe("still plain")
+      expect(object.deep()).toEqual({ count: 10, disabled: true })
    })
    it("should subscribe values", () => {
       const spy = jasmine.createSpy()
@@ -208,7 +218,7 @@ describe("combine", () => {
    it("should throw when setting unknown key", () => {
       const state = combine({ })
       expect(() => state({ nested: { deep: { count: 0 } } })).toThrowError(
-         `Target object does not have existing key "count" in object path "nested.deep"`,
+         `Target object does not have existing key "nested" in object path ""`,
       )
    })
 })

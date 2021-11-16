@@ -78,33 +78,42 @@ export function getPath(value: any, path: string[]): any {
 
 export function walk<T extends { [key: string]: any }>(
    object: T,
-   next: (value: any, path: string[]) => any,
+   next: (value: any, path: string[], done: Function) => any,
    path: string[] = [],
+   acc = {} as any
 ): { [key: string]: any } {
+   let isDone = false
+   function done() {
+      isDone = true
+   }
    return Object.getOwnPropertyNames(object).reduce((acc, key) => {
+      isDone = false
       const value = object[key]
       const currentPath = [key, ...path]
-      if (isObject(value)) {
-         acc[key] = walk(value, next, currentPath)
-      } else {
-         acc[key] = next(value, currentPath)
+      acc[key] = next(value, currentPath, done)
+      if (isObject(value) && !isDone) {
+         walk(value, next, currentPath, acc[key])
       }
       return acc
-   }, {} as any)
+   }, acc)
+}
+
+function read(current: any, done: Function) {
+   return Array.isArray(current) ? (done(), current) : isObject(current) ? {...current} : current
 }
 
 export function get<T extends {}>(value: T): ExpandValue<T>
 export function get<T>(value: Value<T>): T
 export function get(value: any) {
    if (isValue(value)) return value()
-   return walk(value, (current) => (isValue(current) ? current() : current))
+   return walk(value, (current, path, done) => (isValue(current) ? current() : read(current, done)))
 }
 
 export function access<T extends {}>(value: T): ExpandValue<T>
 export function access<T>(value: Value<T>): T
 export function access(value: any) {
    if (isValue(value)) return value.value
-   return walk(value, (current) => (isValue(current) ? current.value : current))
+   return walk(value, (current, path, done) => (isValue(current) ? current.value : read(current, done)))
 }
 
 export function pipe(): typeof identity;

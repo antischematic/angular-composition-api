@@ -114,10 +114,14 @@ export type ExpandValue<T, TPartial extends boolean = false> = T extends Value<
    infer R
 >
    ? R
-   : true extends TPartial ?
-        {
+   : true extends TPartial
+   ? T extends any[]
+      ? T
+      : {
            [key in keyof T]?: ExpandValue<T[key], TPartial>
         }
-     : {
-      [key in keyof T]: ExpandValue<T[key], TPartial>
-   }
+   : T extends any[]
+   ? T
+   : {
+        [key in keyof T]: ExpandValue<T[key], TPartial>
+     }
