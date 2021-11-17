@@ -1,7 +1,5 @@
 import { combine, select } from "./select"
 import { subscribe, use } from "./common"
-import { access, get } from "./utils"
-import {pendingObservers, trackedValues} from "./types";
 
 describe("select", () => {
    it("should create", () => {
@@ -93,8 +91,8 @@ describe("combine", () => {
          },
          deep: use({
             count: 0,
-            disabled: false
-         })
+            disabled: false,
+         }),
       }
       const state = combine(object)
       const expected = {
@@ -105,8 +103,8 @@ describe("combine", () => {
          },
          deep: {
             count: 10,
-            disabled: true
-         }
+            disabled: true,
+         },
       }
 
       state(expected)
@@ -217,7 +215,7 @@ describe("combine", () => {
    })
 
    it("should throw when setting unknown key", () => {
-      const state = combine({ })
+      const state = combine({})
       expect(() => state({ nested: { deep: { count: 0 } } })).toThrowError(
          `Target object does not have existing key "nested" in object path ""`,
       )

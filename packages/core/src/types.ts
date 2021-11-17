@@ -3,7 +3,8 @@ import {
    NextObserver,
    observable,
    Observable,
-   ReplaySubject, Subject,
+   ReplaySubject,
+   Subject,
    Subscribable,
    Subscription,
    Unsubscribable,
@@ -148,7 +149,7 @@ export class Value<T> implements NextObserver<T> {
       this)
       this.__ng_value = true
       this[checkPhase] = phase
-      this.errorHandlers = new Set
+      this.errorHandlers = new Set()
       this.check = options?.distinct ?? Object.is
       this.source = new ReplaySubject(1)
       this.source.subscribe((value) => (this._value = value))
@@ -167,7 +168,11 @@ class Reviver extends Subscription {
       this.unsubscribe()
       this.destination.error(error)
    }
-   constructor(private connectable: Connectable, private destination: Subject<any>, result: Observable<any>) {
+   constructor(
+      private connectable: Connectable,
+      private destination: Subject<any>,
+      result: Observable<any>,
+   ) {
       super()
       this.add(result.subscribe(this))
    }
@@ -184,7 +189,11 @@ class Subscriber extends Subscription {
             try {
                const result = handler(error)
                if (isObservable(result)) {
-                  const subscription = new Reviver(this.connectable, this.destination, result)
+                  const subscription = new Reviver(
+                     this.connectable,
+                     this.destination,
+                     result,
+                  )
                   this.add(subscription)
                }
                break
@@ -194,7 +203,12 @@ class Subscriber extends Subscription {
          }
       }
    }
-   constructor(private connectable: Connectable, private errorHandlers: Set<(error: unknown) => Observable<any> | void>, private destination: Subject<any>, source: Subscribable<any>) {
+   constructor(
+      private connectable: Connectable,
+      private errorHandlers: Set<(error: unknown) => Observable<any> | void>,
+      private destination: Subject<any>,
+      source: Subscribable<any>,
+   ) {
       super()
       this.add(source.subscribe(this))
    }
@@ -208,7 +222,12 @@ export class DeferredValue extends Value<any> implements Connectable {
    connect(): void {
       if (!this.connected) {
          this.connected = true
-         this.subscription = new Subscriber(this, this.errorHandlers, this.source, this.subscribable)
+         this.subscription = new Subscriber(
+            this,
+            this.errorHandlers,
+            this.source,
+            this.subscribable,
+         )
       }
    }
 

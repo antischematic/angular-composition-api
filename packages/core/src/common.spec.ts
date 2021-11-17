@@ -1,5 +1,5 @@
-import {attribute, listen, onError, subscribe, use} from "./common"
-import {map, materialize, mergeMap, switchMap, tap} from "rxjs/operators"
+import { attribute, listen, onError, subscribe, use } from "./common"
+import { map, switchMap, tap } from "rxjs/operators"
 import {
    Component,
    ContentChild,
@@ -12,7 +12,7 @@ import {
 } from "@angular/core"
 import { Value } from "./interfaces"
 import { EffectObserver, inject, Service, ViewDef } from "./core"
-import { interval, merge, of, Subscription, throwError, timer } from "rxjs"
+import { interval, of, Subscription, throwError, timer } from "rxjs"
 import {
    discardPeriodicTasks,
    fakeAsync,
@@ -23,9 +23,9 @@ import { configureTest, defineService } from "./core.spec"
 import { onBeforeUpdate, onUpdated } from "./lifecycle"
 import { ComputedValue } from "./types"
 import { By } from "@angular/platform-browser"
+import { pipe } from "./utils"
 import createSpy = jasmine.createSpy
 import objectContaining = jasmine.objectContaining
-import {pipe} from "./utils";
 
 describe("use", () => {
    describe("value", () => {
@@ -310,62 +310,6 @@ describe("subscribe", () => {
       )
       injectService()
       expect(spy).toHaveBeenCalledTimes(1)
-   })
-   it("should accept materialized streams", () => {
-      const next = createSpy("next")
-      const error = createSpy("error")
-      const complete = createSpy("complete")
-      function factory() {
-         const source = of(10, new Error()).pipe(
-            mergeMap((value, index) => (index ? throwError(value) : of(value))),
-            materialize(),
-         )
-         subscribe(source, {
-            next,
-            error,
-            complete,
-         })
-         return {}
-      }
-      const injectService = defineService(
-         new Service(factory, { providedIn: "root" }),
-      )
-      injectService()
-      expect(next).toHaveBeenCalledOnceWith(10)
-      expect(error).toHaveBeenCalledOnceWith(new Error())
-      expect(complete).toHaveBeenCalledOnceWith()
-   })
-   it("should continue observing on error", () => {
-      const error = createSpy("error")
-      function factory() {
-         const source = throwError(new Error()).pipe(materialize())
-         subscribe(merge(source, source, source), {
-            next() {},
-            error,
-         })
-         return {}
-      }
-      const injectService = defineService(
-         new Service(factory, { providedIn: "root" }),
-      )
-      injectService()
-      expect(error).toHaveBeenCalledTimes(3)
-   })
-   it("should continue observing on complete", () => {
-      const complete = createSpy("complete")
-      function factory() {
-         const source = of(true).pipe(materialize())
-         subscribe(merge(source, source, source), {
-            next() {},
-            complete,
-         })
-         return {}
-      }
-      const injectService = defineService(
-         new Service(factory, { providedIn: "root" }),
-      )
-      injectService()
-      expect(complete).toHaveBeenCalledTimes(4)
    })
    it("should catch unhandled errors", () => {
       const unhandledError = createSpy("unhandledError")
@@ -943,12 +887,11 @@ describe("onError", () => {
          const value = use(throwError(() => new Error("BOGUS")))
          const error = onError(value, () => {})
          subscribe(value, {
-            next() {
-            },
-            error: spy
+            next() {},
+            error: spy,
          })
          return {
-            error
+            error,
          }
       }
       @Component({ template: `` })
@@ -957,7 +900,11 @@ describe("onError", () => {
       const view = createView()
       view.detectChanges()
       expect(spy).not.toHaveBeenCalled()
-      expect(view.componentInstance.error).toEqual({ retries: 0, message: "BOGUS", error: new Error("BOGUS")})
+      expect(view.componentInstance.error).toEqual({
+         retries: 0,
+         message: "BOGUS",
+         error: new Error("BOGUS"),
+      })
    })
    it("should retry on notification", () => {
       const spy = createSpy()
@@ -966,7 +913,9 @@ describe("onError", () => {
       function setup() {
          const value = pipe(
             of(true),
-            switchMap(() => count === 0 ? throwError(() => new Error("BOGUS")) : of(true))
+            switchMap(() =>
+               count === 0 ? throwError(() => new Error("BOGUS")) : of(true),
+            ),
          )
          const retry = use<void>(Function)
          const error = onError(value, (e) => {
@@ -977,7 +926,7 @@ describe("onError", () => {
          subscribe(value, spy)
          return {
             error,
-            retry
+            retry,
          }
       }
       @Component({ template: `` })
@@ -987,6 +936,10 @@ describe("onError", () => {
       view.detectChanges()
       view.componentInstance.retry()
       expect(spy).toHaveBeenCalledOnceWith(true)
-      expect(errorSpy).toHaveBeenCalledOnceWith({ retries: 0, message: "BOGUS", error: new Error("BOGUS")})
+      expect(errorSpy).toHaveBeenCalledOnceWith({
+         retries: 0,
+         message: "BOGUS",
+         error: new Error("BOGUS"),
+      })
    })
 })

@@ -12,7 +12,7 @@ import {
    unsubscribe,
    ViewDef,
 } from "./core"
-import {Component, Directive, Injectable, InjectionToken, Type} from "@angular/core"
+import { Component, Injectable, InjectionToken, Type } from "@angular/core"
 import { ComponentFixture, TestBed } from "@angular/core/testing"
 import { use } from "./common"
 import { EventManager } from "@angular/platform-browser"

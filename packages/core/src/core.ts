@@ -32,17 +32,10 @@ import {
    checkPhase,
    CheckPhase,
    CheckSubject,
-   Notification,
    UnsubscribeSignal,
    Value,
 } from "./interfaces"
-import {
-   accept,
-   isEmitter,
-   isObject,
-   isValue,
-   observeNotification,
-} from "./utils"
+import { accept, isEmitter, isObject, isValue } from "./utils"
 import { ValueToken } from "./provider"
 import { ComputedValue, defaultFn, flush, setPending } from "./types"
 
@@ -160,7 +153,7 @@ class ContextBinding<T = any> implements Check {
       private key: keyof T,
       private source: any,
       private scheduler: Scheduler,
-      private errorHandler: ErrorHandler
+      private errorHandler: ErrorHandler,
    ) {}
 }
 
@@ -215,7 +208,13 @@ function isCheckSubject(value: any): value is CheckSubject<any> {
 }
 
 function createBinding(context: any, key: any, value: any) {
-   const binding = new ContextBinding(context, key, value, getContext(Context.SCHEDULER)!, getContext(Context.ERROR_HANDLER)!)
+   const binding = new ContextBinding(
+      context,
+      key,
+      value,
+      getContext(Context.SCHEDULER)!,
+      getContext(Context.ERROR_HANDLER)!,
+   )
    addCheck(value[checkPhase], binding)
    addTeardown(value.subscribe(binding))
 }
@@ -360,20 +359,9 @@ export function detectChanges() {
    }
 }
 
-function isNotification(
-   nextValue: unknown,
-): nextValue is Notification<unknown> {
-   return !!(
-      isObject(nextValue) && String((<any>nextValue)["kind"]).match(/^[NEC]$/)
-   )
-}
-
 export class EffectObserver extends Subscription {
    context: this
-   next(nextValue: Notification<unknown> | unknown): void {
-      if (isNotification(nextValue)) {
-         return observeNotification(nextValue, this)
-      }
+   next(nextValue: unknown): void {
       this.call("N", nextValue)
    }
 

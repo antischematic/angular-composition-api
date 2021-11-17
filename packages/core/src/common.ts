@@ -19,7 +19,8 @@ import {
    AccessorValue,
    CheckPhase,
    Emitter,
-   EmitterWithParams, ErrorState,
+   EmitterWithParams,
+   ErrorState,
    QueryListType,
    QueryType,
    ReadonlyValue,
@@ -27,7 +28,7 @@ import {
    UseOptions,
    Value,
 } from "./interfaces"
-import {accept, isEmitter, isObject, isObserver, isSignal, isValue} from "./utils"
+import { accept, isEmitter, isObserver, isSignal, isValue } from "./utils"
 import { addEffect, addTeardown, inject } from "./core"
 import {
    DeferredValue,
@@ -97,7 +98,7 @@ export function use(value?: any, options?: UseOptions<unknown>): unknown {
       }
       return new ValueType(void 0, phase, options)
    }
-   if (isValue(value) || typeof value === "function" && !isEmitter(value)) {
+   if (isValue(value) || (typeof value === "function" && !isEmitter(value))) {
       return new EmitterType(value)
    }
    if (isObservable(value)) {
@@ -235,7 +236,10 @@ export function attribute(qualifiedName: string, cast = noCast): unknown {
    })
 }
 
-export function onError(value: Value<any>, handler: (error: unknown) => Observable<any> | void): Value<ErrorState | undefined> {
+export function onError(
+   value: Value<any>,
+   handler: (error: unknown) => Observable<any> | void,
+): Value<ErrorState | undefined> {
    const error = use<ErrorState | undefined>()
    const signal = subscribe()
    let retries = 0
@@ -249,11 +253,15 @@ export function onError(value: Value<any>, handler: (error: unknown) => Observab
       if (isObservable(result)) {
          const reviver = use(result)
          let done: any
-         const sub = subscribe(reviver, () => {
-            done = sub ? sub.unsubscribe() : true
-            retries++
-            error(void 0)
-         }, signal)
+         const sub = subscribe(
+            reviver,
+            () => {
+               done = sub ? sub.unsubscribe() : true
+               retries++
+               error(void 0)
+            },
+            signal,
+         )
          if (done) sub.unsubscribe()
          return reviver
       }

@@ -1,6 +1,6 @@
 import { ViewDef } from "./core"
 import { use } from "./common"
-import {isEmitter, isValue} from "./utils"
+import { isEmitter } from "./utils"
 import {
    BehaviorSubject,
    from,

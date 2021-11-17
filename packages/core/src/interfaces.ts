@@ -132,5 +132,5 @@ export type ExpandValue<T, TPartial extends boolean = false> = T extends Value<
 export interface ErrorState {
    error: unknown
    message?: string
-   retries: number,
+   retries: number
 }

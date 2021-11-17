@@ -11,7 +11,10 @@ describe("pipe", () => {
 
    it("should pipe observable source", () => {
       const count = use(10)
-      const result = pipe(count, map((value) => value * 2))
+      const result = pipe(
+         count,
+         map((value) => value * 2),
+      )
       const spy = jasmine.createSpy()
 
       result.subscribe(spy)
@@ -34,9 +37,9 @@ describe("get", () => {
          nested: {
             disabled: use(false),
             deep: {
-               counts: [doNotUnwrap]
-            }
-         }
+               counts: [doNotUnwrap],
+            },
+         },
       })
 
       expect(value).toEqual({
@@ -44,9 +47,9 @@ describe("get", () => {
          nested: {
             disabled: false,
             deep: {
-               counts: [doNotUnwrap]
-            }
-         }
+               counts: [doNotUnwrap],
+            },
+         },
       })
    })
 })
