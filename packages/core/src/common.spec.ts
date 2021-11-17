@@ -942,6 +942,74 @@ describe("onError", () => {
          error: new Error("BOGUS"),
       })
    })
+
+   it("should chain error hooks", () => {
+      const spy = createSpy()
+      function setup() {
+         const value = use(throwError(() => new Error("BOGUS")))
+         const error = onError(value, (e) => {
+            throw e.error
+         })
+         const error2 = onError(value, spy)
+         subscribe(value)
+         return {
+            error,
+            error2
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(setup) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      view.detectChanges()
+      expect(spy).toHaveBeenCalledOnceWith({ retries: 0, message: "BOGUS", error: new Error("BOGUS") })
+      expect(view.componentInstance.error2).toEqual({
+         retries: 0,
+         message: "BOGUS",
+         error: new Error("BOGUS"),
+      })
+   })
+
+   it("should increase retries counter", () => {
+      const spy = createSpy()
+      const errorSpy = createSpy()
+      let count = 0
+      function setup() {
+         const value = pipe(
+            of(true),
+            switchMap(() =>
+               count < 3 ? throwError(() => new Error("BOGUS")) : of(true),
+            ),
+         )
+         const retry = use<void>(Function)
+         const error = onError(value, (e) => {
+            errorSpy(e)
+            count++
+            return retry
+         })
+         subscribe(value, spy)
+         return {
+            error,
+            retry,
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(setup) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      view.detectChanges()
+      view.componentInstance.retry()
+      view.componentInstance.retry()
+      view.componentInstance.retry()
+      view.componentInstance.retry()
+      expect(spy).toHaveBeenCalledOnceWith(true)
+      expect(errorSpy).toHaveBeenCalledWith({
+         retries: 2,
+         message: "BOGUS",
+         error: new Error("BOGUS"),
+      })
+      expect(errorSpy).toHaveBeenCalledTimes(3)
+   })
 })
 
 describe("pipe", () => {

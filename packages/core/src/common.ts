@@ -240,18 +240,20 @@ export function attribute(qualifiedName: string, cast = noCast): unknown {
 
 export function onError(
    value: Value<any>,
-   handler: (error: unknown) => Observable<any> | void,
+   handler: (error: ErrorState) => Observable<any> | void,
 ): Value<ErrorState | undefined> {
    const error = use<ErrorState | undefined>()
    const signal = subscribe()
    let retries = 0
    const remove = value.onError((e: any) => {
-      error({
+      const state = {
          error: e,
          message: e?.message,
          retries,
-      })
-      const result = handler(error.value)
+      }
+      retries++
+      error(state)
+      const result = handler(state)
       if (isObservable(result)) {
          const reviver = use(result)
          let done: any
@@ -259,7 +261,6 @@ export function onError(
             reviver,
             () => {
                done = sub ? sub.unsubscribe() : true
-               retries++
                error(void 0)
             },
             signal,
