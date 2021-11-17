@@ -19,7 +19,7 @@ import {
    AccessorValue,
    CheckPhase,
    Emitter,
-   EmitterWithParams,
+   EmitterWithParams, ErrorState,
    QueryListType,
    QueryType,
    ReadonlyValue,
@@ -27,7 +27,7 @@ import {
    UseOptions,
    Value,
 } from "./interfaces"
-import { accept, isObserver, isSignal, isValue } from "./utils"
+import {accept, isEmitter, isObject, isObserver, isSignal, isValue} from "./utils"
 import { addEffect, addTeardown, inject } from "./core"
 import {
    DeferredValue,
@@ -77,14 +77,14 @@ export function use<T, U>(
    options?: UseOptions<T>,
 ): Emitter<T>
 export function use<T>(value: ReadonlyValue<T>): never
-export function use<T>(value: Emitter<T>): Emitter<T>
+export function use<T>(value: Emitter<T>): Value<T>
 export function use<T>(
    value: Observable<T>,
    options?: UseOptions<T>,
 ): Value<T | undefined>
 export function use<T extends (...args: any) => any>(
    value: EmitterWithParams<T>,
-): EmitterWithParams<T>
+): Value<T>
 export function use<T extends (...args: any[]) => any>(
    value: T,
 ): EmitterWithParams<T>
@@ -97,7 +97,7 @@ export function use(value?: any, options?: UseOptions<unknown>): unknown {
       }
       return new ValueType(void 0, phase, options)
    }
-   if (isValue(value) || typeof value === "function") {
+   if (isValue(value) || typeof value === "function" && !isEmitter(value)) {
       return new EmitterType(value)
    }
    if (isObservable(value)) {
@@ -120,12 +120,12 @@ export function subscribe<T>(
 export function subscribe<T>(
    source: Observable<T>,
    signal: UnsubscribeSignal,
-): void
+): Subscription
 export function subscribe<T>(
    source: Observable<T>,
    observer: PartialObserver<T> | ((value: T) => TeardownLogic),
    signal: UnsubscribeSignal,
-): void
+): Subscription
 export function subscribe<T>(
    source?: Observable<T> | (() => TeardownLogic),
    observerOrSignal?:
@@ -133,7 +133,7 @@ export function subscribe<T>(
       | ((value: T) => TeardownLogic)
       | UnsubscribeSignal,
    signal?: UnsubscribeSignal,
-): Subscription | void {
+): Subscription {
    const observer = isObserver(observerOrSignal) ? observerOrSignal : void 0
    signal = isSignal(observerOrSignal) ? observerOrSignal : signal
 
@@ -233,4 +233,32 @@ export function attribute(qualifiedName: string, cast = noCast): unknown {
       },
       value,
    })
+}
+
+export function onError(value: Value<any>, handler: (error: unknown) => Observable<any> | void): Value<ErrorState | undefined> {
+   const error = use<ErrorState | undefined>()
+   const signal = subscribe()
+   let retries = 0
+   const remove = value.onError((e: any) => {
+      error({
+         error: e,
+         message: e?.message,
+         retries,
+      })
+      const result = handler(error.value)
+      if (isObservable(result)) {
+         const reviver = use(result)
+         let done: any
+         const sub = subscribe(reviver, () => {
+            done = sub ? sub.unsubscribe() : true
+            retries++
+            error(void 0)
+         }, signal)
+         if (done) sub.unsubscribe()
+         return reviver
+      }
+      return
+   })
+   addTeardown(remove)
+   return error
 }

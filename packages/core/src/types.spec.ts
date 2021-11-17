@@ -1,6 +1,6 @@
 import { ViewDef } from "./core"
 import { use } from "./common"
-import { isEmitter } from "./utils"
+import {isEmitter, isValue} from "./utils"
 import {
    BehaviorSubject,
    from,
@@ -201,11 +201,11 @@ describe("types", () => {
       expect(instance.fromSubject).toEqual(undefined)
       expect(instance.fromBehavior).toEqual(1)
       expect(instance.fromReplay).toEqual(undefined)
-      expect(isEmitter(instance.fromEmitter)).toBeTrue()
+      expect(instance.fromEmitter).toBeUndefined()
       expect(instance.computed).toEqual(jasmine.any(Number))
       expect(instance.accessor).toEqual(jasmine.any(Number))
       expect(isEmitter(instance.accessorEmitter)).toBeTrue()
-      expect(isEmitter(instance.fromAccessorEmitter)).toBeTrue()
+      expect(instance.fromAccessorEmitter).toBeUndefined()
       expect(instance.readonlyAccessor).toEqual(jasmine.any(Number))
       expect(instance.plainFunction).toEqual(jasmine.any(Function))
       expect(instance.plainObject).toEqual(jasmine.any(Object))
@@ -227,7 +227,7 @@ describe("types", () => {
       expect(instance.contentChildren).toEqual(jasmine.any(QueryList))
       expect(instance.viewChildren).toEqual(jasmine.any(QueryList))
       expect(instance.plainNull).toEqual(null)
-      expect(instance.plainUndefined).toEqual(undefined)
+      expect(instance.plainUndefined).toBeUndefined()
 
       // readonly
       // @ts-expect-error

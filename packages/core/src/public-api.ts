@@ -3,7 +3,7 @@
  */
 
 export { Service, inject, CallContextError, decorate, ViewDef } from "./core"
-export { use, subscribe, listen, Attribute, attribute } from "./common"
+export { use, subscribe, listen, Attribute, attribute, onError } from "./common"
 export {
    CheckSubject,
    checkPhase,

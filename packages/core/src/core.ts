@@ -324,7 +324,7 @@ export function addEffect<T>(
    source?: Subscribable<T> | (() => TeardownLogic),
    observer?: PartialObserver<T> | ((value: T) => TeardownLogic),
    signal?: UnsubscribeSignal,
-): Subscription | void {
+): Subscription {
    let effects: EffectObserver[] | undefined,
       error: ErrorHandler | undefined,
       injector: Injector | undefined

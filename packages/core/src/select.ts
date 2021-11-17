@@ -35,25 +35,28 @@ export function combine(object: any): AccessorValue<ExpandValue<unknown>, Expand
       next(nextValue: any) {
          let shouldTrigger = true
          const previous = setPending(true)
-         walk(nextValue, (val, path, done) => {
-            const [key, ...rest] = path
-            const target = getPath(object, rest)
-            if (!target || !(key in target)) {
-               throw new Error(`Target object does not have existing key "${key}" in object path "${rest.reverse().join(".")}"`)
+         try {
+            walk(nextValue, (val, path, done) => {
+               const [key, ...rest] = path
+               const target = getPath(object, rest)
+               if (!target || !(key in target)) {
+                  throw new Error(`Target object does not have existing key "${key}" in object path "${rest.reverse().join(".")}"`)
+               }
+               if (isValue(target[key])) {
+                  shouldTrigger = false
+                  target[key](val)
+                  done()
+               } else if (!isObject(target[key])) {
+                  target[key] = val
+               }
+            })
+            if (shouldTrigger) {
+               computed(computed.value)
             }
-            if (isValue(target[key])) {
-               shouldTrigger = false
-               target[key](val)
-               done()
-            } else if (!isObject(target[key])) {
-               target[key] = val
-            }
-         })
-         if (shouldTrigger) {
-            computed(computed.value)
+         } finally {
+            setPending(previous)
+            flush()
          }
-         setPending(previous)
-         flush()
       },
       value: computed,
    }) as AccessorValue<ExpandValue<any>, ExpandValue<any, true>>

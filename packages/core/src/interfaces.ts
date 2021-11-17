@@ -50,12 +50,14 @@ export type Value<T> = CheckSubject<T> &
       (value: T): void
       (): T
       next(value: T): void
+      onError(handler: (error: unknown) => Observable<any> | void): () => void
    }
 
 export interface ReadonlyValue<T> extends CheckSubject<T> {
    readonly __ng_value: true
    readonly value: T
    (): T
+   onError(handler: (error: unknown) => Observable<any> | void): () => void
 }
 
 export interface Accessor<T, U> {
@@ -82,6 +84,7 @@ export interface AccessorValue<T, U> extends CheckSubject<T> {
    (value: U): void
    (): T
    next(value: U): void
+   onError(handler: (error: unknown) => Observable<any> | void): () => void
 }
 
 export interface EmitterWithParams<T extends (...args: any[]) => any>
@@ -125,3 +128,9 @@ export type ExpandValue<T, TPartial extends boolean = false> = T extends Value<
    : {
         [key in keyof T]: ExpandValue<T[key], TPartial>
      }
+
+export interface ErrorState {
+   error: unknown
+   message?: string
+   retries: number,
+}

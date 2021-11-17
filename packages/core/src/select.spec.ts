@@ -1,6 +1,7 @@
 import { combine, select } from "./select"
 import { subscribe, use } from "./common"
 import { access, get } from "./utils"
+import {pendingObservers, trackedValues} from "./types";
 
 describe("select", () => {
    it("should create", () => {

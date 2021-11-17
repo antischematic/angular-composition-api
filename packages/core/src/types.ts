@@ -1,8 +1,9 @@
 import {
+   isObservable,
    NextObserver,
    observable,
    Observable,
-   ReplaySubject,
+   ReplaySubject, Subject,
    Subscribable,
    Subscription,
    Unsubscribable,
@@ -11,8 +12,8 @@ import { CheckPhase, checkPhase, UseOptions } from "./interfaces"
 import { EventEmitter } from "@angular/core"
 import { isEmitter, isValue } from "./utils"
 
-const trackedValues = new Map<any, Set<any>>()
-const pendingObservers = new Set<any>()
+export const trackedValues = new Map<any, Set<any>>()
+export const pendingObservers = new Set<any>()
 
 let currentObserver: any
 
@@ -74,6 +75,7 @@ export class Value<T> implements NextObserver<T> {
    }
    check: (oldValue: T, newValue: T) => boolean
    source: ReplaySubject<T>
+   errorHandlers: Set<(error: unknown) => Observable<any> | void>
    get value(): T {
       return this._value!
    }
@@ -117,6 +119,12 @@ export class Value<T> implements NextObserver<T> {
    toPromise(promiseCtor: any): Promise<T | undefined> {
       return this.source.toPromise(promiseCtor)
    }
+   onError(handler: (error: unknown) => Observable<any> | void) {
+      this.errorHandlers.add(handler)
+      return () => {
+         this.errorHandlers.delete(handler)
+      }
+   }
 
    constructor(
       public _value?: T,
@@ -140,6 +148,7 @@ export class Value<T> implements NextObserver<T> {
       this)
       this.__ng_value = true
       this[checkPhase] = phase
+      this.errorHandlers = new Set
       this.check = options?.distinct ?? Object.is
       this.source = new ReplaySubject(1)
       this.source.subscribe((value) => (this._value = value))
@@ -148,16 +157,63 @@ export class Value<T> implements NextObserver<T> {
    }
 }
 
+class Reviver extends Subscription {
+   next() {
+      this.unsubscribe()
+      this.connectable.disconnect()
+      this.connectable.connect()
+   }
+   error(error: unknown) {
+      this.unsubscribe()
+      this.destination.error(error)
+   }
+   constructor(private connectable: Connectable, private destination: Subject<any>, result: Observable<any>) {
+      super()
+      this.add(result.subscribe(this))
+   }
+}
+
+class Subscriber extends Subscription {
+   next(value: unknown) {
+      this.destination.next(value)
+   }
+   error(error: unknown) {
+      const handlers = this.errorHandlers
+      if (handlers.size) {
+         for (const handler of handlers) {
+            try {
+               const result = handler(error)
+               if (isObservable(result)) {
+                  const subscription = new Reviver(this.connectable, this.destination, result)
+                  this.add(subscription)
+               }
+               break
+            } catch (e) {
+               error = e
+            }
+         }
+      }
+   }
+   constructor(private connectable: Connectable, private errorHandlers: Set<(error: unknown) => Observable<any> | void>, private destination: Subject<any>, source: Subscribable<any>) {
+      super()
+      this.add(source.subscribe(this))
+   }
+}
+
 export class DeferredValue extends Value<any> implements Connectable {
+   connected: boolean
    refCount: number
-   subscription: Unsubscribable
+   subscription: Subscription
 
    connect(): void {
-      this.disconnect()
-      this.subscription = this.subscribable.subscribe(this.source)
+      if (!this.connected) {
+         this.connected = true
+         this.subscription = new Subscriber(this, this.errorHandlers, this.source, this.subscribable)
+      }
    }
 
    disconnect(): void {
+      this.connected = false
       this.subscription.unsubscribe()
    }
 
@@ -172,6 +228,7 @@ export class DeferredValue extends Value<any> implements Connectable {
    ) {
       super()
       this.refCount = 0
+      this.connected = false
       this.phase = phase
       this.check = options?.distinct ?? Object.is
       this.subscription = Subscription.EMPTY
@@ -219,6 +276,7 @@ interface Accessor<TValue, TNext> {
 }
 
 interface Connectable {
+   connected: boolean
    connect(): void
    disconnect(): void
    refCount: number
@@ -273,7 +331,6 @@ export class AccessorValue<TValue, TNext>
 
    connect() {
       if (!this.connected) {
-         this.disconnect()
          this.connected = true
          this.subscription = this.subscribable.subscribe(this.source)
       }

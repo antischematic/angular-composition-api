@@ -1,5 +1,5 @@
-import { attribute, listen, subscribe, use } from "./common"
-import { map, materialize, mergeMap, tap } from "rxjs/operators"
+import {attribute, listen, onError, subscribe, use} from "./common"
+import {map, materialize, mergeMap, switchMap, tap} from "rxjs/operators"
 import {
    Component,
    ContentChild,
@@ -25,6 +25,7 @@ import { ComputedValue } from "./types"
 import { By } from "@angular/platform-browser"
 import createSpy = jasmine.createSpy
 import objectContaining = jasmine.objectContaining
+import {pipe} from "./utils";
 
 describe("use", () => {
    describe("value", () => {
@@ -932,5 +933,60 @@ describe("attribute", () => {
       expect(
          view.debugElement.query(By.directive(Test)).componentInstance.count,
       ).toBe(10)
+   })
+})
+
+describe("onError", () => {
+   it("should intercept error notifications", () => {
+      const spy = createSpy()
+      function setup() {
+         const value = use(throwError(() => new Error("BOGUS")))
+         const error = onError(value, () => {})
+         subscribe(value, {
+            next() {
+            },
+            error: spy
+         })
+         return {
+            error
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(setup) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      view.detectChanges()
+      expect(spy).not.toHaveBeenCalled()
+      expect(view.componentInstance.error).toEqual({ retries: 0, message: "BOGUS", error: new Error("BOGUS")})
+   })
+   it("should retry on notification", () => {
+      const spy = createSpy()
+      const errorSpy = createSpy()
+      let count = 0
+      function setup() {
+         const value = pipe(
+            of(true),
+            switchMap(() => count === 0 ? throwError(() => new Error("BOGUS")) : of(true))
+         )
+         const retry = use<void>(Function)
+         const error = onError(value, (e) => {
+            errorSpy(e)
+            count++
+            return retry
+         })
+         subscribe(value, spy)
+         return {
+            error,
+            retry
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(setup) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      view.detectChanges()
+      view.componentInstance.retry()
+      expect(spy).toHaveBeenCalledOnceWith(true)
+      expect(errorSpy).toHaveBeenCalledOnceWith({ retries: 0, message: "BOGUS", error: new Error("BOGUS")})
    })
 })
