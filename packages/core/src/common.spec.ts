@@ -1,4 +1,4 @@
-import { attribute, listen, onError, subscribe, use } from "./common"
+import {attribute, listen, onError, pipe, subscribe, use} from "./common"
 import { map, switchMap, tap } from "rxjs/operators"
 import {
    Component,
@@ -23,7 +23,7 @@ import { configureTest, defineService } from "./core.spec"
 import { onBeforeUpdate, onUpdated } from "./lifecycle"
 import { ComputedValue } from "./types"
 import { By } from "@angular/platform-browser"
-import { pipe } from "./utils"
+import {isValue} from "./utils"
 import createSpy = jasmine.createSpy
 import objectContaining = jasmine.objectContaining
 
@@ -941,5 +941,32 @@ describe("onError", () => {
          message: "BOGUS",
          error: new Error("BOGUS"),
       })
+   })
+})
+
+describe("pipe", () => {
+   it("should accept observable source", () => {
+      const count = use(0)
+      const result = pipe(count)
+      expect(result.value).toBeUndefined()
+   })
+
+   it("should pipe observable source", () => {
+      const count = use(10)
+      const result = pipe(
+         count,
+         map((value) => value * 2),
+      )
+      const spy = jasmine.createSpy()
+
+      result.subscribe(spy)
+
+      expect(isValue(result)).toBeTrue()
+      expect(spy).toHaveBeenCalledOnceWith(20)
+      expect(result()).toBe(20)
+
+      result.subscribe(spy)
+
+      expect(spy).toHaveBeenCalledTimes(2)
    })
 })
