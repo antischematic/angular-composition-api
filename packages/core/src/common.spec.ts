@@ -918,8 +918,8 @@ describe("onError", () => {
             ),
          )
          const retry = use<void>(Function)
-         const error = onError(value, (e) => {
-            errorSpy(e)
+         const error = onError(value, (e, state) => {
+            errorSpy(state)
             count++
             return retry
          })
@@ -948,7 +948,7 @@ describe("onError", () => {
       function setup() {
          const value = use(throwError(() => new Error("BOGUS")))
          const error = onError(value, (e) => {
-            throw e.error
+            throw e
          })
          const error2 = onError(value, spy)
          subscribe(value)
@@ -962,7 +962,7 @@ describe("onError", () => {
       const createView = configureTest(Test)
       const view = createView()
       view.detectChanges()
-      expect(spy).toHaveBeenCalledOnceWith({ retries: 0, message: "BOGUS", error: new Error("BOGUS") })
+      expect(spy).toHaveBeenCalledOnceWith(new Error("BOGUS"), { retries: 0, message: "BOGUS", error: new Error("BOGUS") })
       expect(view.componentInstance.error2).toEqual({
          retries: 0,
          message: "BOGUS",
@@ -982,8 +982,8 @@ describe("onError", () => {
             ),
          )
          const retry = use<void>(Function)
-         const error = onError(value, (e) => {
-            errorSpy(e)
+         const error = onError(value, (e, state) => {
+            errorSpy(state)
             count++
             return retry
          })
