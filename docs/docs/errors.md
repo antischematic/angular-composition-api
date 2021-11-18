@@ -80,7 +80,7 @@ function setup() {
       if (e instanceof HttpErrorResponse) {
          return retry
       }
-      return e
+      throw e
    })
    const secondError = onError(todos, (e) => {
       if (e.error) {
