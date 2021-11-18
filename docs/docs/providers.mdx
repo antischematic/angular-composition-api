@@ -31,7 +31,7 @@ values to be provided during component creation. This is done by creating a `Val
 import { Component } from "@angular/core"
 import { provide, ValueToken, ViewDef } from "@mmuscat/angular-composition-api"
 
-export const Count = new ValueToken<number>("Count")
+export const Count = new ValueToken<Value<number>>("Count")
 
 function setup() {
    const count = use(0)

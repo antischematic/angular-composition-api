@@ -180,58 +180,6 @@ To prevent a `Value` being marked as a dependency, access its value with the `va
 
 ## Error Handling
 
-All the standard RxJS methods for error handling are available, such `catchError` and `retry`. However sometimes we
-don't want to restart the subscription when an error occurs, for example, when using a `BehaviorSubject` as the source.
-While this can be managed it is prone to error and verbose.
-
-The `subscribe` method is different from RxJS subscribe in that it will also accept a materialized stream. If a stream
-of `Notification` is received, `subscribe` will dematerialize it and call the appropriate methods on the observer,
-without ending the stream. This makes it possible to keep a stream alive and handle errors in the observer instead of
-dealing with the complexities of `catchError`.
-
-```ts title="Example: Error handling with a materialized stream"
-import { Component } from "@angular/core"
-import { HttpClient } from "@angular/common/http"
-import { subscribe, use, ViewDef } from "@mmuscat/angular-composition-api"
-import { interval } from "rxjs"
-import { switchMap, materialize } from "rxjs/operators"
-
-function setup() {
-   const http = inject(HttpClient)
-   const result = use<{ data: any }>()
-   const pollData = interval(10000).pipe(
-      switchMap(() =>
-         http.get("http://www.example.com/api/data").pipe(materialize()),
-      ),
-   )
-
-   subscribe(pollData, {
-      next: result,
-      error(error) {
-         console.error(error)
-      },
-   })
-
-   return {
-      result,
-   }
-}
-
-export class MyComponent extends ViewDef(setup) {}
-```
-
-This is the same example from before, except this time errors are materialized, allowing the stream to continue even
-if there's an error. The observer will receive the same values as before.
-
-:::tip
-
-The `materialize` operator must be place on an inner-observable, such as within a `switchMap`, to prevent the
-outer observable closing on error.
-
-:::
-
-### Uncaught errors
-
 The `subscribe` method catches and notifies of uncaught errors. All uncaught errors are piped to the `ErrorHandler`
 service. To prevent this, ensure that all error-able streams have an error observer, or are handled upstream.
 
