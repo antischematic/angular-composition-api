@@ -1,5 +1,5 @@
 import {
-   FactoryProvider,
+   Provider,
    inject,
    InjectFlags,
    InjectionToken,
@@ -9,7 +9,7 @@ import { getContext, ProvidedIn } from "./core"
 
 export type ValueToken<T> = InjectionToken<T> & {
    __ng_value_token: true
-   Provider: FactoryProvider[]
+   Provider: Provider[]
 }
 
 export class EmptyValueError extends Error {
