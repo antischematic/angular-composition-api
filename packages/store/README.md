@@ -35,7 +35,7 @@ const Retry = new Command("retry", (action) => {
 Create Stores
 
 ```ts
-const AppStore = new Store("app", {
+const TodosStore = new Store("todos", {
    tokens: [UserId, Todos, TodosError],
    plugins: [
       ReduxDevTool,
@@ -47,7 +47,7 @@ Component Store
 
 ```ts
 function setup() {
-   const get = inject(AppStore)
+   const get = inject(TodosStore)
    const todos = get(Todos)
    const error = get(TodosError)
    const retry = get(Retry)
