@@ -73,7 +73,7 @@ function setup() {
          </div>
       </ng-template>
    `,
-   providers: [Store.Provider],
+   providers: [TodosStore.Provider],
 })
 export class Todos extends ViewDef(setup) {}
 ```
