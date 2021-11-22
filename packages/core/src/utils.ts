@@ -98,3 +98,9 @@ export function access(value: any) {
       isValue(current) ? current.value : read(current, done),
    )
 }
+
+const CLASS_REGEX = /^\s*class\s+/
+
+export function isClass(value: any) {
+   return typeof value === 'function' && CLASS_REGEX.test(value.toString());
+}

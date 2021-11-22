@@ -30,7 +30,7 @@ import {
    UseOptions,
    Value,
 } from "./interfaces"
-import { accept, isEmitter, isObserver, isSignal, isValue } from "./utils"
+import {accept, isClass, isEmitter, isObserver, isSignal, isValue} from "./utils"
 import { addEffect, addTeardown, inject } from "./core"
 import {
    DeferredValue,
@@ -92,6 +92,7 @@ export function use<T extends (...args: any[]) => any>(
    value: T,
 ): EmitterWithParams<T>
 export function use<T>(value: T, options?: UseOptions<T>): Value<T>
+export function use<T>(value: T, options?: UseOptions<T>): Value<T>
 export function use(value?: any, options?: UseOptions<unknown>): unknown {
    if (isQuery(value)) {
       const phase = queryMap.get(value)!
@@ -100,7 +101,7 @@ export function use(value?: any, options?: UseOptions<unknown>): unknown {
       }
       return new ValueType(void 0, phase, options)
    }
-   if (isValue(value) || (typeof value === "function" && !isEmitter(value))) {
+   if (isValue(value) || (typeof value === "function" && !isEmitter(value)) && !isClass(value)) {
       return new EmitterType(value)
    }
    if (isObservable(value)) {

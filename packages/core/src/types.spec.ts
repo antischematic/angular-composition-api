@@ -21,6 +21,8 @@ import {
    ViewChildren,
 } from "@angular/core"
 
+const classType = class Test {}
+
 describe("types", () => {
    it("should convert types correctly", () => {
       function setup() {
@@ -42,6 +44,9 @@ describe("types", () => {
          const set = use(new Set())
          const weakSet = use(new WeakSet())
          const error = use(new Error())
+
+         // Special
+         const type = use(classType)
 
          // Overloads
          const emitter = use<void>(Function)
@@ -132,6 +137,7 @@ describe("types", () => {
             set,
             weakSet,
             error,
+            type,
             emitter,
             valueEmitter,
             emitterWithParams,
@@ -194,6 +200,7 @@ describe("types", () => {
       expect(instance.set).toEqual(jasmine.any(Set))
       expect(instance.weakSet).toEqual(jasmine.any(WeakSet))
       expect(instance.error).toEqual(jasmine.any(Error))
+      expect(instance.type).toEqual(classType)
       expect(isEmitter(instance.emitter)).toBeTrue()
       expect(isEmitter(instance.valueEmitter)).toBeTrue()
       expect(isEmitter(instance.emitterWithParams)).toBeTrue()
