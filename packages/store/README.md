@@ -7,10 +7,20 @@ Create Queries
 ```ts
 // queries
 const UserId = new Query("userId", () => use(EMPTY))
-const Todos = new Query("todos", () => loadUser(inject(UserId)))
+const Todos = new Query("todos", () => {
+   const http = inject(HttpClient)
+   return pipe(
+      inject(UserId),
+      switchMap((userId) => 
+         http.get(environment.url, {
+            params: { userId }
+         })
+      )
+   )
+})
 const TodosError = new Query("todosError", () => {
    const retry = inject(Retry)
-   return onError(inject(User), () => retry)
+   return onError(inject(Todos), () => retry)
 })
 ```
 
@@ -26,7 +36,7 @@ Create Stores
 
 ```ts
 const AppStore = new Store("app", {
-   tokens: [UserId, User, UserError],
+   tokens: [UserId, Todos, TodosError],
    plugins: [
       ReduxDevTool,
    ],
