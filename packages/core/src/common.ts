@@ -1,6 +1,7 @@
 import {
    identity,
    isObservable,
+   NextObserver,
    Observable,
    PartialObserver,
    Subscription,
@@ -18,7 +19,7 @@ import {
    ViewChildren,
 } from "@angular/core"
 import {
-   AccessorValue,
+   AccessorValue, Change,
    CheckPhase,
    Emitter,
    EmitterWithParams,
@@ -32,12 +33,9 @@ import {
 } from "./interfaces"
 import {accept, isClass, isEmitter, isObserver, isSignal, isValue} from "./utils"
 import { addEffect, addTeardown, inject } from "./core"
-import {
-   DeferredValue,
-   Emitter as EmitterType,
-   Value as ValueType,
-} from "./types"
+import { DeferredValue, Emitter as EmitterType, Value as ValueType } from "./types"
 import { select } from "./select"
+import { onDestroy } from "./lifecycle"
 
 export class QueryListValue extends QueryList<any> {
    subscription?: Subscription
@@ -154,6 +152,7 @@ type ListenerFunction<T> = (event: T) => TeardownLogic
 
 export function listen<T>(eventName: string): Emitter<T>
 export function listen<T>(handler: ListenerFunction<T>): Emitter<T>
+export function listen<T>(subject: NextObserver<T>): Emitter<T>
 export function listen<T>(
    eventName: string,
    handler?: ListenerFunction<T>,
@@ -240,9 +239,9 @@ export function attribute(qualifiedName: string, cast = noCast): unknown {
 }
 
 export function onError(
-   value: Value<any>,
-   handler: (error: unknown, state: ErrorState) => Observable<any> | void,
-): Value<ErrorState | undefined> {
+   value: ReadonlyValue<any>,
+   handler?: (error: unknown, state: ErrorState) => Observable<any> | void,
+): Value<ErrorState | void> {
    const error = use<ErrorState | undefined>()
    const signal = subscribe()
    let retries = 0
@@ -254,7 +253,7 @@ export function onError(
       }
       retries++
       error(state)
-      const result = handler(e, state)
+      const result = handler?.(e, state)
       if (isObservable(result)) {
          const reviver = use(result)
          let done: any
@@ -262,7 +261,6 @@ export function onError(
             reviver,
             () => {
                done = sub ? sub.unsubscribe() : true
-               error(void 0)
             },
             signal,
          )
@@ -271,8 +269,8 @@ export function onError(
       }
       return
    })
-   addTeardown(remove)
-   return error
+   onDestroy(remove)
+   return error as any
 }
 
 export function pipe(): typeof identity
@@ -446,4 +444,22 @@ export function pipe(...args: any[]): unknown {
          return (<any>pipe)(source, ...args)
       }
    }
+}
+
+export function onChanges<T>(value: ReadonlyValue<T>, callback: (change: Change<T>) => void) {
+   const changes = use<Change<T>>({
+      first: true,
+      current: value.value,
+      previous: undefined
+   })
+   const remove = value.onChanges((current, previous) => {
+      changes({
+         first: false,
+         current,
+         previous,
+      })
+   })
+   onDestroy(remove)
+   subscribe(changes, callback)
+   return changes
 }

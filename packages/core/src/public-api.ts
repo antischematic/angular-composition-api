@@ -9,6 +9,7 @@ export {
    listen,
    Attribute,
    attribute,
+   onChanges,
    onError,
    pipe,
 } from "./common"
@@ -25,6 +26,7 @@ export {
    Accessor,
    AccessorValue,
    ExpandValue,
+   Change,
 } from "./interfaces"
 export { select, combine } from "./select"
 export { ValueToken, provide, EmptyValueError } from "./provider"

@@ -146,6 +146,9 @@ class ContextBinding<T = any> implements Check {
       if (this.source.isDirty(value)) {
          this.scheduler.markDirty()
          this.source.next(value)
+         for (const handler of this.source.changes) {
+            handler(this.source.value, value)
+         }
       }
    }
    constructor(
@@ -287,8 +290,15 @@ export function addCheck(key: CheckPhase, subject: any) {
    getContext(key)!.add(subject)
 }
 
+function isTeardown(value: any): value is TeardownLogic {
+   return typeof value === "function" || typeof value?.unsubscribe === "function"
+}
+
 export function addTeardown(teardown: TeardownLogic) {
-   getContext(Context.SUBSCRIPTION)!.add(teardown)
+   const subscription = getContext(Context.SUBSCRIPTION)!
+   if (isTeardown(teardown)) {
+      return subscription.add(teardown)
+   }
 }
 
 export function addSignal(

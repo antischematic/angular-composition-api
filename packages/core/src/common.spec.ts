@@ -1010,6 +1010,42 @@ describe("onError", () => {
       })
       expect(errorSpy).toHaveBeenCalledTimes(3)
    })
+   it("should set error state", () => {
+      function setup() {
+         const count = use(0)
+         const error = onError(count)
+         const clearError = listen(error)
+         const setError = listen(() => {
+            error({
+               error: new Error("BOGUS"),
+               message: "BOGUS",
+               retries: 0
+            })
+         })
+         return {
+            error,
+            setError,
+            clearError
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(setup) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      view.detectChanges()
+      view.componentInstance.setError({
+         error: new Error("BOGUS"),
+         message: "BOGUS",
+         retries: 0
+      })
+      expect(view.componentInstance.error).toEqual({
+         error: new Error("BOGUS"),
+         message: "BOGUS",
+         retries: 0
+      })
+      view.componentInstance.clearError()
+      expect(view.componentInstance.error).toBeUndefined()
+   })
 })
 
 describe("pipe", () => {

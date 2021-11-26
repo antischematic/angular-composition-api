@@ -76,7 +76,8 @@ export class Value<T> implements NextObserver<T> {
    }
    check: (oldValue: T, newValue: T) => boolean
    source: ReplaySubject<T>
-   errorHandlers: Set<(error: unknown) => Observable<any> | void>
+   errors: Set<(error: unknown) => Observable<any> | void>
+   changes: Set<(previous: T, current: T) => void>
    get value(): T {
       return this._value!
    }
@@ -121,10 +122,12 @@ export class Value<T> implements NextObserver<T> {
       return this.source.toPromise(promiseCtor)
    }
    onError(handler: (error: unknown) => Observable<any> | void) {
-      this.errorHandlers.add(handler)
-      return () => {
-         this.errorHandlers.delete(handler)
-      }
+      this.errors.add(handler)
+      return () => this.errors.delete(handler)
+   }
+   onChanges(handler: (previous: T, current: T) => void) {
+      this.changes.add(handler)
+      return () => this.changes.delete(handler)
    }
 
    constructor(
@@ -137,19 +140,21 @@ export class Value<T> implements NextObserver<T> {
       ): T | void {
          if (arguments.length === 0) {
             track(value)
-            return value.value
-         }
-         if (typeof nextValue === "function") {
-            nextValue(value.value)
-            value.next(value.value)
          } else {
-            value.next(nextValue)
+            if (typeof nextValue === "function") {
+               nextValue(value.value)
+               value.next(value.value)
+            } else {
+               value.next(nextValue)
+            }
          }
+         return value.value
       },
       this)
       this.__ng_value = true
       this[checkPhase] = phase
-      this.errorHandlers = new Set()
+      this.errors = new Set()
+      this.changes = new Set()
       this.check = options?.distinct ?? Object.is
       this.source = new ReplaySubject(1)
       this.source.subscribe((value) => (this._value = value))
@@ -224,7 +229,7 @@ export class DeferredValue extends Value<any> implements Connectable {
          this.connected = true
          this.subscription = new Subscriber(
             this,
-            this.errorHandlers,
+            this.errors,
             this.source,
             this.subscribable,
          )

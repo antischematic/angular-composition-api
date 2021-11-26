@@ -46,10 +46,11 @@ export type Value<T> = CheckSubject<T> &
    NextObserver<T> & {
       readonly __ng_value: true
       readonly value: T
-      (mutate: (value: T) => any): void
-      (value: T): void
+      (mutate: (value: T) => any): T
+      (value: T): T
       (): T
       next(value: T): void
+   onChanges(handler: (previous: T, current: T) => void): () => void
       onError(handler: (error: unknown) => Observable<any> | void): () => void
    }
 
@@ -57,6 +58,7 @@ export interface ReadonlyValue<T> extends CheckSubject<T> {
    readonly __ng_value: true
    readonly value: T
    (): T
+   onChanges(handler: (previous: T, current: T) => void): () => void
    onError(handler: (error: unknown) => Observable<any> | void): () => void
 }
 
@@ -80,10 +82,11 @@ export interface AccessorValue<T, U> extends CheckSubject<T> {
    readonly __ng_value: true
    readonly __ng_accessor_value: true
    readonly value: T
-   (mutate: (value: U) => any): void
-   (value: U): void
+   (mutate: (value: U) => any): T
+   (value: U): T
    (): T
    next(value: U): void
+   onChanges(handler: (previous: T, current: T) => void): () => void
    onError(handler: (error: unknown) => Observable<any> | void): () => void
 }
 
@@ -133,4 +136,14 @@ export interface ErrorState {
    error: unknown
    message?: string
    retries: number
+}
+
+export type Change<T> = {
+   current: T,
+   previous: undefined,
+   first: true,
+} | {
+   current: T,
+   previous: T,
+   first: false,
 }
