@@ -445,21 +445,3 @@ export function pipe(...args: any[]): unknown {
       }
    }
 }
-
-export function onChanges<T>(value: ReadonlyValue<T>, callback: (change: Change<T>) => void) {
-   const changes = use<Change<T>>({
-      first: true,
-      current: value.value,
-      previous: undefined
-   })
-   const remove = value.onChanges((current, previous) => {
-      changes({
-         first: false,
-         current,
-         previous,
-      })
-   })
-   onDestroy(remove)
-   subscribe(changes, callback)
-   return changes
-}

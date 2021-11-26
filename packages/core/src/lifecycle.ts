@@ -1,6 +1,7 @@
 import { addTeardown, getContext } from "./core"
-import { subscribe, use } from "./common"
+import { listen, subscribe, use } from "./common"
 import { Subject } from "rxjs"
+import { Change, ReadonlyValue } from "./interfaces"
 
 class ScheduleObserver {
    next(phase: number) {
@@ -12,7 +13,7 @@ class ScheduleObserver {
 }
 
 function schedule(callback: () => void = Function, phase: 0 | 1) {
-   const emitter = use(callback)
+   const emitter = listen<void>(callback)
    const scheduler = getContext(4)!
 
    subscribe(scheduler, new ScheduleObserver(phase, emitter))
@@ -29,7 +30,27 @@ export function onUpdated(callback?: () => void) {
 }
 
 export function onDestroy(callback: () => void = Function) {
-   const emitter = use(callback)
+   const emitter = listen(callback)
    addTeardown(emitter)
    return emitter
+}
+
+export function onChanges<T>(value: ReadonlyValue<T>, callback?: (change: Change<T>) => void) {
+   const changes = use<Change<T>>({
+      first: true,
+      current: value.value,
+      previous: undefined
+   })
+   const remove = value.onChanges((current, previous) => {
+      changes({
+         first: false,
+         current,
+         previous,
+      })
+   })
+   onDestroy(remove)
+   if (callback) {
+      subscribe(changes, callback)
+   }
+   return changes
 }

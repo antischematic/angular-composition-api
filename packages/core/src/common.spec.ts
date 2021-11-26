@@ -1,4 +1,4 @@
-import {attribute, listen, onError, pipe, subscribe, use} from "./common"
+import { attribute, listen, onError, pipe, subscribe, use } from "./common"
 import { map, switchMap, tap } from "rxjs/operators"
 import {
    Component,
@@ -13,17 +13,12 @@ import {
 import { Value } from "./interfaces"
 import { EffectObserver, inject, Service, ViewDef } from "./core"
 import { interval, of, Subscription, throwError, timer } from "rxjs"
-import {
-   discardPeriodicTasks,
-   fakeAsync,
-   TestBed,
-   tick,
-} from "@angular/core/testing"
+import { discardPeriodicTasks, fakeAsync, TestBed, tick } from "@angular/core/testing"
 import { configureTest, defineService } from "./core.spec"
-import { onBeforeUpdate, onUpdated } from "./lifecycle"
+import { onBeforeUpdate, onUpdated, onChanges } from "./lifecycle"
 import { ComputedValue } from "./types"
 import { By } from "@angular/platform-browser"
-import {isValue} from "./utils"
+import { isValue } from "./utils"
 import createSpy = jasmine.createSpy
 import objectContaining = jasmine.objectContaining
 
@@ -1072,5 +1067,29 @@ describe("pipe", () => {
       result.subscribe(spy)
 
       expect(spy).toHaveBeenCalledTimes(2)
+   })
+})
+
+describe("onChanges", () => {
+   it("should create", () => {
+      function setup() {
+         const count = use(0)
+         const changes = onChanges(count)
+
+         return {
+            count,
+            changes,
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(setup) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      view.detectChanges()
+      expect(view.componentInstance.changes).toEqual({
+         first: true,
+         current: 0,
+         previous: undefined
+      })
    })
 })

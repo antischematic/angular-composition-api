@@ -9,7 +9,6 @@ export {
    listen,
    Attribute,
    attribute,
-   onChanges,
    onError,
    pipe,
 } from "./common"
@@ -30,6 +29,6 @@ export {
 } from "./interfaces"
 export { select, combine } from "./select"
 export { ValueToken, provide, EmptyValueError } from "./provider"
-export { onDestroy, onUpdated, onBeforeUpdate } from "./lifecycle"
+export { onDestroy, onUpdated, onBeforeUpdate, onChanges } from "./lifecycle"
 export { ZonelessEventManager } from "./event-manager"
 export { isValue, isEmitter, get, access } from "./utils"
