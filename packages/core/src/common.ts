@@ -261,6 +261,7 @@ export function onError(
             reviver,
             () => {
                done = sub ? sub.unsubscribe() : true
+               error(void 0)
             },
             signal,
          )

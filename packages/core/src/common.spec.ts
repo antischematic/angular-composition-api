@@ -10,7 +10,7 @@ import {
    ViewChild,
    ViewChildren,
 } from "@angular/core"
-import { Value } from "./interfaces"
+import {Change, Value} from "./interfaces"
 import { EffectObserver, inject, Service, ViewDef } from "./core"
 import { interval, of, Subscription, throwError, timer } from "rxjs"
 import { discardPeriodicTasks, fakeAsync, TestBed, tick } from "@angular/core/testing"
@@ -1072,9 +1072,10 @@ describe("pipe", () => {
 
 describe("onChanges", () => {
    it("should create", () => {
+      const spy = createSpy()
       function setup() {
          const count = use(0)
-         const changes = onChanges(count)
+         const changes = onChanges(count, spy)
 
          return {
             count,
@@ -1085,11 +1086,73 @@ describe("onChanges", () => {
       class Test extends ViewDef(setup) {}
       const createView = configureTest(Test)
       const view = createView()
-      view.detectChanges()
-      expect(view.componentInstance.changes).toEqual({
+      const expected = {
          first: true,
          current: 0,
          previous: undefined
-      })
+      }
+      view.detectChanges()
+      expect(view.componentInstance.changes).toEqual(expected as Change<number>)
+      expect(spy).toHaveBeenCalledOnceWith(expected)
+   })
+   it("should notify on external changes", () => {
+      const spy = createSpy()
+      function setup() {
+         const count = use(0)
+         const changes = onChanges(count, spy)
+
+         return {
+            count,
+            changes,
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(setup) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      const expected = {
+         first: false,
+         current: 10,
+         previous: 0
+      }
+      view.componentInstance.count = 10
+      view.detectChanges()
+      expect(view.componentInstance.changes).toEqual(expected as Change<number>)
+      expect(spy).toHaveBeenCalledOnceWith(expected)
+   })
+   it("should not notify on internal changes", () => {
+
+      const spy = createSpy()
+      function setup() {
+         const count = use(0)
+         const countChange = use(count)
+         const changes = onChanges(count, spy)
+
+         return {
+            count,
+            countChange,
+            changes,
+         }
+      }
+      @Component({ template: `` })
+      class Test extends ViewDef(setup) {}
+      const createView = configureTest(Test)
+      const view = createView()
+      const expected = {
+         first: true,
+         current: 0,
+         previous: undefined
+      }
+      view.detectChanges()
+      view.componentInstance.countChange(10)
+      view.detectChanges()
+      expect(view.componentInstance.changes).toEqual(expected as Change<number>)
+      expect(spy).toHaveBeenCalledOnceWith(expected)
+      // changing to same internal value should not trigger
+      view.componentInstance.count = 0
+      view.componentInstance.count = 10
+      view.detectChanges()
+      expect(view.componentInstance.changes).toEqual(expected as Change<number>)
+      expect(spy).toHaveBeenCalledOnceWith(expected)
    })
 })

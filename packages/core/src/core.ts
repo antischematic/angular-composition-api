@@ -143,11 +143,12 @@ class ContextBinding<T = any> implements Check {
    }
    check() {
       const value = this.context[this.key]
+      const previous = this.source.value
       if (this.source.isDirty(value)) {
          this.scheduler.markDirty()
          this.source.next(value)
          for (const handler of this.source.changes) {
-            handler(this.source.value, value)
+            handler(previous, value)
          }
       }
    }
@@ -305,7 +306,7 @@ export function addSignal(
    teardown?: Unsubscribable | (() => void),
    abort?: UnsubscribeSignal,
 ) {
-   if (!teardown) return
+   if (!isTeardown(teardown)) return
    const subscription = new Subscription()
    subscription.add(teardown)
    if (abort instanceof AbortSignal) {

@@ -41,7 +41,7 @@ export function onChanges<T>(value: ReadonlyValue<T>, callback?: (change: Change
       current: value.value,
       previous: undefined
    })
-   const remove = value.onChanges((current, previous) => {
+   const remove = value.onChanges((previous, current) => {
       changes({
          first: false,
          current,

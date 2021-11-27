@@ -392,12 +392,7 @@ export class Emitter extends EventEmitter {
    modifier: (...params: any[]) => any
    next(values: any) {
       values = Array.isArray(values) ? values : [values]
-      if (isValue(this.modifier)) {
-         this.modifier(values[0])
-         super.next(this.modifier.value)
-      } else {
-         super.next(this.modifier(...values))
-      }
+      super.next(this.modifier(...values))
    }
    emit(values: any) {
       this.next(values)
