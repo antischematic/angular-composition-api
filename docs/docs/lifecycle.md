@@ -12,11 +12,11 @@ where applicable.
 | Standard              | Composition API |
 | --------------------- | --------------- |
 | constructor           | ViewDef/Service |
-| ngOnChanges           | beforeUpdate    |
+| ngOnChanges           | onChanges       |
 | ngOnInit              | N/A             |
 | ngDoCheck             | N/A             |
 | ngAfterContentInit    | N/A             |
-| ngAfterContentChecked | N/A             |
+| ngAfterContentChecked | beforeUpdate    |
 | ngAfterViewInit       | subscribe       |
 | ngAfterViewChecked    | onUpdated       |
 | ngOnDestroy           | onDestroy       |
@@ -36,6 +36,7 @@ import { Component } from "@angular/core"
 import {
    beforeUpdate,
    onDestroy,
+   onChanges,
    onUpdated,
    subscribe,
    use,
@@ -44,6 +45,12 @@ import {
 
 function setup() {
    const count = use(0)
+   
+   onChanges(count, (change) => {
+      // <2>
+      console.log(change.current)
+      console.log(change.previous)
+   })
 
    subscribe(count, () => {
       // <3>
@@ -78,7 +85,8 @@ export class MyComponent extends ViewDef(setup) {}
 1. During component creation any `Value` returned from the setup function is unwrapped and synchronised with the
    component instance.
 
-2. Inputs and queries are automatically checked and synchronised with a matching `Value` by name.
+2. Inputs and queries are automatically checked and synchronised with a matching `Value` by name. When a value is
+changed externally, the `onChanges` hook is called with the current and previous value.
 
 3. Subscriptions are subscribed to once the component has been mounted. The component template is checked once
    immediately and each time after a subscription emits a value.
@@ -86,8 +94,7 @@ export class MyComponent extends ViewDef(setup) {}
 4. `TeardownLogic` returned from a `subscribe` observer is executed each time the observer receives a new value, or
    the subscription ends.
 
-5. Executed after component state mutation, just before the component template updates. Compared with
-   `ngOnChanges` this is not just limited to `inputs`.
+5. Executed after component state mutation, just before the component template updates.
 
 6. Executed after the component template updated. Compared with `ngAfterViewInit`, this will only run once per render
    cycle.
@@ -96,7 +103,7 @@ export class MyComponent extends ViewDef(setup) {}
 
 :::tip
 
-The `onBeforeUpdate` and `onUpdated` lifecycle hooks can also be used as observables
+The `onChanges`, `onBeforeUpdate` and `onUpdated` lifecycle hooks can also be used as observables
 
 ```ts
 const beforeUpdate = onBeforeUpdate()
