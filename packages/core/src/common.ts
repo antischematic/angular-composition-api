@@ -19,7 +19,7 @@ import {
    ViewChildren,
 } from "@angular/core"
 import {
-   AccessorValue, Change,
+   AccessorValue,
    CheckPhase,
    Emitter,
    EmitterWithParams,
@@ -35,7 +35,6 @@ import {accept, isClass, isEmitter, isObserver, isSignal, isValue} from "./utils
 import { addEffect, addTeardown, inject } from "./core"
 import { DeferredValue, Emitter as EmitterType, Value as ValueType } from "./types"
 import { select } from "./select"
-import { onDestroy } from "./lifecycle"
 
 export class QueryListValue extends QueryList<any> {
    subscription?: Subscription
@@ -109,6 +108,7 @@ export function use(value?: any, options?: UseOptions<unknown>): unknown {
 }
 
 export function subscribe<T>(): Subscription
+export function subscribe<T>(observer: () => void): Subscription
 export function subscribe<T>(observer: () => TeardownLogic): Subscription
 export function subscribe<T>(source: Observable<T>): Subscription
 export function subscribe<T>(
@@ -118,6 +118,10 @@ export function subscribe<T>(
 export function subscribe<T>(
    source: Observable<T>,
    observer: (value: T) => TeardownLogic,
+): Subscription
+export function subscribe<T>(
+   source: Observable<T>,
+   observer: (value: T) => void,
 ): Subscription
 export function subscribe<T>(
    source: Observable<T>,
@@ -270,7 +274,7 @@ export function onError(
       }
       return
    })
-   onDestroy(remove)
+   addTeardown(remove)
    return error as any
 }
 

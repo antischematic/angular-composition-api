@@ -171,10 +171,10 @@ export class Scheduler extends Subject<any> {
       if (this.dirty && !this.closed) {
          try {
             this.next(0)
-            dirty.delete(this)
-            this.dirty = false
             this.ref.detectChanges()
             isDevMode() && this.ref.checkNoChanges()
+            dirty.delete(this)
+            this.dirty = false
             this.next(1)
          } catch (error) {
             this.errorHandler.handleError(error)
@@ -361,12 +361,16 @@ export function addEffect<T>(
    return effect
 }
 
+let changeDetectionPhase = 1
+
 export function detectChanges() {
-   let scheduler
-   const list = Array.from(dirty)
-   dirty.clear()
-   while ((scheduler = list.shift())) {
-      scheduler.detectChanges()
+   if (changeDetectionPhase) {
+      changeDetectionPhase = 0
+      for (const scheduler of dirty) {
+         scheduler.detectChanges()
+      }
+      dirty.clear()
+      changeDetectionPhase = 1
    }
 }
 
