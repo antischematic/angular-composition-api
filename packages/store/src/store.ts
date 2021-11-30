@@ -1,102 +1,68 @@
-import {QueryToken} from "./query"
-import {CommandToken} from "./command"
+import { isQueryToken } from "./query"
+import { isCommandToken } from "./command"
 import {
    combine,
    Emitter,
    inject,
    subscribe,
-   use,
-   Value,
    ValueToken,
 } from "@mmuscat/angular-composition-api"
-import {ErrorHandler, InjectFlags, INJECTOR, Injector} from "@angular/core"
-
-interface NextEvent {
-   name: string
-   kind: "N"
-   value: unknown
-}
-
-interface ErrorEvent {
-   name: string
-   kind: "E"
-   error: unknown
-}
-
-interface CompleteEvent {
-   name: string
-   kind: "C"
-}
-
-type StoreEvent = NextEvent | ErrorEvent | CompleteEvent
-
-interface Store {
-   parent: Store[] | null,
-   events: Emitter<StoreEvent>
-   commands: Record<string, Emitter<any>>
-   queries: Record<string, Value<any>>
-   state: Value<any>
-}
-
-interface StorePlugin {
-   (store: Store): any
-}
-
-interface StoreConfig {
-   tokens: ValueToken<any>[]
-   plugins: StorePlugin[]
-}
-
-type Inject = <T>(token: ValueToken<T>) => T
-
-export class StoreToken extends ValueToken<Inject> {}
+import { ErrorHandler, InjectFlags, Injector, INJECTOR } from "@angular/core"
+import { isSaga } from "./saga"
+import { Events, Inject, StoreConfig, StoreEvent } from "./interfaces"
 
 class EventEmitter {
    next(value: any) {
       this.events.emit({
          kind: "N",
          name: this.name,
-         value
+         value,
       })
    }
    error(error: unknown) {
       this.events.emit({
          kind: "E",
          name: this.name,
-         error
+         error,
       })
       this.errorHandler.handleError(error)
    }
    complete() {
       this.events.emit({
          kind: "C",
-         name: this.name
+         name: this.name,
       })
    }
-   constructor(private errorHandler: ErrorHandler, private name: string, private events: Emitter<StoreEvent>) {}
+   constructor(
+      private errorHandler: ErrorHandler,
+      private name: string,
+      private events: Emitter<StoreEvent>,
+   ) {}
 }
 
 class StoreFactory {
-   factory() {
+   factory = () => {
       const parent = inject(Store, null, InjectFlags.SkipSelf)
       const { tokens, plugins = [] } = this.config
-      const events = use<StoreEvent>(Function)
-      const parentInjector = inject(INJECTOR)
+      const events = inject(Events)
       const errorHandler = inject(ErrorHandler)
-      const injector = Injector.create({
-         parent: parentInjector,
-         providers: tokens.map((token) => token.Provider),
-      })
+      const injector = inject(INJECTOR)
       const queries = {} as any
       const commands = {} as any
-      function get<T>(token: ValueToken<T>): T {
-         return injector.get(token)
+      function get<T>(token: ValueToken<T>, flags?: InjectFlags): T {
+         return injector.get(token, Injector.THROW_IF_NOT_FOUND as any, flags)
       }
       for (const token of tokens) {
          const value = get(token)
          const tokenName = token.toString()
          // noinspection SuspiciousTypeOfGuard
-         const type = token instanceof QueryToken ? 1 : token instanceof CommandToken ? 2 : 0
+         const type = isQueryToken(token)
+            ? 1
+            : isCommandToken(token)
+            ? 2
+            : isSaga(token)
+            ? 3
+            : 0
          if (type > 0) {
             subscribe(value, new EventEmitter(errorHandler, tokenName, events))
          }
@@ -113,28 +79,32 @@ class StoreFactory {
          events,
          commands,
          queries,
-         state
+         state,
       }
       for (const plugin of plugins) {
          plugin(store)
       }
       return get
    }
-   constructor(private name: string, private config: StoreConfig) {
-      this.factory = this.factory.bind(this)
-   }
+   constructor(private name: string, private config: StoreConfig) {}
 }
 
-function createStore<TName extends string>(
-   name: TName,
-   config: StoreConfig,
-) {
-   const Token = new StoreToken(name, new StoreFactory(name, config))
-   Token.Provider.push({
+function createStore<TName extends string>(name: TName, config: StoreConfig) {
+   const Token = new ValueToken(name, new StoreFactory(name, config))
+   const store = {
       provide: Store,
       useExisting: Token,
-      multi: true
-   })
+   }
+   Token.Provider = [
+      store,
+      Events.Provider,
+      config.tokens.map((Token) => Token.Provider),
+   ]
+   return Token
 }
 
-export const Store = createStore
+export interface StoreStatic {
+   new <T extends string>(name: T, config: StoreConfig): ValueToken<Inject>
+}
+
+export const Store: StoreStatic = createStore as any

@@ -353,7 +353,7 @@ export function pipe<T, A, B, C, D, E, F, G, H, I>(
    fn9: UnaryFunction<H, I>,
 ): Value<I extends Observable<infer R> ? R | undefined : never>
 export function pipe<T, A, B, C, D, E, F, G, H, I>(
-   source: Observable<T>,
+   source: T,
    fn1: UnaryFunction<T, A>,
    fn2: UnaryFunction<A, B>,
    fn3: UnaryFunction<B, C>,
@@ -440,10 +440,10 @@ export function pipe<T, A, B, C, D, E, F, G, H, I>(
 ): UnaryFunction<T, unknown>
 export function pipe(...args: any[]): unknown {
    if (args.length === 0) {
-      return (value: any) => use(value)
+      return (value: any) => new DeferredValue(value)
    }
    if (isObservable(args[0])) {
-      return use((<any>args[0]).pipe(...args.slice(1)))
+      return new DeferredValue((<any>args[0]).pipe(...args.slice(1)))
    } else {
       return function (source: Observable<unknown>) {
          return (<any>pipe)(source, ...args)

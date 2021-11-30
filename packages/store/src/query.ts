@@ -1,11 +1,27 @@
-import {Value, ValueToken} from "@mmuscat/angular-composition-api"
+import { ValueToken } from "@mmuscat/angular-composition-api"
 
-export class QueryToken<T> extends ValueToken<T> {}
+const tokens = new WeakSet()
 
-function createQuery<TName extends string, TValue>(name: TName, factory: () => Value<TValue>): ValueToken<TValue> {
-   return new QueryToken(name, {
-      factory
-   })
+export function isQueryToken(token: any) {
+   return tokens.has(token)
 }
 
-export const Query = createQuery
+function createQuery<TName extends string, TValue>(
+   name: TName,
+   factory: () => TValue,
+): ValueToken<TValue> {
+   const token = new ValueToken(name, {
+      factory,
+   })
+   tokens.add(token)
+   return token
+}
+
+export interface QueryStatic {
+   new <TName extends string, TValue>(
+      name: TName,
+      factory: () => TValue,
+   ): ValueToken<TValue>
+}
+
+export const Query: QueryStatic = createQuery as any

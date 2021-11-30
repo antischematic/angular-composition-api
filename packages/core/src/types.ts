@@ -374,7 +374,11 @@ export class AccessorValue<TValue, TNext>
       if (typeof value === "function" && !isValue(value) && !isEmitter(value)) {
          value = new ComputedValue(value)
       }
-      super("value" in value ? value["value"] : void 0)
+      if ("value" in value && !(value instanceof DeferredValue)) {
+         super(value["value"])
+      } else {
+         super()
+      }
       this.accessor = accessor
       this.refCount = 0
       this.subscription = Subscription.EMPTY

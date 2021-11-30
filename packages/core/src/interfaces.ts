@@ -46,7 +46,6 @@ export type Value<T> = CheckSubject<T> &
    NextObserver<T> & {
       readonly __ng_value: true
       readonly value: T
-      (mutate: (value: T) => any): T
       (value: T): T
       (): T
       next(value: T): void

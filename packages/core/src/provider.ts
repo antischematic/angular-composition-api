@@ -1,11 +1,10 @@
 import {
    Provider,
-   inject,
    InjectFlags,
    InjectionToken,
    Injector,
 } from "@angular/core"
-import { getContext, ProvidedIn } from "./core"
+import { inject, ProvidedIn } from "./core"
 
 export type ValueToken<T> = InjectionToken<T> & {
    __ng_value_token: true
@@ -75,7 +74,7 @@ function createValueToken(
 export const ValueToken: ValueTokenStatic = createValueToken as any
 
 export function provide<T>(token: ValueToken<T>, value: T): void {
-   const key = getContext(3)?.get(
+   const key = inject(
       (<any>token).key,
       Injector.THROW_IF_NOT_FOUND,
       InjectFlags.Self,

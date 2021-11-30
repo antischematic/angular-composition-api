@@ -1,17 +1,45 @@
-import {Emitter, use, Value, ValueToken} from "@mmuscat/angular-composition-api"
+import {
+   Emitter,
+   isEmitter,
+   use,
+   select,
+   ValueToken,
+} from "@mmuscat/angular-composition-api"
 
-export class CommandToken<T> extends ValueToken<T> {}
+const tokens = new WeakSet()
+
+export function isCommandToken(token: any) {
+   return tokens.has(token)
+}
 
 class CommandFactory {
-   factory() {
+   factory = () => {
       const emitter = use(Function)
-      return this.createCommand ? use(this.createCommand(emitter)) : emitter
+      if (this.createCommand) {
+         const result = this.createCommand(emitter)
+         return isEmitter(result)
+            ? result
+            : select({ next: emitter, value: result })
+      }
+      return emitter
    }
-   constructor(private createCommand?: (emitter: Emitter<any>) => Value<any>) {}
+   constructor(private createCommand?: (emitter: Emitter<any>) => any) {}
 }
 
-function createCommand<TName extends string, TArgs, TValue>(name: TName, factory?: (emitter: Emitter<TArgs>) => Value<TValue>): ValueToken<TValue> {
-   return new CommandToken(name, new CommandFactory(factory))
+function createCommand<TName extends string, TArgs, TValue>(
+   name: TName,
+   factory?: (emitter: Emitter<TArgs>) => TValue,
+): ValueToken<TValue> {
+   const token = new ValueToken(name, new CommandFactory(factory))
+   tokens.add(token)
+   return token
 }
 
-export const Command = createCommand
+export interface CommandStatic {
+   new <TName extends string, TArgs, TValue>(
+      name: TName,
+      factory: (emitter: Emitter<TArgs>) => TValue,
+   ): ValueToken<TValue>
+}
+
+export const Command: CommandStatic = createCommand as any
