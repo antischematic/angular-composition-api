@@ -169,15 +169,16 @@ export class Scheduler extends Subject<any> {
 
    detectChanges() {
       if (this.dirty && !this.closed) {
+         this.dirty = false
          try {
             this.next(0)
             this.ref.detectChanges()
             isDevMode() && this.ref.checkNoChanges()
-            dirty.delete(this)
-            this.dirty = false
             this.next(1)
          } catch (error) {
             this.errorHandler.handleError(error)
+         } finally {
+            dirty.delete(this)
          }
       }
    }

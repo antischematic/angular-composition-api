@@ -6,11 +6,16 @@ import {
    use,
    ViewDef,
 } from "@mmuscat/angular-composition-api"
-import {animationFrameScheduler, interval} from "rxjs";
+import { animationFrames } from "rxjs"
 
 function counter() {
    const count = use(0)
-   subscribe(interval(1000, animationFrameScheduler), () => count((count() % 10) + 1))
+   subscribe(animationFrames(), ({ elapsed }) => {
+      const seconds = 1 + (Math.floor(elapsed / 1000) % 10)
+      if (seconds !== count()) {
+         count(seconds)
+      }
+   })
    return count
 }
 
