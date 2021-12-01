@@ -1,5 +1,4 @@
 import {
-   identity,
    isObservable,
    NextObserver,
    Observable,
@@ -32,7 +31,14 @@ import {
    UseOptions,
    Value,
 } from "./interfaces"
-import {accept, isClass, isEmitter, isObserver, isSignal, isValue} from "./utils"
+import {
+   accept,
+   isClass,
+   isEmitter,
+   isObserver,
+   isSignal,
+   isValue,
+} from "./utils"
 import { addEffect, addTeardown, inject } from "./core"
 import {
    DeferredValue as DeferredValueType,
@@ -103,7 +109,10 @@ export function use(value?: any, options?: UseOptions<unknown>): unknown {
       }
       return new ValueType(options, void 0, phase)
    }
-   if (isValue(value) || (typeof value === "function" && !isEmitter(value)) && !isClass(value)) {
+   if (
+      isValue(value) ||
+      (typeof value === "function" && !isEmitter(value) && !isClass(value))
+   ) {
       return new EmitterType(value)
    }
    if (isObservable(value)) {
@@ -283,7 +292,6 @@ export function onError(
    return error as any
 }
 
-export function pipe(): typeof identity
 export function pipe<T>(source: T): DeferredValue<T>
 export function pipe<T, A>(
    source: T,
@@ -371,8 +379,5 @@ export function pipe<T, A, B, C, D, E, F, G, H, I>(
    ...fns: UnaryFunction<any, any>[]
 ): DeferredValue<unknown>
 export function pipe(...args: any[]): unknown {
-   if (args.length === 0) {
-      return (value: any) => new DeferredValueType(value)
-   }
    return new DeferredValueType((<any>args[0]).pipe(...args.slice(1)))
 }
