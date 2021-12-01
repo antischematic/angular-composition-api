@@ -99,9 +99,9 @@ export function use(value?: any, options?: UseOptions<unknown>): unknown {
    if (isQuery(value)) {
       const phase = queryMap.get(value)!
       if (value === ContentChildren || value === ViewChildren) {
-         return new DeferredValueType(new QueryListValue(), phase)
+         return new DeferredValueType(new QueryListValue(), phase, options)
       }
-      return new ValueType(void 0, phase, options)
+      return new ValueType(options, void 0, phase)
    }
    if (isValue(value) || (typeof value === "function" && !isEmitter(value)) && !isClass(value)) {
       return new EmitterType(value)
@@ -109,7 +109,7 @@ export function use(value?: any, options?: UseOptions<unknown>): unknown {
    if (isObservable(value)) {
       return new DeferredValueType(value, 5, options)
    }
-   return new ValueType(value, 5, options)
+   return new ValueType(options, value, 5)
 }
 
 export function subscribe<T>(): Subscription

@@ -9,7 +9,7 @@ import {
    Subscription,
    Unsubscribable,
 } from "rxjs"
-import { CheckPhase, checkPhase, UseOptions } from "./interfaces"
+import { CheckPhase, UseOptions } from "./interfaces"
 import { EventEmitter } from "@angular/core"
 import { isEmitter, isValue } from "./utils"
 
@@ -70,12 +70,12 @@ function setObserver(value: any) {
 
 export class Value<T> implements NextObserver<T> {
    readonly __ng_value: boolean;
-   [checkPhase]: number;
+   readonly __check_phase: number;
    [observable]() {
       return this
    }
    check: (oldValue: T, newValue: T) => boolean
-   source: ReplaySubject<T>
+   source: Subject<T>
    errors: Set<(error: unknown) => Observable<any> | void>
    changes: Set<(previous: T, current: T) => void>
    get value(): T {
@@ -131,9 +131,9 @@ export class Value<T> implements NextObserver<T> {
    }
 
    constructor(
+      options?: UseOptions<T>,
       public _value?: T,
       public phase: CheckPhase = 5,
-      options?: UseOptions<T>,
    ) {
       const value: this = Object.setPrototypeOf(function Value(
          nextValue?: any,
@@ -152,13 +152,13 @@ export class Value<T> implements NextObserver<T> {
       },
       this)
       this.__ng_value = true
-      this[checkPhase] = phase
+      this.__check_phase = phase
       this.errors = new Set()
       this.changes = new Set()
       this.check = options?.distinct ?? Object.is
-      this.source = new ReplaySubject(1)
+      this.source = options?.subject ?? new ReplaySubject(1)
       this.source.subscribe((value) => (this._value = value))
-      if (arguments.length > 0) this.source.next(_value!)
+      if (arguments.length > 1) this.source.next(_value!)
       return value
    }
 }
@@ -215,7 +215,7 @@ class Subscriber extends Subscription {
       source: Subscribable<any>,
    ) {
       super()
-      this.add(source.subscribe(this))
+      this.add(source?.subscribe(this))
    }
 }
 
@@ -250,7 +250,7 @@ export class DeferredValue<T> extends Value<T> implements Connectable {
       phase: CheckPhase = 5,
       options?: UseOptions<any>,
    ) {
-      super()
+      super(options)
       this.refCount = 0
       this.connected = false
       this.phase = phase
@@ -285,8 +285,8 @@ export class ComputedValue extends Value<any> {
       return subscription
    }
 
-   constructor(public observer: any) {
-      super()
+   constructor(public observer: any, public options?: UseOptions<any>) {
+      super(options)
       this.dirty = true
       this.closed = false
    }
@@ -369,15 +369,15 @@ export class AccessorValue<TValue, TNext>
       return new ConnectedSubscriber(this, observer)
    }
 
-   constructor(accessor: Accessor<TValue, TNext>) {
+   constructor(accessor: Accessor<TValue, TNext>, options?: UseOptions<TValue>) {
       let { value } = accessor
       if (typeof value === "function" && !isValue(value) && !isEmitter(value)) {
-         value = new ComputedValue(value)
+         value = new ComputedValue(value, options)
       }
       if ("value" in value && !(value instanceof DeferredValue)) {
-         super(value["value"])
+         super(options, value["value"])
       } else {
-         super()
+         super(options)
       }
       this.accessor = accessor
       this.refCount = 0

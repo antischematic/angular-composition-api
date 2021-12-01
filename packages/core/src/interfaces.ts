@@ -14,15 +14,13 @@ import {
    Subscription,
 } from "rxjs"
 
-export const checkPhase = Symbol("checkPhase")
-
 export interface Check {
    check(): void
 }
 
 export interface CheckSubject<T, U = T> extends Observable<T> {
    readonly value: T | U
-   readonly [checkPhase]: CheckPhase
+   readonly __check_phase: CheckPhase
 }
 
 export type CheckPhase = 5 | 6 | 7
@@ -110,19 +108,20 @@ export interface Emitter<T> extends EventEmitter<T> {
    (value: T): void
 }
 
+export interface AsyncEmitter<T, U> extends Observable<T> {
+   readonly __ng_emitter: true
+   (value: U): void
+   next(value: U): void
+   emit(value: U): void
+}
+
 export type QueryType = typeof ContentChild | typeof ViewChild
 
 export type QueryListType = typeof ViewChildren | typeof ContentChildren
 
 export interface UseOptions<T> {
-   distinct?: (oldValue: T, newValue: T) => boolean
-}
-
-export interface Notification<T> {
-   kind: "N" | "E" | "C"
-   value: T
-   error: unknown
-   complete: boolean
+   distinct?: (oldValue: T, newValue: T) => boolean,
+   subject?: Subject<T>
 }
 
 export type ExpandValue<T, TPartial extends boolean = false> = T extends Value<

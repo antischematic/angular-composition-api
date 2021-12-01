@@ -14,7 +14,6 @@ export {
 } from "./common"
 export {
    CheckSubject,
-   checkPhase,
    CheckPhase,
    State,
    UnsubscribeSignal,
@@ -23,12 +22,13 @@ export {
    ReadonlyValue,
    Emitter,
    EmitterWithParams,
+   AsyncEmitter,
    Accessor,
    AccessorValue,
    ExpandValue,
    Change,
 } from "./interfaces"
-export { select, combine } from "./select"
+export { select, combine, async } from "./select"
 export { ValueToken, provide, EmptyValueError } from "./provider"
 export { onDestroy, onUpdated, onBeforeUpdate, onChanges } from "./lifecycle"
 export { ZonelessEventManager } from "./event-manager"

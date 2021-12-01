@@ -1,8 +1,8 @@
 import {
    Accessor,
-   AccessorValue,
+   AccessorValue, AsyncEmitter,
    Emitter,
-   ExpandValue,
+   ExpandValue, UseOptions,
    Value,
 } from "./interfaces"
 import {
@@ -12,17 +12,32 @@ import {
    setPending,
 } from "./types"
 import { get, getPath, isEmitter, isObject, isValue, walk } from "./utils"
+import {Subject} from "rxjs";
 
-export function select<T, U>(accessor: Accessor<T, U>): AccessorValue<T, U>
-export function select<T extends Value<any> | Emitter<any>>(source: T): unknown
-export function select<T>(source: () => T): Value<T>
+export function select<T, U>(accessor: Accessor<T, U>, options?: UseOptions<any>): AccessorValue<T, U>
+export function select<T extends Value<any> | Emitter<any>>(source: T, options?: UseOptions<any>): unknown
+export function select<T>(source: () => T, options?: UseOptions<any>): Value<T>
 export function select(
    source: (() => any) | Accessor<any, any> | Value<any> | Emitter<any>,
+   options?: UseOptions<any>
 ): unknown {
    if (typeof source === "function" && !isValue(source) && !isEmitter(source)) {
       return new ComputedValue(source) as any
    }
-   return new AccessorValueType(source as any)
+   return new AccessorValueType(source as any, options)
+}
+
+export function async<T, U>(accessor: Accessor<T, U>, options?: UseOptions<any>): AsyncEmitter<T, U>
+export function async(
+   source: Accessor<any, any>,
+   options?: UseOptions<any>
+): unknown {
+   const emitter = new AccessorValueType(source as any, {
+      ...options,
+      subject: options?.subject ?? new Subject()
+   })
+   delete (<any>emitter).__check_phase
+   return emitter
 }
 
 export function combine<T>(object: Value<T>): Value<T>

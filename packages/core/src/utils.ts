@@ -102,5 +102,5 @@ export function access(value: any) {
 const CLASS_REGEX = /^\s*class\s+/
 
 export function isClass(value: any) {
-   return typeof value === 'function' && CLASS_REGEX.test(value.toString());
+   return typeof value === "function" && CLASS_REGEX.test(value.toString())
 }

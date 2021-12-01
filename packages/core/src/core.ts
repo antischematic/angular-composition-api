@@ -29,7 +29,6 @@ import {
 import {
    AccessorValue,
    Check,
-   checkPhase,
    CheckPhase,
    CheckSubject,
    UnsubscribeSignal,
@@ -209,7 +208,7 @@ export class Scheduler extends Subject<any> {
 }
 
 function isCheckSubject(value: any): value is CheckSubject<any> {
-   return (isObject(value) || isValue(value)) && checkPhase in value
+   return (isObject(value) || isValue(value)) && "__check_phase" in value
 }
 
 function createBinding(context: any, key: any, value: any) {
@@ -220,7 +219,7 @@ function createBinding(context: any, key: any, value: any) {
       getContext(Context.SCHEDULER)!,
       getContext(Context.ERROR_HANDLER)!,
    )
-   addCheck(value[checkPhase], binding)
+   addCheck(value.__check_phase, binding)
    addTeardown(value.subscribe(binding))
 }
 
