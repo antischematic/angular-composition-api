@@ -19,7 +19,10 @@ export class EmptyValueError extends Error {
 
 export interface ValueTokenStatic {
    new <T>(name: string): ValueToken<T>
-   new <T>(name: string, options?: { factory: () => T }): ValueToken<T>
+   new <T>(name: string, options?: {
+      providedIn?: ProvidedIn
+      factory: () => T
+   }): ValueToken<T>
 }
 
 const valueMap = new WeakMap<{}, any>()

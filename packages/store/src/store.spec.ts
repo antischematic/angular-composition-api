@@ -7,7 +7,7 @@ import {
 import { EventEmitter, Provider } from "@angular/core"
 import {
    Emitter,
-   inject,
+   inject, onDestroy, onError,
    pipe,
    subscribe,
    use,
@@ -39,6 +39,7 @@ describe("Store", () => {
       const AppStore = new Store("app", {
          tokens: [Count],
       })
+      addProvider(AppStore.Provider)
       addProvider({
          provide: Service,
          useFactory() {
@@ -61,8 +62,9 @@ describe("Store", () => {
          )
       })
       const AppStore = new Store("app", {
-         tokens: [Double],
+         tokens: [Count, Double],
       })
+      addProvider(AppStore.Provider)
       addProvider({
          provide: Service,
          useFactory() {
@@ -83,6 +85,7 @@ describe("Store", () => {
       const AppStore = new Store("app", {
          tokens: [Log],
       })
+      addProvider(AppStore.Provider)
       addProvider({
          provide: Service,
          useFactory() {
@@ -105,6 +108,7 @@ describe("Store", () => {
       const AppStore = new Store("app", {
          tokens: [Double],
       })
+      addProvider(AppStore.Provider)
       addProvider({
          provide: Service,
          useFactory() {
@@ -125,12 +129,13 @@ describe("Store", () => {
          return pipe(
             events(Count),
             map((event) => event.value),
-            bufferCount(5)
-      )
+            bufferCount(5),
+         )
       })
       const AppStore = new Store("app", {
          tokens: [Count, Buffer],
       })
+      addProvider(AppStore.Provider)
       addProvider({
          provide: Service,
          useFactory() {
@@ -146,4 +151,30 @@ describe("Store", () => {
       discardPeriodicTasks()
       expect(spy).toHaveBeenCalledOnceWith([0, 1, 2, 3, 4])
    }))
+
+   it("should be composable", () => {
+      const query = new Query("count", () => {
+         const value = use(0)
+         onDestroy(() => {})
+         onError(value, () => {})
+         return value
+      })
+      const command = new Command("command", () => {
+         const value = use(0)
+         onDestroy(() => {})
+         onError(value, () => {})
+         return value
+      })
+      const saga = new Saga("saga", () => {
+         const value = use(0)
+         onDestroy(() => {})
+         onError(value, () => {})
+         return value
+      })
+      const AppStore = new Store("app", {
+         tokens: [query, command, saga],
+      })
+      addProvider(AppStore.Provider)
+      expect(() => TestBed.inject(AppStore)).not.toThrow()
+   })
 })

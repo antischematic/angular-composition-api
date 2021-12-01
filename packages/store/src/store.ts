@@ -4,10 +4,17 @@ import {
    combine,
    Emitter,
    inject,
+   Service,
    subscribe,
    ValueToken,
 } from "@mmuscat/angular-composition-api"
-import { ErrorHandler, InjectFlags, Injector, INJECTOR } from "@angular/core"
+import {
+   ErrorHandler,
+   InjectFlags,
+   Injector,
+   INJECTOR,
+   Type,
+} from "@angular/core"
 import { isSaga } from "./saga"
 import { Events, Inject, StoreConfig, StoreEvent } from "./interfaces"
 
@@ -40,63 +47,72 @@ class EventEmitter {
    ) {}
 }
 
-class StoreFactory {
-   factory = () => {
-      const parent = inject(Store, null, InjectFlags.SkipSelf)
-      const { tokens, plugins = [] } = this.config
-      const events = inject(Events)
-      const errorHandler = inject(ErrorHandler)
-      const injector = inject(INJECTOR)
-      const queries = {} as any
-      const commands = {} as any
-      function get<T>(token: ValueToken<T>, flags?: InjectFlags): T {
-         return injector.get(token, Injector.THROW_IF_NOT_FOUND as any, flags)
-      }
-      for (const token of tokens) {
-         const value = get(token)
-         const tokenName = token.toString()
-         // noinspection SuspiciousTypeOfGuard
-         const type = isQueryToken(token)
-            ? 1
-            : isCommandToken(token)
-            ? 2
-            : isSaga(token)
-            ? 3
-            : 0
-         if (type > 0) {
-            subscribe(value, new EventEmitter(errorHandler, tokenName, events))
-         }
-         if (type === 1) {
-            queries[tokenName] = value
-         }
-         if (type === 2) {
-            commands[tokenName] = value
-         }
-      }
-      const state = combine(queries)
-      const store = {
-         parent,
-         events,
-         commands,
-         queries,
-         state,
-      }
-      for (const plugin of plugins) {
-         plugin(store)
-      }
-      return get
+function store(name: string, config: StoreConfig) {
+   const parent = inject(Store, null, InjectFlags.SkipSelf)
+   const { tokens, plugins = [] } = config
+   const events = inject(Events)
+   const errorHandler = inject(ErrorHandler)
+   const injector = inject(INJECTOR)
+   const queries = {} as any
+   const commands = {} as any
+   function get<T>(token: ValueToken<T>, flags?: InjectFlags): T {
+      return injector.get(token, Injector.THROW_IF_NOT_FOUND as any, flags)
    }
-   constructor(private name: string, private config: StoreConfig) {}
+   for (const token of tokens) {
+      const value = get(token)
+      const tokenName = token.toString()
+      // noinspection SuspiciousTypeOfGuard
+      const type = isQueryToken(token)
+         ? 1
+         : isCommandToken(token)
+         ? 2
+         : isSaga(token)
+         ? 3
+         : 0
+      if (type > 0) {
+         subscribe(value, new EventEmitter(errorHandler, tokenName, events))
+      }
+      if (type === 1) {
+         queries[tokenName] = value
+      }
+      if (type === 2) {
+         commands[tokenName] = value
+      }
+   }
+   const state = combine(queries)
+   const store = {
+      name,
+      parent,
+      events,
+      commands,
+      queries,
+      state,
+   }
+   for (const plugin of plugins) {
+      plugin(store)
+   }
+   return get
 }
 
 function createStore<TName extends string>(name: TName, config: StoreConfig) {
-   const Token = new ValueToken(name, new StoreFactory(name, config))
-   const store = {
+   const StoreService = new Service(store, {
+      providedIn: null,
+      name,
+      arguments: [name, config],
+   })
+   const Token = new ValueToken(name, {
+      providedIn: null,
+      factory() {
+         return inject(StoreService)
+      },
+   })
+   const storeProvider = {
       provide: Store,
       useExisting: Token,
    }
    Token.Provider = [
-      store,
+      StoreService,
+      storeProvider,
       Events.Provider,
       config.tokens.map((Token) => Token.Provider),
    ]
