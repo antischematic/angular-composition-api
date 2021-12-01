@@ -31,14 +31,7 @@ import {
    UseOptions,
    Value,
 } from "./interfaces"
-import {
-   accept,
-   isClass,
-   isEmitter,
-   isObserver,
-   isSignal,
-   isValue,
-} from "./utils"
+import { isClass, isEmitter, isObserver, isSignal, isValue } from "./utils"
 import { addEffect, addTeardown, inject } from "./core"
 import {
    DeferredValue as DeferredValueType,
@@ -59,7 +52,6 @@ export class QueryListValue extends QueryList<any> {
       this.subscription = value.changes.subscribe(this)
    }
    subscribe(observer: any) {
-      accept(observer, this, void 0, "N")
       return this.changes.subscribe(observer)
    }
    complete() {
@@ -79,16 +71,13 @@ function isQuery(value: any) {
 }
 
 export function use<T>(): Value<T | undefined>
-export function use<T>(value: QueryListType): ReadonlyValue<QueryList<T>>
-export function use<T>(value: QueryType): ReadonlyValue<T | undefined>
+export function use<T>(value: QueryListType): DeferredValue<QueryList<T>>
+export function use<T>(value: QueryType): DeferredValue<T>
 export function use<T>(value: typeof Function): Emitter<T>
-export function use<T>(value: Value<T>, options?: UseOptions<T>): Emitter<T>
 export function use<T, U>(
    value: AccessorValue<T, U>,
    options?: UseOptions<T>,
 ): Emitter<T>
-export function use<T>(value: ReadonlyValue<T>): never
-export function use<T>(value: Emitter<T>): Value<T>
 export function use<T>(
    value: Observable<T>,
    options?: UseOptions<T>,

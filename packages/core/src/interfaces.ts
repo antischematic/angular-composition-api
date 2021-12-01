@@ -120,7 +120,7 @@ export type QueryType = typeof ContentChild | typeof ViewChild
 export type QueryListType = typeof ViewChildren | typeof ContentChildren
 
 export interface UseOptions<T> {
-   distinct?: (oldValue: T, newValue: T) => boolean,
+   distinct?: (oldValue: T, newValue: T) => boolean
    subject?: Subject<T>
 }
 
@@ -146,12 +146,14 @@ export interface ErrorState {
    retries: number
 }
 
-export type Change<T> = {
-   current: T,
-   previous: undefined,
-   first: true,
-} | {
-   current: T,
-   previous: T,
-   first: false,
-}
+export type Change<T> =
+   | {
+        current: T
+        previous: undefined
+        first: true
+     }
+   | {
+        current: T
+        previous: T
+        first: false
+     }

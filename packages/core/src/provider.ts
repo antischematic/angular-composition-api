@@ -1,9 +1,4 @@
-import {
-   Provider,
-   InjectFlags,
-   InjectionToken,
-   Injector,
-} from "@angular/core"
+import { InjectFlags, InjectionToken, Injector, Provider } from "@angular/core"
 import { inject, ProvidedIn } from "./core"
 
 export type ValueToken<T> = InjectionToken<T> & {
@@ -19,10 +14,13 @@ export class EmptyValueError extends Error {
 
 export interface ValueTokenStatic {
    new <T>(name: string): ValueToken<T>
-   new <T>(name: string, options?: {
-      providedIn?: ProvidedIn
-      factory: () => T
-   }): ValueToken<T>
+   new <T>(
+      name: string,
+      options?: {
+         providedIn?: ProvidedIn
+         factory: () => T
+      },
+   ): ValueToken<T>
 }
 
 const valueMap = new WeakMap<{}, any>()

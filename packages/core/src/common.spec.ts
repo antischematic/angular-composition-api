@@ -10,12 +10,17 @@ import {
    ViewChild,
    ViewChildren,
 } from "@angular/core"
-import {Change, Value} from "./interfaces"
+import { Change, Value } from "./interfaces"
 import { EffectObserver, inject, Service, ViewDef } from "./core"
 import { interval, of, Subscription, throwError, timer } from "rxjs"
-import { discardPeriodicTasks, fakeAsync, TestBed, tick } from "@angular/core/testing"
+import {
+   discardPeriodicTasks,
+   fakeAsync,
+   TestBed,
+   tick,
+} from "@angular/core/testing"
 import { configureTest, defineService } from "./core.spec"
-import { onBeforeUpdate, onUpdated, onChanges } from "./lifecycle"
+import { onBeforeUpdate, onChanges, onUpdated } from "./lifecycle"
 import { ComputedValue } from "./types"
 import { By } from "@angular/platform-browser"
 import { isValue } from "./utils"
@@ -129,7 +134,7 @@ describe("QueryList", () => {
       queryList.reset([1, 2, 3])
       subject.next(queryList)
       expect(spy).toHaveBeenCalledWith(subject.value)
-      expect(spy).toHaveBeenCalledTimes(2)
+      expect(spy).toHaveBeenCalledTimes(1)
    })
    it("should notify late subscribers", () => {
       const spy = createSpy()
@@ -164,7 +169,6 @@ describe("Query", () => {
    it("should get value", () => {
       const queryValue = {}
       const query = use<{}>(ViewChild)
-      // @ts-expect-error
       query(queryValue)
 
       expect(query.value).toBe(queryValue)
@@ -175,7 +179,6 @@ describe("Query", () => {
       const spy = createSpy()
       const query = use<{}>(ViewChild)
       query.subscribe(spy)
-      // @ts-expect-error
       query(queryValue)
 
       expect(spy).toHaveBeenCalledTimes(2)
@@ -572,7 +575,7 @@ describe("subscribe", () => {
       const spy = createSpy()
       function create() {
          const count = use(0)
-         const countChange = use(count)
+         const countChange = listen(count)
 
          function increment() {
             countChange(count() + 1)
@@ -949,7 +952,7 @@ describe("onError", () => {
          subscribe(value)
          return {
             error,
-            error2
+            error2,
          }
       }
       @Component({ template: `` })
@@ -957,7 +960,11 @@ describe("onError", () => {
       const createView = configureTest(Test)
       const view = createView()
       view.detectChanges()
-      expect(spy).toHaveBeenCalledOnceWith(new Error("BOGUS"), { retries: 0, message: "BOGUS", error: new Error("BOGUS") })
+      expect(spy).toHaveBeenCalledOnceWith(new Error("BOGUS"), {
+         retries: 0,
+         message: "BOGUS",
+         error: new Error("BOGUS"),
+      })
       expect(view.componentInstance.error2).toEqual({
          retries: 0,
          message: "BOGUS",
@@ -1014,13 +1021,13 @@ describe("onError", () => {
             error({
                error: new Error("BOGUS"),
                message: "BOGUS",
-               retries: 0
+               retries: 0,
             })
          })
          return {
             error,
             setError,
-            clearError
+            clearError,
          }
       }
       @Component({ template: `` })
@@ -1031,12 +1038,12 @@ describe("onError", () => {
       view.componentInstance.setError({
          error: new Error("BOGUS"),
          message: "BOGUS",
-         retries: 0
+         retries: 0,
       })
       expect(view.componentInstance.error).toEqual({
          error: new Error("BOGUS"),
          message: "BOGUS",
-         retries: 0
+         retries: 0,
       })
       view.componentInstance.clearError()
       expect(view.componentInstance.error).toBeUndefined()
@@ -1089,7 +1096,7 @@ describe("onChanges", () => {
       const expected = {
          first: true,
          current: 0,
-         previous: undefined
+         previous: undefined,
       }
       view.detectChanges()
       expect(view.componentInstance.changes).toEqual(expected as Change<number>)
@@ -1113,7 +1120,7 @@ describe("onChanges", () => {
       const expected = {
          first: false,
          current: 10,
-         previous: 0
+         previous: 0,
       }
       view.componentInstance.count = 10
       view.detectChanges()
@@ -1121,11 +1128,10 @@ describe("onChanges", () => {
       expect(spy).toHaveBeenCalledOnceWith(expected)
    })
    it("should not notify on internal changes", () => {
-
       const spy = createSpy()
       function setup() {
          const count = use(0)
-         const countChange = use(count)
+         const countChange = listen(count)
          const changes = onChanges(count, spy)
 
          return {
@@ -1141,7 +1147,7 @@ describe("onChanges", () => {
       const expected = {
          first: true,
          current: 0,
-         previous: undefined
+         previous: undefined,
       }
       view.detectChanges()
       view.componentInstance.countChange(10)

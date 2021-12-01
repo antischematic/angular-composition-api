@@ -35,11 +35,14 @@ export function onDestroy(callback: () => void = Function) {
    return emitter
 }
 
-export function onChanges<T>(value: ReadonlyValue<T>, callback?: (change: Change<T>) => void) {
+export function onChanges<T>(
+   value: ReadonlyValue<T>,
+   callback?: (change: Change<T>) => void,
+) {
    const changes = use<Change<T>>({
       first: true,
       current: value.value,
-      previous: undefined
+      previous: undefined,
    })
    const remove = value.onChanges((previous, current) => {
       changes({

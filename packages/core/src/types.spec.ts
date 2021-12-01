@@ -16,7 +16,6 @@ import {
    ContentChild,
    ContentChildren,
    ElementRef,
-   QueryList,
    ViewChild,
    ViewChildren,
 } from "@angular/core"
@@ -231,8 +230,8 @@ describe("types", () => {
       expect(instance.plainBehavior).toEqual(jasmine.any(BehaviorSubject))
       expect(instance.contentQuery).toEqual(undefined)
       expect(instance.viewQuery).toEqual(undefined)
-      expect(instance.contentChildren).toEqual(jasmine.any(QueryList))
-      expect(instance.viewChildren).toEqual(jasmine.any(QueryList))
+      expect(instance.contentChildren).toEqual(undefined)
+      expect(instance.viewChildren).toEqual(undefined)
       expect(instance.plainNull).toEqual(null)
       expect(instance.plainUndefined).toBeUndefined()
 
@@ -245,10 +244,6 @@ describe("types", () => {
       instance.plainBoolean = true
       // @ts-expect-error
       instance.plainFunction = () => {}
-      // @ts-expect-error
-      instance.contentQuery = undefined
-      // @ts-expect-error
-      instance.contentChildren = new QueryList()
 
       // writable
       instance.number = 3

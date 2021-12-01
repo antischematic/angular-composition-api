@@ -292,7 +292,9 @@ export function addCheck(key: CheckPhase, subject: any) {
 }
 
 function isTeardown(value: any): value is TeardownLogic {
-   return typeof value === "function" || typeof value?.unsubscribe === "function"
+   return (
+      typeof value === "function" || typeof value?.unsubscribe === "function"
+   )
 }
 
 export function addTeardown(teardown: TeardownLogic) {

@@ -1,5 +1,5 @@
-import {get} from "./utils"
-import {use} from "./common"
+import { get } from "./utils"
+import { use } from "./common"
 
 describe("get", () => {
    it("should flatten values", () => {

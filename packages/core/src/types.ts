@@ -69,7 +69,7 @@ function setObserver(value: any) {
 }
 
 export class Value<T> implements NextObserver<T> {
-   readonly __ng_value: boolean;
+   readonly __ng_value: boolean
    readonly __check_phase: number;
    [observable]() {
       return this
@@ -322,10 +322,10 @@ class ConnectedSubscriber extends Subscription {
    constructor(private accessor: Connectable, observer: any) {
       super()
       accessor.refCount++
+      this.add(accessor.source.subscribe(observer))
       if (accessor.refCount === 1) {
          accessor.connect()
       }
-      this.add(accessor.source.subscribe(observer))
    }
 }
 
@@ -369,16 +369,15 @@ export class AccessorValue<TValue, TNext>
       return new ConnectedSubscriber(this, observer)
    }
 
-   constructor(accessor: Accessor<TValue, TNext>, options?: UseOptions<TValue>) {
+   constructor(
+      accessor: Accessor<TValue, TNext>,
+      options?: UseOptions<TValue>,
+   ) {
       let { value } = accessor
       if (typeof value === "function" && !isValue(value) && !isEmitter(value)) {
          value = new ComputedValue(value, options)
       }
-      if ("value" in value && !(value instanceof DeferredValue)) {
-         super(options, value["value"])
-      } else {
-         super(options)
-      }
+      super(options)
       this.accessor = accessor
       this.refCount = 0
       this.subscription = Subscription.EMPTY
