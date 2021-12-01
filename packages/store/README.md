@@ -11,11 +11,11 @@ const Todos = new Query("todos", () => {
    const http = inject(HttpClient)
    return pipe(
       inject(UserId),
-      switchMap((userId) => 
+      switchMap((userId) =>
          http.get(environment.url, {
-            params: { userId }
-         })
-      )
+            params: { userId },
+         }),
+      ),
    )
 })
 const TodosError = new Query("todosError", () => {
@@ -32,14 +32,20 @@ const Retry = new Command("retry", (action) => {
 })
 ```
 
+Create Sagas
+
+```ts
+const TodosLogger = new Saga("todosLogger", (events) => {
+   return pipe(events(Todos), tap(console.log))
+})
+```
+
 Create Stores
 
 ```ts
 const TodosStore = new Store("todos", {
-   tokens: [UserId, Todos, TodosError],
-   plugins: [
-      ReduxDevTool,
-   ],
+   tokens: [UserId, Todos, TodosError, Retry, TodosLogger],
+   plugins: [ReduxDevTool],
 })
 ```
 
