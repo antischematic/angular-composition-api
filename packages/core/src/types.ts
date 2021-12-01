@@ -219,7 +219,7 @@ class Subscriber extends Subscription {
    }
 }
 
-export class DeferredValue extends Value<any> implements Connectable {
+export class DeferredValue<T> extends Value<T> implements Connectable {
    connected: boolean
    refCount: number
    subscription: Subscription

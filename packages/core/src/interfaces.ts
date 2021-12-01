@@ -20,8 +20,8 @@ export interface Check {
    check(): void
 }
 
-export interface CheckSubject<T> extends Observable<T> {
-   readonly value: T
+export interface CheckSubject<T, U = T> extends Observable<T> {
+   readonly value: T | U
    readonly [checkPhase]: CheckPhase
 }
 
@@ -45,17 +45,27 @@ export type UnsubscribeSignal = Subscription | AbortSignal | null
 export type Value<T> = CheckSubject<T> &
    NextObserver<T> & {
       readonly __ng_value: true
-      readonly value: T
+      (mutate: (value: T) => any): T
       (value: T): T
       (): T
       next(value: T): void
-   onChanges(handler: (previous: T, current: T) => void): () => void
+      onChanges(handler: (previous: T, current: T) => void): () => void
+      onError(handler: (error: unknown) => Observable<any> | void): () => void
+   }
+
+export type DeferredValue<T> = CheckSubject<T, undefined> &
+   NextObserver<T> & {
+      readonly __ng_value: true
+      (mutate: (value: T) => any): T
+      (value: T): T | undefined
+      (): T | undefined
+      next(value: T): void
+      onChanges(handler: (previous: T, current: T) => void): () => void
       onError(handler: (error: unknown) => Observable<any> | void): () => void
    }
 
 export interface ReadonlyValue<T> extends CheckSubject<T> {
    readonly __ng_value: true
-   readonly value: T
    (): T
    onChanges(handler: (previous: T, current: T) => void): () => void
    onError(handler: (error: unknown) => Observable<any> | void): () => void

@@ -21,6 +21,7 @@ import {
 import {
    AccessorValue,
    CheckPhase,
+   DeferredValue,
    Emitter,
    EmitterWithParams,
    ErrorState,
@@ -33,7 +34,11 @@ import {
 } from "./interfaces"
 import {accept, isClass, isEmitter, isObserver, isSignal, isValue} from "./utils"
 import { addEffect, addTeardown, inject } from "./core"
-import { DeferredValue, Emitter as EmitterType, Value as ValueType } from "./types"
+import {
+   DeferredValue as DeferredValueType,
+   Emitter as EmitterType,
+   Value as ValueType,
+} from "./types"
 import { select } from "./select"
 
 export class QueryListValue extends QueryList<any> {
@@ -81,7 +86,7 @@ export function use<T>(value: Emitter<T>): Value<T>
 export function use<T>(
    value: Observable<T>,
    options?: UseOptions<T>,
-): Value<T | undefined>
+): DeferredValue<T>
 export function use<T extends (...args: any) => any>(
    value: EmitterWithParams<T>,
 ): Value<T>
@@ -94,7 +99,7 @@ export function use(value?: any, options?: UseOptions<unknown>): unknown {
    if (isQuery(value)) {
       const phase = queryMap.get(value)!
       if (value === ContentChildren || value === ViewChildren) {
-         return new DeferredValue(new QueryListValue(), phase)
+         return new DeferredValueType(new QueryListValue(), phase)
       }
       return new ValueType(void 0, phase, options)
    }
@@ -102,7 +107,7 @@ export function use(value?: any, options?: UseOptions<unknown>): unknown {
       return new EmitterType(value)
    }
    if (isObservable(value)) {
-      return new DeferredValue(value, 5, options)
+      return new DeferredValueType(value, 5, options)
    }
    return new ValueType(value, 5, options)
 }
@@ -279,29 +284,29 @@ export function onError(
 }
 
 export function pipe(): typeof identity
-export function pipe<T>(source: T): Value<T | undefined>
-export function pipe<T, A>(
+export function pipe<T extends Observable<any>>(source: T): DeferredValue<T>
+export function pipe<T extends Observable<any>, A>(
    source: T,
    fn1: UnaryFunction<T, A>,
-): Value<A extends Observable<infer R> ? R | undefined : never>
-export function pipe<T, A, B>(
+): DeferredValue<A extends Observable<infer R> ? R : never>
+export function pipe<T extends Observable<any>, A, B>(
    source: T,
    fn1: UnaryFunction<T, A>,
    fn2: UnaryFunction<A, B>,
-): Value<B extends Observable<infer R> ? R | undefined : never>
-export function pipe<T, A, B, C>(
+): DeferredValue<B extends Observable<infer R> ? R : never>
+export function pipe<T extends Observable<any>, A, B, C>(
    source: T,
    fn1: UnaryFunction<T, A>,
    fn2: UnaryFunction<A, B>,
    fn3: UnaryFunction<B, C>,
-): Value<C extends Observable<infer R> ? R | undefined : never>
+): DeferredValue<C extends Observable<infer R> ? R : never>
 export function pipe<T, A, B, C, D>(
    source: T,
    fn1: UnaryFunction<T, A>,
    fn2: UnaryFunction<A, B>,
    fn3: UnaryFunction<B, C>,
    fn4: UnaryFunction<C, D>,
-): Value<D extends Observable<infer R> ? R | undefined : never>
+): DeferredValue<D extends Observable<infer R> ? R : never>
 export function pipe<T, A, B, C, D, E>(
    source: T,
    fn1: UnaryFunction<T, A>,
@@ -309,7 +314,7 @@ export function pipe<T, A, B, C, D, E>(
    fn3: UnaryFunction<B, C>,
    fn4: UnaryFunction<C, D>,
    fn5: UnaryFunction<D, E>,
-): Value<E extends Observable<infer R> ? R | undefined : never>
+): DeferredValue<E extends Observable<infer R> ? R : never>
 export function pipe<T, A, B, C, D, E, F>(
    source: T,
    fn1: UnaryFunction<T, A>,
@@ -318,7 +323,7 @@ export function pipe<T, A, B, C, D, E, F>(
    fn4: UnaryFunction<C, D>,
    fn5: UnaryFunction<D, E>,
    fn6: UnaryFunction<E, F>,
-): Value<F extends Observable<infer R> ? R | undefined : never>
+): DeferredValue<F extends Observable<infer R> ? R : never>
 export function pipe<T, A, B, C, D, E, F, G>(
    source: T,
    fn1: UnaryFunction<T, A>,
@@ -328,7 +333,7 @@ export function pipe<T, A, B, C, D, E, F, G>(
    fn5: UnaryFunction<D, E>,
    fn6: UnaryFunction<E, F>,
    fn7: UnaryFunction<F, G>,
-): Value<G extends Observable<infer R> ? R | undefined : never>
+): DeferredValue<G extends Observable<infer R> ? R : never>
 export function pipe<T, A, B, C, D, E, F, G, H>(
    source: T,
    fn1: UnaryFunction<T, A>,
@@ -339,7 +344,7 @@ export function pipe<T, A, B, C, D, E, F, G, H>(
    fn6: UnaryFunction<E, F>,
    fn7: UnaryFunction<F, G>,
    fn8: UnaryFunction<G, H>,
-): Value<H extends Observable<infer R> ? R | undefined : never>
+): DeferredValue<H extends Observable<infer R> ? R : never>
 export function pipe<T, A, B, C, D, E, F, G, H, I>(
    source: T,
    fn1: UnaryFunction<T, A>,
@@ -351,7 +356,7 @@ export function pipe<T, A, B, C, D, E, F, G, H, I>(
    fn7: UnaryFunction<F, G>,
    fn8: UnaryFunction<G, H>,
    fn9: UnaryFunction<H, I>,
-): Value<I extends Observable<infer R> ? R | undefined : never>
+): DeferredValue<I extends Observable<infer R> ? R : never>
 export function pipe<T, A, B, C, D, E, F, G, H, I>(
    source: T,
    fn1: UnaryFunction<T, A>,
@@ -364,89 +369,10 @@ export function pipe<T, A, B, C, D, E, F, G, H, I>(
    fn8: UnaryFunction<G, H>,
    fn9: UnaryFunction<H, I>,
    ...fns: UnaryFunction<any, any>[]
-): Value<unknown | undefined>
-export function pipe<T, A>(fn1: UnaryFunction<T, A>): UnaryFunction<T, A>
-export function pipe<T, A, B>(
-   fn1: UnaryFunction<T, A>,
-   fn2: UnaryFunction<A, B>,
-): UnaryFunction<T, B>
-export function pipe<T, A, B, C>(
-   fn1: UnaryFunction<T, A>,
-   fn2: UnaryFunction<A, B>,
-   fn3: UnaryFunction<B, C>,
-): UnaryFunction<T, C>
-export function pipe<T, A, B, C, D>(
-   fn1: UnaryFunction<T, A>,
-   fn2: UnaryFunction<A, B>,
-   fn3: UnaryFunction<B, C>,
-   fn4: UnaryFunction<C, D>,
-): UnaryFunction<T, D>
-export function pipe<T, A, B, C, D, E>(
-   fn1: UnaryFunction<T, A>,
-   fn2: UnaryFunction<A, B>,
-   fn3: UnaryFunction<B, C>,
-   fn4: UnaryFunction<C, D>,
-   fn5: UnaryFunction<D, E>,
-): UnaryFunction<T, E>
-export function pipe<T, A, B, C, D, E, F>(
-   fn1: UnaryFunction<T, A>,
-   fn2: UnaryFunction<A, B>,
-   fn3: UnaryFunction<B, C>,
-   fn4: UnaryFunction<C, D>,
-   fn5: UnaryFunction<D, E>,
-   fn6: UnaryFunction<E, F>,
-): UnaryFunction<T, F>
-export function pipe<T, A, B, C, D, E, F, G>(
-   fn1: UnaryFunction<T, A>,
-   fn2: UnaryFunction<A, B>,
-   fn3: UnaryFunction<B, C>,
-   fn4: UnaryFunction<C, D>,
-   fn5: UnaryFunction<D, E>,
-   fn6: UnaryFunction<E, F>,
-   fn7: UnaryFunction<F, G>,
-): UnaryFunction<T, G>
-export function pipe<T, A, B, C, D, E, F, G, H>(
-   fn1: UnaryFunction<T, A>,
-   fn2: UnaryFunction<A, B>,
-   fn3: UnaryFunction<B, C>,
-   fn4: UnaryFunction<C, D>,
-   fn5: UnaryFunction<D, E>,
-   fn6: UnaryFunction<E, F>,
-   fn7: UnaryFunction<F, G>,
-   fn8: UnaryFunction<G, H>,
-): UnaryFunction<T, H>
-export function pipe<T, A, B, C, D, E, F, G, H, I>(
-   fn1: UnaryFunction<T, A>,
-   fn2: UnaryFunction<A, B>,
-   fn3: UnaryFunction<B, C>,
-   fn4: UnaryFunction<C, D>,
-   fn5: UnaryFunction<D, E>,
-   fn6: UnaryFunction<E, F>,
-   fn7: UnaryFunction<F, G>,
-   fn8: UnaryFunction<G, H>,
-   fn9: UnaryFunction<H, I>,
-): UnaryFunction<T, I>
-export function pipe<T, A, B, C, D, E, F, G, H, I>(
-   fn1: UnaryFunction<T, A>,
-   fn2: UnaryFunction<A, B>,
-   fn3: UnaryFunction<B, C>,
-   fn4: UnaryFunction<C, D>,
-   fn5: UnaryFunction<D, E>,
-   fn6: UnaryFunction<E, F>,
-   fn7: UnaryFunction<F, G>,
-   fn8: UnaryFunction<G, H>,
-   fn9: UnaryFunction<H, I>,
-   ...fns: UnaryFunction<any, any>[]
-): UnaryFunction<T, unknown>
+): DeferredValue<unknown>
 export function pipe(...args: any[]): unknown {
    if (args.length === 0) {
-      return (value: any) => new DeferredValue(value)
+      return (value: any) => new DeferredValueType(value)
    }
-   if (isObservable(args[0])) {
-      return new DeferredValue((<any>args[0]).pipe(...args.slice(1)))
-   } else {
-      return function (source: Observable<unknown>) {
-         return (<any>pipe)(source, ...args)
-      }
-   }
+   return new DeferredValueType((<any>args[0]).pipe(...args.slice(1)))
 }
