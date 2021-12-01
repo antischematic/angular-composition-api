@@ -122,7 +122,11 @@ describe("Store", () => {
       const spy = jasmine.createSpy()
       const Count = new Query("count", () => use(interval(1000)))
       const Buffer = new Saga("buffer", (events) => {
-         return pipe(events(Count), bufferCount(5))
+         return pipe(
+            events(Count),
+            map((event) => event.value),
+            bufferCount(5)
+      )
       })
       const AppStore = new Store("app", {
          tokens: [Count, Buffer],

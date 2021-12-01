@@ -6,10 +6,10 @@ import {
 } from "@mmuscat/angular-composition-api"
 import { InjectFlags } from "@angular/core"
 
-export interface NextEvent {
+export interface NextEvent<T = unknown> {
    name: string
    kind: "N"
-   value: unknown
+   value: T
 }
 
 export interface ErrorEvent {
@@ -23,7 +23,7 @@ export interface CompleteEvent {
    kind: "C"
 }
 
-export type StoreEvent = NextEvent | ErrorEvent | CompleteEvent
+export type StoreEvent<T = unknown> = NextEvent<T> | ErrorEvent | CompleteEvent
 
 export interface StoreLike {
    parent: StoreLike[] | null

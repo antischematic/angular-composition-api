@@ -284,17 +284,17 @@ export function onError(
 }
 
 export function pipe(): typeof identity
-export function pipe<T extends Observable<any>>(source: T): DeferredValue<T>
-export function pipe<T extends Observable<any>, A>(
+export function pipe<T>(source: T): DeferredValue<T>
+export function pipe<T, A>(
    source: T,
    fn1: UnaryFunction<T, A>,
 ): DeferredValue<A extends Observable<infer R> ? R : never>
-export function pipe<T extends Observable<any>, A, B>(
+export function pipe<T, A, B>(
    source: T,
    fn1: UnaryFunction<T, A>,
    fn2: UnaryFunction<A, B>,
 ): DeferredValue<B extends Observable<infer R> ? R : never>
-export function pipe<T extends Observable<any>, A, B, C>(
+export function pipe<T, A, B, C>(
    source: T,
    fn1: UnaryFunction<T, A>,
    fn2: UnaryFunction<A, B>,

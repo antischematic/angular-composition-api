@@ -1,6 +1,6 @@
-import { inject, Value, ValueToken } from "@mmuscat/angular-composition-api"
+import { inject, ValueToken } from "@mmuscat/angular-composition-api"
 import { Events, NextEvent } from "./interfaces"
-import { filter, map, Observable } from "rxjs"
+import { filter, Observable } from "rxjs"
 
 const tokens = new WeakSet()
 
@@ -18,7 +18,6 @@ class SagaFactory {
                (event): event is NextEvent =>
                   event.kind === "N" && names.includes(event.name),
             ),
-            map((event) => event.value),
          )
       }
       return this.createSaga(getEvents)
@@ -39,9 +38,7 @@ export interface SagaStatic {
    new <TName extends string, TValue>(
       name: TName,
       factory: (
-         events: <T>(
-            type: ValueToken<T>,
-         ) => T extends Value<infer R> ? Observable<R> : never,
+         events: <T>(type: ValueToken<T>) => Observable<NextEvent<T extends Observable<infer R> ? R : unknown>>,
       ) => TValue,
    ): ValueToken<TValue>
 }

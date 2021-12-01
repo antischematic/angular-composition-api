@@ -19,6 +19,7 @@ export {
    State,
    UnsubscribeSignal,
    Value,
+   DeferredValue,
    ReadonlyValue,
    Emitter,
    EmitterWithParams,
