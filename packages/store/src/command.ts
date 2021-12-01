@@ -1,12 +1,15 @@
 import {
+   AsyncEmitter,
+   async,
    Emitter,
-   isEmitter,
-   use,
-   select,
-   ValueToken,
-   isValue, Service,
    inject,
+   isEmitter,
+   isValue,
+   Service,
+   use,
+   ValueToken,
 } from "@mmuscat/angular-composition-api"
+import { Observable } from "rxjs"
 
 const tokens = new WeakSet()
 
@@ -18,12 +21,13 @@ function command(name: string, factory: (emitter: Emitter<any>) => any) {
    const emitter = use(Function)
    if (factory) {
       const result = factory(emitter)
-      return isEmitter(result)
-         ? result
-         : select({
-            next: emitter,
-            value: isValue(result) ? result : use(result),
-         })
+      if (isEmitter(result)) {
+         return result
+      }
+      return async({
+         next: emitter,
+         value: isValue(result) ? result : use(result),
+      })
    }
    return emitter
 }
@@ -31,7 +35,7 @@ function command(name: string, factory: (emitter: Emitter<any>) => any) {
 function createCommand<TName extends string, TArgs, TValue>(
    name: TName,
    factory?: (emitter: Emitter<TArgs>) => TValue,
-): ValueToken<TValue> {
+): ValueToken<Command<TValue, TArgs>> {
    const service = new Service(command, {
       providedIn: null,
       name,
@@ -48,11 +52,16 @@ function createCommand<TName extends string, TArgs, TValue>(
    return token
 }
 
+export interface Command<T, U> extends AsyncEmitter<T, U> {
+   (value: U): void
+   (): T
+}
+
 export interface CommandStatic {
    new <TName extends string, TArgs, TValue>(
       name: TName,
-      factory: (emitter: Emitter<TArgs>) => TValue,
-   ): ValueToken<TValue>
+      factory: (emitter: Emitter<TArgs>) => Observable<TValue>,
+   ): ValueToken<Command<TValue, TArgs>>
 }
 
 export const Command: CommandStatic = createCommand as any

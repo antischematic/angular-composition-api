@@ -1,8 +1,8 @@
 import {
    Emitter,
+   use,
    Value,
    ValueToken,
-   use,
 } from "@mmuscat/angular-composition-api"
 import { InjectFlags } from "@angular/core"
 

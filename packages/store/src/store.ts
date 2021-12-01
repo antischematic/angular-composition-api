@@ -8,14 +8,8 @@ import {
    subscribe,
    ValueToken,
 } from "@mmuscat/angular-composition-api"
-import {
-   ErrorHandler,
-   InjectFlags,
-   Injector,
-   INJECTOR,
-   Type,
-} from "@angular/core"
-import { isSaga } from "./saga"
+import { ErrorHandler, InjectFlags, Injector, INJECTOR } from "@angular/core"
+import { isSagaToken } from "./saga"
 import { Events, Inject, StoreConfig, StoreEvent } from "./interfaces"
 
 class EventEmitter {
@@ -66,7 +60,7 @@ function store(name: string, config: StoreConfig) {
          ? 1
          : isCommandToken(token)
          ? 2
-         : isSaga(token)
+         : isSagaToken(token)
          ? 3
          : 0
       if (type > 0) {

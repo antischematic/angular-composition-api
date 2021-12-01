@@ -1,14 +1,17 @@
-import { Emitter, inject, Service, ValueToken } from "@mmuscat/angular-composition-api"
+import { inject, Service, ValueToken } from "@mmuscat/angular-composition-api"
 import { Events, NextEvent } from "./interfaces"
 import { filter, Observable } from "rxjs"
 
 const tokens = new WeakSet()
 
-export function isSaga(token: any) {
+export function isSagaToken(token: any) {
    return tokens.has(token)
 }
 
-function saga(name: string, factory: (events: (token: ValueToken<any>) => Observable<any>) => any) {
+function saga(
+   name: string,
+   factory: (events: (token: ValueToken<any>) => Observable<any>) => any,
+) {
    const events = inject(Events)
    function getEvents(type: ValueToken<any>) {
       const name = type.toString()
