@@ -102,15 +102,17 @@ export class Value<T> implements NextObserver<T> {
    lift(operator: any) {
       return this.source.lift(operator)
    }
-   pipe(this: any, ...observers: any) {
-      return this.source.pipe(...observers)
+   pipe(this: any, ...operators: any) {
+      return this.asObservable().pipe(...operators)
    }
    next(nextValue: T) {
       this.source.next(nextValue)
       trigger(this)
    }
    asObservable(): Observable<T> {
-      return this.source.asObservable()
+      return (<any>new Observable((subscriber) => {
+         return this.subscribe(subscriber)
+      }))
    }
    forEach(
       next: (value: any) => void,

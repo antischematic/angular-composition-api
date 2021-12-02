@@ -47,7 +47,7 @@ Create Stores
 ```ts
 const TodosStore = new Store("todos", {
    tokens: [UserId, Todos, TodosError, Retry, TodosLogger],
-   plugins: [ReduxDevTool],
+   plugins: [StoreLog],
 })
 ```
 

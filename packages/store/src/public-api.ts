@@ -12,3 +12,4 @@ export {
    StoreConfig,
    Events,
 } from "./interfaces"
+export { StoreLog } from "./plugins/store-log"
