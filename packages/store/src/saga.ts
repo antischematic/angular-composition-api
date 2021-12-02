@@ -14,7 +14,7 @@ function saga(
 ) {
    const events = inject(Events)
    function getEvents(type: ValueToken<any>) {
-      const name = type.toString()
+      const name = type.toString().replace(/^InjectionToken /, '')
       return events.pipe(
          filter(
             (event): event is NextEvent =>

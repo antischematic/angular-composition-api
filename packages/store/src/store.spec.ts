@@ -7,12 +7,12 @@ import {
 import { EventEmitter, Provider } from "@angular/core"
 import {
    Emitter,
-   inject,
+   inject, isEmitter,
    onDestroy,
    onError,
    pipe,
    subscribe,
-   use,
+   use, ValueToken,
 } from "@mmuscat/angular-composition-api"
 import { Query } from "./query"
 import { Command } from "./command"
@@ -31,7 +31,7 @@ function addProvider(provider: Provider) {
 describe("Store", () => {
    it("should create", () => {
       const store = new Store("app", {
-         tokens: [],
+         tokens: [new ValueToken("count")],
       })
       expect(store).toBeTruthy()
    })
@@ -178,5 +178,43 @@ describe("Store", () => {
       })
       addProvider(AppStore.Provider)
       expect(() => TestBed.inject(AppStore)).not.toThrow()
+   })
+
+   it("should be strongly typed", () => {
+      const Count = new Query("count", () => use(10))
+      const Double = new Command("double", () => {
+         return pipe(
+            inject(Count),
+            map((value) => value * 2),
+         )
+      })
+      const AppStore = new Store("app", {
+         tokens: [Count, Double],
+      })
+      addProvider(AppStore.Provider)
+      addProvider({
+         provide: Service,
+         useFactory() {
+            const {
+               state,
+               query: { count },
+               command: { double }
+            } = inject(AppStore)
+
+            state({
+               count: 20,
+            })
+
+            return {
+               state,
+               count,
+               double
+            }
+         },
+      })
+      const result = TestBed.inject(Service) as any
+      expect(result.state.value.count).toBe(20)
+      expect(result.count.value).toBe(20)
+      expect(isEmitter(result.double)).toBeTrue()
    })
 })

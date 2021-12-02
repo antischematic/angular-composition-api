@@ -1,4 +1,4 @@
-import { inject, Service, ValueToken } from "@mmuscat/angular-composition-api"
+import { inject, isValue, Service, use, ValueToken } from "@mmuscat/angular-composition-api"
 
 const tokens = new WeakSet()
 
@@ -17,7 +17,8 @@ function createQuery<TName extends string, TValue>(
    const token = new ValueToken(name, {
       providedIn: null,
       factory() {
-         return inject(service)
+         const result = inject(service)
+         return isValue(result) ? result : use(result)
       },
    })
    token.Provider.push(service)
@@ -25,11 +26,13 @@ function createQuery<TName extends string, TValue>(
    return token
 }
 
+export type Query<TName extends string, TValue> = TValue & { __query: TName }
+
 export interface QueryStatic {
    new <TName extends string, TValue>(
       name: TName,
       factory: () => TValue,
-   ): ValueToken<TValue>
+   ): ValueToken<Query<TName, TValue>>
 }
 
 export const Query: QueryStatic = createQuery as any

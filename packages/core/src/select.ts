@@ -47,6 +47,7 @@ export function async(
       ...options,
       subject: options?.subject ?? new Subject(),
    })
+   ;(<any>emitter).__ng_emitter = true
    delete (<any>emitter).__check_phase
    return emitter
 }

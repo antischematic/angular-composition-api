@@ -8,7 +8,6 @@ export {
    NextEvent,
    ErrorEvent,
    CompleteEvent,
-   Inject,
    StorePlugin,
    StoreConfig,
    Events,

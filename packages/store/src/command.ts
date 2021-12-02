@@ -35,7 +35,7 @@ function command(name: string, factory: (emitter: Emitter<any>) => any) {
 function createCommand<TName extends string, TArgs, TValue>(
    name: TName,
    factory?: (emitter: Emitter<TArgs>) => TValue,
-): ValueToken<Command<TValue, TArgs>> {
+): ValueToken<Command<TName, AsyncEmitter<TValue, TArgs>>> {
    const service = new Service(command, {
       providedIn: null,
       name,
@@ -52,16 +52,15 @@ function createCommand<TName extends string, TArgs, TValue>(
    return token
 }
 
-export interface Command<T, U> extends AsyncEmitter<T, U> {
-   (value: U): void
-   (): T
+export type Command<TName, TEmitter> = TEmitter & {
+   __command: TName
 }
 
 export interface CommandStatic {
    new <TName extends string, TArgs, TValue>(
       name: TName,
       factory: (emitter: Emitter<TArgs>) => Observable<TValue>,
-   ): ValueToken<Command<TValue, TArgs>>
+   ): ValueToken<Command<TName, AsyncEmitter<TValue, TArgs>>>
 }
 
 export const Command: CommandStatic = createCommand as any

@@ -28,9 +28,9 @@ export type StoreEvent<T = unknown> = NextEvent<T> | ErrorEvent | CompleteEvent
 export interface StoreLike {
    name: string
    parent: StoreLike[] | null
-   events: Emitter<StoreEvent>
-   commands: Record<string, Emitter<any>>
-   queries: Record<string, Value<any>>
+   event: Emitter<StoreEvent>
+   command: Record<string, Emitter<any>>
+   query: Record<string, Value<any>>
    state: Value<any>
 }
 
@@ -38,12 +38,10 @@ export interface StorePlugin {
    (store: StoreLike): any
 }
 
-export interface StoreConfig {
-   tokens: ValueToken<any>[]
+export interface StoreConfig<T extends ValueToken<any>[]> {
+   tokens: T
    plugins?: StorePlugin[]
 }
-
-export type Inject = <T>(token: ValueToken<T>, injectFlags?: InjectFlags) => T
 
 export const Events = new ValueToken<Emitter<StoreEvent>>("Events", {
    factory() {

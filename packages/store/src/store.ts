@@ -1,16 +1,17 @@
-import { isQueryToken } from "./query"
-import { isCommandToken } from "./command"
+import { isQueryToken, Query } from "./query"
+import { Command, isCommandToken } from "./command"
 import {
+   AccessorValue,
    combine,
    Emitter,
-   inject,
+   inject, ReadonlyValue,
    Service,
-   subscribe,
+   subscribe, use, Value,
    ValueToken,
 } from "@mmuscat/angular-composition-api"
-import { ErrorHandler, InjectFlags, Injector, INJECTOR } from "@angular/core"
+import { ErrorHandler, InjectFlags, InjectionToken, Injector, INJECTOR } from "@angular/core"
 import { isSagaToken } from "./saga"
-import { Events, Inject, StoreConfig, StoreEvent } from "./interfaces"
+import { Events, StoreConfig, StoreEvent } from "./interfaces"
 
 class EventEmitter {
    next(value: any) {
@@ -41,20 +42,20 @@ class EventEmitter {
    ) {}
 }
 
-function store(name: string, config: StoreConfig) {
+function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
    const parent = inject(Store, null, InjectFlags.SkipSelf)
    const { tokens, plugins = [] } = config
-   const events = inject(Events)
+   const event = inject(Events)
    const errorHandler = inject(ErrorHandler)
    const injector = inject(INJECTOR)
-   const queries = {} as any
-   const commands = {} as any
+   const query = {} as any
+   const command = {} as any
    function get<T>(token: ValueToken<T>, flags?: InjectFlags): T {
       return injector.get(token, Injector.THROW_IF_NOT_FOUND as any, flags)
    }
    for (const token of tokens) {
       const value = get(token)
-      const tokenName = token.toString()
+      const tokenName = token.toString().replace(/^InjectionToken /, '')
       // noinspection SuspiciousTypeOfGuard
       const type = isQueryToken(token)
          ? 1
@@ -64,31 +65,31 @@ function store(name: string, config: StoreConfig) {
          ? 3
          : 0
       if (type > 0) {
-         subscribe(value, new EventEmitter(errorHandler, tokenName, events))
+         subscribe(value, new EventEmitter(errorHandler, tokenName, event))
       }
       if (type === 1) {
-         queries[tokenName] = value
+         query[tokenName] = value
       }
       if (type === 2) {
-         commands[tokenName] = value
+         command[tokenName] = value
       }
    }
-   const state = combine(queries)
+   const state = combine(query)
    const store = {
       name,
       parent,
-      events,
-      commands,
-      queries,
+      event,
+      command,
+      query,
       state,
    }
    for (const plugin of plugins) {
       plugin(store)
    }
-   return get
+   return Object.setPrototypeOf(get, store)
 }
 
-function createStore<TName extends string>(name: TName, config: StoreConfig) {
+function createStore<TName extends string>(name: TName, config: StoreConfig<ValueToken<any>[]>) {
    const StoreService = new Service(store, {
       providedIn: null,
       name,
@@ -113,8 +114,32 @@ function createStore<TName extends string>(name: TName, config: StoreConfig) {
    return Token
 }
 
+type Snapshot<T> = {
+   [key in keyof T as T[key] extends ValueToken<infer K> ? K extends Query<infer S, any> ? "__query" extends keyof K ? K["__query"] : never : never : never]: T[key] extends ValueToken<Value<infer R>> ? R : never
+}
+
+type Queries<T> = Exclude<{
+   [key in keyof T as T[key] extends ValueToken<infer K> ? K extends Query<infer S, any> ? "__query" extends keyof K ? K["__query"] : never : never : never]: T[key] extends ValueToken<infer R> ? R : never
+}, any[]>
+
+type Commands<T> = Exclude<{
+   [key in keyof T as T[key] extends ValueToken<infer K> ? K extends Command<infer S, any> ? "__command" extends keyof K ? K["__command"] : never : never : never]: T[key] extends ValueToken<infer R> ? R : never
+}, any[]>
+
+export interface Store<TName extends string, TTokens extends [ValueToken<any>, ...ValueToken<any>[]]> {
+   name: TName
+   query: Queries<TTokens>
+   command: Commands<TTokens>
+   event: Emitter<StoreEvent>
+   state: AccessorValue<Snapshot<TTokens>, Partial<Snapshot<TTokens>>>
+   <T>(token: ValueToken<T>, injectFlags?: InjectFlags): T
+   <T>(token: ValueToken<T>, injectFlags?: InjectFlags): T
+}
+
 export interface StoreStatic {
-   new <T extends string>(name: T, config: StoreConfig): ValueToken<Inject>
+   new <TName extends string, TTokens extends [ValueToken<any>, ...ValueToken<any>[]]>(name: TName, config: StoreConfig<TTokens>): ValueToken<Store<TName, TTokens>>
 }
 
 export const Store: StoreStatic = createStore as any
+
+export function getState() {}
