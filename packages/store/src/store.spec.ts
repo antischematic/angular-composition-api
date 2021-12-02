@@ -16,9 +16,10 @@ import {
 } from "@mmuscat/angular-composition-api"
 import { Query } from "./query"
 import { Command } from "./command"
-import { bufferCount, interval, map } from "rxjs"
+import { bufferCount, EMPTY, filter, ignoreElements, interval, map, of, tap } from "rxjs"
 import { Store } from "./store"
-import { Saga } from "./saga"
+import { Effect } from "./effect"
+import createSpy = jasmine.createSpy
 
 abstract class Service {}
 
@@ -124,14 +125,15 @@ describe("Store", () => {
       expect(spy).toHaveBeenCalledOnceWith(20)
    })
 
-   it("should run saga", fakeAsync(() => {
+   it("should run effect", fakeAsync(() => {
       const spy = jasmine.createSpy()
       const Count = new Query("count", () => use(interval(1000)))
-      const Buffer = new Saga("buffer", (events) => {
+      const Buffer = new Effect("buffer", () => {
          return pipe(
-            events(Count),
-            map((event) => event.value),
+            inject(Count),
             bufferCount(5),
+            tap(spy),
+            ignoreElements()
          )
       })
       const AppStore = new Store("app", {
@@ -141,10 +143,7 @@ describe("Store", () => {
       addProvider({
          provide: Service,
          useFactory() {
-            const get = inject(AppStore)
-            const buffer = get(Buffer)
-
-            subscribe(buffer, spy)
+            inject(AppStore)
          },
       })
       TestBed.inject(Service)
@@ -167,14 +166,14 @@ describe("Store", () => {
          onError(value, () => {})
          return value
       })
-      const saga = new Saga("saga", () => {
+      const effect = new Effect("effect", () => {
          const value = use(0)
          onDestroy(() => {})
          onError(value, () => {})
          return value
       })
       const AppStore = new Store("app", {
-         tokens: [query, command, saga],
+         tokens: [query, command, effect],
       })
       addProvider(AppStore.Provider)
       expect(() => TestBed.inject(AppStore)).not.toThrow()
@@ -216,5 +215,27 @@ describe("Store", () => {
       expect(result.state.value.count).toBe(20)
       expect(result.count.value).toBe(20)
       expect(isEmitter(result.double)).toBeTrue()
+   })
+
+   it("should dispatch from a effect", () => {
+      const spy = createSpy()
+      const spy2 = createSpy()
+      const query = new Query("query", () => use(EMPTY))
+      const command = new Command("command", (action) => action)
+      const effect = new Effect("effect", () => {
+         return of({
+            query: 20,
+            command: "BOGUS"
+         })
+      })
+      const AppStore = new Store("app", {
+         tokens: [query, command, effect],
+      })
+      addProvider(AppStore.Provider)
+      subscribe(TestBed.inject(query), spy)
+      subscribe(TestBed.inject(command), spy2)
+      TestBed.inject(AppStore)
+      expect(spy).toHaveBeenCalledOnceWith(20)
+      expect(spy2).toHaveBeenCalledOnceWith("BOGUS")
    })
 })

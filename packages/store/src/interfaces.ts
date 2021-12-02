@@ -32,6 +32,7 @@ export interface StoreLike {
    command: Record<string, Emitter<any>>
    query: Record<string, Value<any>>
    state: Value<any>
+   config: StoreConfig<any>
 }
 
 export interface StorePlugin {

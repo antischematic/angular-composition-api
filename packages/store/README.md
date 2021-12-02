@@ -1,6 +1,8 @@
-# Angular Actions
+# Angular Phalanx
 
-TBD
+Atomic states for Angular Composition API.
+
+---
 
 Create Queries
 
@@ -32,11 +34,11 @@ const Retry = new Command("retry", (action) => {
 })
 ```
 
-Create Sagas
+Create Effects
 
 ```ts
-const TodosLogger = new Saga("todosLogger", (events) => {
-   return pipe(events(Todos), tap(console.log))
+const TodosLogger = new Effect("todosLogger", () => {
+   return pipe(inject(Todos), tap(console.log), ignoreElements())
 })
 ```
 
@@ -53,14 +55,14 @@ Component Store
 
 ```ts
 function setup() {
-   const get = inject(TodosStore)
-   const todos = get(Todos)
-   const error = get(TodosError)
-   const retry = get(Retry)
+   const {
+      query: { todos, todosError },
+      command: { retry },
+   } = inject(TodosStore)
 
    return {
       todos,
-      error,
+      todosError,
       retry,
    }
 }
@@ -68,7 +70,7 @@ function setup() {
 @Component({
    selector: "todos",
    template: `
-      <div *ngIf="error; else showTodos">
+      <div *ngIf="todosError; else showTodos">
          Something went wrong.
          <button (click)="retry()">Retry</button>
       </div>

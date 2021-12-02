@@ -4,16 +4,17 @@ import {
    AccessorValue,
    combine,
    Emitter,
-   inject, ReadonlyValue,
+   inject,
    Service,
-   subscribe, use, Value,
+   subscribe,
+   Value,
    ValueToken,
 } from "@mmuscat/angular-composition-api"
-import { ErrorHandler, InjectFlags, InjectionToken, Injector, INJECTOR } from "@angular/core"
-import { isSagaToken } from "./saga"
+import { ErrorHandler, InjectFlags, Injector, INJECTOR } from "@angular/core"
+import { isEffectToken } from "./effect"
 import { Events, StoreConfig, StoreEvent } from "./interfaces"
 
-class EventEmitter {
+class EventObserver {
    next(value: any) {
       this.events.emit({
          kind: "N",
@@ -42,6 +43,35 @@ class EventEmitter {
    ) {}
 }
 
+class EffectObserver extends EventObserver {
+   next(nextValue: any) {
+      const { query, command } = this
+      super.next(nextValue)
+      if (typeof nextValue === "object" && nextValue !== null) {
+         for (const [key, value] of Object.entries(nextValue)) {
+            if (key in query) {
+               query[key](value)
+               continue
+            }
+            if (key in command) {
+               command[key](value)
+               continue
+            }
+            throw new Error(`Invalid dispatch target "${key}"`)
+         }
+      }
+   }
+   constructor(
+      errorHandler: ErrorHandler,
+      name: string,
+      events: Emitter<StoreEvent>,
+      private query: any,
+      private command: any,
+   ) {
+      super(errorHandler, name, events)
+   }
+}
+
 function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
    const parent = inject(Store, null, InjectFlags.SkipSelf)
    const { tokens, plugins = [] } = config
@@ -55,22 +85,16 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
    }
    for (const token of tokens) {
       const value = get(token)
-      const tokenName = token.toString().replace(/^InjectionToken /, '')
+      const tokenName = token.toString().replace(/^InjectionToken /, "")
       // noinspection SuspiciousTypeOfGuard
-      const type = isQueryToken(token)
-         ? 1
-         : isCommandToken(token)
-         ? 2
-         : isSagaToken(token)
-         ? 3
-         : 0
-      if (type > 0) {
-         subscribe(value, new EventEmitter(errorHandler, tokenName, event))
+      const type = isQueryToken(token) ? 0 : isCommandToken(token) ? 1 : 2
+      if (type < 2) {
+         subscribe(value, new EventObserver(errorHandler, tokenName, event))
       }
-      if (type === 1) {
+      if (type === 0) {
          query[tokenName] = value
       }
-      if (type === 2) {
+      if (type === 1) {
          command[tokenName] = value
       }
    }
@@ -82,6 +106,17 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
       command,
       query,
       state,
+      config,
+   }
+   for (const token of tokens) {
+      if (isEffectToken(token)) {
+         const value = get(token)(store)
+         const tokenName = token.toString().replace(/^InjectionToken /, "")
+         subscribe(
+            value,
+            new EffectObserver(errorHandler, tokenName, event, query, command),
+         )
+      }
    }
    for (const plugin of plugins) {
       plugin(store)
@@ -89,7 +124,10 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
    return Object.setPrototypeOf(get, store)
 }
 
-function createStore<TName extends string>(name: TName, config: StoreConfig<ValueToken<any>[]>) {
+function createStore<TName extends string>(
+   name: TName,
+   config: StoreConfig<ValueToken<any>[]>,
+) {
    const StoreService = new Service(store, {
       providedIn: null,
       name,
@@ -115,18 +153,45 @@ function createStore<TName extends string>(name: TName, config: StoreConfig<Valu
 }
 
 type Snapshot<T> = {
-   [key in keyof T as T[key] extends ValueToken<infer K> ? K extends Query<infer S, any> ? "__query" extends keyof K ? K["__query"] : never : never : never]: T[key] extends ValueToken<Value<infer R>> ? R : never
+   [key in keyof T as T[key] extends ValueToken<infer K>
+      ? K extends Query<infer S, any>
+         ? "__query" extends keyof K
+            ? K["__query"]
+            : never
+         : never
+      : never]: T[key] extends ValueToken<Value<infer R>> ? R : never
 }
 
-type Queries<T> = Exclude<{
-   [key in keyof T as T[key] extends ValueToken<infer K> ? K extends Query<infer S, any> ? "__query" extends keyof K ? K["__query"] : never : never : never]: T[key] extends ValueToken<infer R> ? R : never
-}, any[]>
+type Queries<T> = Exclude<
+   {
+      [key in keyof T as T[key] extends ValueToken<infer K>
+         ? K extends Query<infer S, any>
+            ? "__query" extends keyof K
+               ? K["__query"]
+               : never
+            : never
+         : never]: T[key] extends ValueToken<infer R> ? R : never
+   },
+   any[]
+>
 
-type Commands<T> = Exclude<{
-   [key in keyof T as T[key] extends ValueToken<infer K> ? K extends Command<infer S, any> ? "__command" extends keyof K ? K["__command"] : never : never : never]: T[key] extends ValueToken<infer R> ? R : never
-}, any[]>
+type Commands<T> = Exclude<
+   {
+      [key in keyof T as T[key] extends ValueToken<infer K>
+         ? K extends Command<infer S, any>
+            ? "__command" extends keyof K
+               ? K["__command"]
+               : never
+            : never
+         : never]: T[key] extends ValueToken<infer R> ? R : never
+   },
+   any[]
+>
 
-export interface Store<TName extends string, TTokens extends [ValueToken<any>, ...ValueToken<any>[]]> {
+export interface Store<
+   TName extends string,
+   TTokens extends [ValueToken<any>, ...ValueToken<any>[]],
+> {
    name: TName
    query: Queries<TTokens>
    command: Commands<TTokens>
@@ -137,9 +202,13 @@ export interface Store<TName extends string, TTokens extends [ValueToken<any>, .
 }
 
 export interface StoreStatic {
-   new <TName extends string, TTokens extends [ValueToken<any>, ...ValueToken<any>[]]>(name: TName, config: StoreConfig<TTokens>): ValueToken<Store<TName, TTokens>>
+   new <
+      TName extends string,
+      TTokens extends [ValueToken<any>, ...ValueToken<any>[]],
+   >(
+      name: TName,
+      config: StoreConfig<TTokens>,
+   ): ValueToken<Store<TName, TTokens>>
 }
 
 export const Store: StoreStatic = createStore as any
-
-export function getState() {}
