@@ -32,10 +32,10 @@ export const DefaultLogger = new InjectionToken<typeof console>(
    },
 )
 
-const type = {
-   N: "next",
-   E: "error",
-   C: "complete",
+const colors = {
+   N: "#4CAF50",
+   E: "#F20404",
+   C: "#9E9E9E",
 }
 
 export class StoreLog {
@@ -43,19 +43,21 @@ export class StoreLog {
       return function (store: StoreLike) {
          const log = inject(logger)
          subscribe(store.event, (event) => {
+            const color = `color: ${colors[event.kind]}`
             log.groupCollapsed(
-               `${getPath(store.name, store.parent)} @`,
+               `%c${getPath(store.name, store.parent)}.${event.name}`,
+               color,
+               "@",
                getTimestamp(),
-               `${event.name}.${type[event.kind]}`,
             )
             if (event.kind === "N") {
                log.log("%cprevious", "color: #9E9E9E", event.previous)
             }
             if (event.kind === "E") {
-               log.log("%cerror", "color: #F20404", event.error)
+               log.log("%cerror", color, event.error)
             }
             if (event.kind === "N") {
-               log.log("%ccurrent", "color: #4CAF50", event.current)
+               log.log("%ccurrent", color, event.current)
             }
             log.groupEnd()
          })
