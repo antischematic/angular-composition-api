@@ -26,16 +26,7 @@ describe("StoreLog", () => {
       expect(spy).not.toHaveBeenCalled()
       count(20)
       expect(spy2).toHaveBeenCalledOnceWith("test @", jasmine.any(String), "count.next")
-      expect(spy).toHaveBeenCalledWith("%cprevious", "color: #9E9E9E", {
-         count: 0,
-      })
-      expect(spy).toHaveBeenCalledWith("%cevent", "color: #03A9F4", {
-         kind: "N",
-         name: "count",
-         value: 20,
-      })
-      expect(spy).toHaveBeenCalledWith("%cnext", "color: #4CAF50", {
-         count: 20,
-      })
+      expect(spy).toHaveBeenCalledWith("%cprevious", "color: #9E9E9E", 0)
+      expect(spy).toHaveBeenCalledWith("%ccurrent", "color: #4CAF50", 20)
    })
 })

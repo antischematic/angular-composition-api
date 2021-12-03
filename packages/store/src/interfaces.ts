@@ -9,7 +9,8 @@ import { InjectFlags } from "@angular/core"
 export interface NextEvent<T = unknown> {
    name: string
    kind: "N"
-   value: T
+   current: T
+   previous: T | undefined
 }
 
 export interface ErrorEvent {

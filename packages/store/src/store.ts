@@ -15,11 +15,15 @@ import { isEffectToken } from "./effect"
 import { Events, StoreConfig, StoreEvent } from "./interfaces"
 
 class EventObserver {
+   previousValue?: any
    next(value: any) {
+      const { previousValue } = this
+      this.previousValue = value
       this.events.emit({
          kind: "N",
          name: this.name,
-         value,
+         current: value,
+         previous: previousValue
       })
    }
    error(error: unknown) {

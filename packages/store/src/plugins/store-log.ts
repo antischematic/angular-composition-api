@@ -1,8 +1,6 @@
 import { StoreLike } from "../interfaces"
 import { inject, subscribe } from "@mmuscat/angular-composition-api"
-import { zip } from "rxjs"
-import { pairwise } from "rxjs/operators"
-import { InjectionToken, ProviderToken, Type } from "@angular/core"
+import { InjectionToken, ProviderToken } from "@angular/core"
 
 function getTimestamp() {
    const now = new Date()
@@ -25,32 +23,40 @@ export interface StoreLogOptions {
    logger?: ProviderToken<typeof console>
 }
 
-export const DefaultLogger = new InjectionToken<typeof console>("DefaultLogger", {
-   factory() {
-      return console
-   }
-})
+export const DefaultLogger = new InjectionToken<typeof console>(
+   "DefaultLogger",
+   {
+      factory() {
+         return console
+      },
+   },
+)
 
 const type = {
    N: "next",
    E: "error",
-   C: "complete"
+   C: "complete",
 }
 
 export class StoreLog {
    static create({ logger = DefaultLogger }: StoreLogOptions = {}) {
       return function (store: StoreLike) {
          const log = inject(logger)
-         const data = zip(store.event, store.state.pipe(pairwise()))
-         subscribe(data, ([event, [previous, current]]) => {
-            log.groupCollapsed(`${getPath(store.name, store.parent)} @`, getTimestamp(), `${event.name}.${type[event.kind]}`)
-            log.log("%cprevious", "color: #9E9E9E", previous)
-            log.log(
-               "%cevent",
-               event.kind === "E" ? "color: #F20404" : "color: #03A9F4",
-               event,
+         subscribe(store.event, (event) => {
+            log.groupCollapsed(
+               `${getPath(store.name, store.parent)} @`,
+               getTimestamp(),
+               `${event.name}.${type[event.kind]}`,
             )
-            log.log("%cnext", "color: #4CAF50", current)
+            if (event.kind === "N") {
+               log.log("%cprevious", "color: #9E9E9E", event.previous)
+            }
+            if (event.kind === "E") {
+               log.log("%cerror", "color: #F20404", event.error)
+            }
+            if (event.kind === "N") {
+               log.log("%ccurrent", "color: #4CAF50", event.current)
+            }
             log.groupEnd()
          })
       }
