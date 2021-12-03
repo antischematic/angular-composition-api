@@ -12,4 +12,5 @@ export {
    StoreConfig,
    Events,
 } from "./interfaces"
-export { StoreLog } from "./plugins/store-log"
+export { StoreLog, StoreLogOptions } from "./plugins/store-log"
+export { StoreCache, StoreCacheOptions } from "./plugins/store-cache"
