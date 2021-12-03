@@ -4,6 +4,7 @@ import { inject, ProvidedIn } from "./core"
 export type ValueToken<T> = InjectionToken<T> & {
    __ng_value_token: true
    Provider: Provider[]
+   Token: InjectionToken<T>
 }
 
 export class EmptyValueError extends Error {
@@ -63,6 +64,8 @@ function createValueToken(
    ValueToken.key = Key
    ValueToken.__ng_value_token = true
    ValueToken.overriddenName = name
+
+   ValueToken.Token = ValueToken
 
    ValueToken.Provider = [
       { provide: ValueToken, useFactory: get },

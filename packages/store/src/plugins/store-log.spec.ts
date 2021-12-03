@@ -16,14 +16,16 @@ describe("StoreLog", () => {
       const Count = new Query("count", () => use(0))
       const TestStore = new Store("test", {
          tokens: [Count],
-         plugins: [StoreLog],
+         plugins: [StoreLog.create()],
       })
       const spy = spyOn(console, "log")
+      const spy2 = spyOn(console, "groupCollapsed")
       addProvider(TestStore.Provider)
       TestBed.inject(TestStore)
       const count = TestBed.inject(Count) as any
       expect(spy).not.toHaveBeenCalled()
       count(20)
+      expect(spy2).toHaveBeenCalledOnceWith("test @", jasmine.any(String), "count.next")
       expect(spy).toHaveBeenCalledWith("%cprevious", "color: #9E9E9E", {
          count: 0,
       })

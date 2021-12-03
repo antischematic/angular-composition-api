@@ -27,7 +27,7 @@ export type StoreEvent<T = unknown> = NextEvent<T> | ErrorEvent | CompleteEvent
 
 export interface StoreLike {
    name: string
-   parent: StoreLike[] | null
+   parent: StoreLike | null
    event: Emitter<StoreEvent>
    command: Record<string, Emitter<any>>
    query: Record<string, Value<any>>
