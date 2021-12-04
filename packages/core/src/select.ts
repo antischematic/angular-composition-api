@@ -1,7 +1,6 @@
 import {
    Accessor,
    AccessorValue,
-   AsyncEmitter,
    Emitter,
    ExpandValue,
    UseOptions,
@@ -14,7 +13,6 @@ import {
    setPending,
 } from "./types"
 import { get, getPath, isEmitter, isObject, isValue, walk } from "./utils"
-import { Subject } from "rxjs"
 
 export function select<T, U>(
    accessor: Accessor<T, U>,
@@ -33,23 +31,6 @@ export function select(
       return new ComputedValue(source) as any
    }
    return new AccessorValueType(source as any, options)
-}
-
-export function async<T, U>(
-   accessor: Accessor<T, U>,
-   options?: UseOptions<any>,
-): AsyncEmitter<T, U>
-export function async(
-   source: Accessor<any, any>,
-   options?: UseOptions<any>,
-): unknown {
-   const emitter = new AccessorValueType(source as any, {
-      ...options,
-      subject: options?.subject ?? new Subject(),
-   })
-   ;(<any>emitter).__ng_emitter = true
-   delete (<any>emitter).__check_phase
-   return emitter
 }
 
 export function combine<T>(object: Value<T>): Value<T>

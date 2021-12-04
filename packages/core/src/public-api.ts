@@ -27,8 +27,9 @@ export {
    AccessorValue,
    ExpandValue,
    Change,
+   UseOptions
 } from "./interfaces"
-export { select, combine, async } from "./select"
+export { select, combine } from "./select"
 export { ValueToken, provide, EmptyValueError } from "./provider"
 export { onDestroy, onUpdated, onBeforeUpdate, onChanges } from "./lifecycle"
 export { ZonelessEventManager } from "./event-manager"

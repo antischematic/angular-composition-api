@@ -108,13 +108,6 @@ export interface Emitter<T> extends EventEmitter<T> {
    (value: T): void
 }
 
-export interface AsyncEmitter<T, U> extends Observable<T> {
-   readonly __ng_emitter: true
-   (value: U): void
-   next(value: U): void
-   emit(value: U): void
-}
-
 export type QueryType = typeof ContentChild | typeof ViewChild
 
 export type QueryListType = typeof ViewChildren | typeof ContentChildren
