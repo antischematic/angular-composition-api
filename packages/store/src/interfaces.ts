@@ -5,6 +5,7 @@ import {
    ValueToken,
 } from "@mmuscat/angular-composition-api"
 import { InjectFlags } from "@angular/core"
+import {Observable} from "rxjs";
 
 export interface NextEvent<T = unknown> {
    name: string
@@ -50,3 +51,10 @@ export const Events = new ValueToken<Emitter<StoreEvent>>("Events", {
       return use(Function)
    },
 })
+
+export interface Action<T, U> extends Observable<T> {
+   readonly __ng_emitter: true
+   (value: U): void
+   next(value: U): void
+   emit(value: U): void
+}

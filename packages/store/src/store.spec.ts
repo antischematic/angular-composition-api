@@ -20,6 +20,7 @@ import { bufferCount, EMPTY, filter, ignoreElements, interval, map, of, tap } fr
 import { Store } from "./store"
 import { Effect } from "./effect"
 import createSpy = jasmine.createSpy
+import {action} from "./utils";
 
 abstract class Service {}
 
@@ -84,7 +85,7 @@ describe("Store", () => {
    })
 
    it("should get command", () => {
-      const Log = new Command("log", (emitter: Emitter<string>) => emitter)
+      const Log = new Command("log", action<string>())
       const AppStore = new Store("app", {
          tokens: [Log],
       })

@@ -1,6 +1,5 @@
 import { inject, Service, ValueToken } from "@mmuscat/angular-composition-api"
-import { Events, NextEvent, StoreLike } from "./interfaces"
-import { filter, Observable } from "rxjs"
+import { StoreLike } from "./interfaces"
 
 const tokens = new WeakSet()
 
@@ -8,10 +7,7 @@ export function isEffectToken(token: any) {
    return tokens.has(token)
 }
 
-function effect(
-   name: string,
-   factory: (store: StoreLike) => any,
-) {
+function effect(name: string, factory: (store: StoreLike) => any) {
    return (store: StoreLike) => factory(store)
 }
 

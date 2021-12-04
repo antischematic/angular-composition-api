@@ -1,6 +1,4 @@
 import {
-   AsyncEmitter,
-   async,
    Emitter,
    inject,
    isEmitter,
@@ -8,8 +6,11 @@ import {
    Service,
    use,
    ValueToken,
+   Accessor,
+   UseOptions, select,
 } from "@mmuscat/angular-composition-api"
-import { Observable } from "rxjs"
+import {Observable, Subject} from "rxjs"
+import {Action} from "./interfaces";
 
 const tokens = new WeakSet()
 
@@ -17,25 +18,39 @@ export function isCommandToken(token: any) {
    return tokens.has(token)
 }
 
+export function action<T, U>(
+   accessor: Accessor<T, U>,
+   options?: UseOptions<any>,
+): Action<T, U>
+export function action(
+   source: Accessor<any, any>,
+   options?: UseOptions<any>,
+): unknown {
+   const emitter = select(source, {
+         ...options,
+         subject: options?.subject ?? new Subject(),
+      })
+   ;(<any>emitter).__ng_emitter = true
+   delete (<any>emitter).__check_phase
+   return emitter
+}
+
 function command(name: string, factory: (emitter: Emitter<any>) => any) {
    const emitter = use(Function)
-   if (factory) {
-      const result = factory(emitter)
-      if (isEmitter(result)) {
-         return result
-      }
-      return async({
-         next: emitter,
-         value: isValue(result) ? result : use(result),
-      })
+   const result = factory(emitter)
+   if (isEmitter(result)) {
+      return result
    }
-   return emitter
+   return action({
+      next: emitter,
+      value: isValue(result) ? result : use(result),
+   })
 }
 
 function createCommand<TName extends string, TArgs, TValue>(
    name: TName,
    factory?: (emitter: Emitter<TArgs>) => TValue,
-): ValueToken<Command<TName, AsyncEmitter<TValue, TArgs>>> {
+): ValueToken<Command<TName, Action<TValue, TArgs>>> {
    const service = new Service(command, {
       providedIn: null,
       name,
@@ -60,7 +75,7 @@ export interface CommandStatic {
    new <TName extends string, TArgs, TValue>(
       name: TName,
       factory: (emitter: Emitter<TArgs>) => Observable<TValue>,
-   ): ValueToken<Command<TName, AsyncEmitter<TValue, TArgs>>>
+   ): ValueToken<Command<TName, Action<TValue, TArgs>>>
 }
 
 export const Command: CommandStatic = createCommand as any
