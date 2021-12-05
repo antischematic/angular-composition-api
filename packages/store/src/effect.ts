@@ -27,13 +27,17 @@ export class EffectParams {
    }
    dispatch = <T>(token: ValueToken<Value<T>>): MonoTypeOperatorFunction<T> => {
       const value = this.injector.get(token.Token)
+      const tokenName = getTokenName(token)
       return (source: Observable<T>) => {
          return source.pipe(
             tap((nextValue) => {
                this.events.next({
                   kind: "N",
                   name: this.name,
-                  current: nextValue,
+                  current: {
+                     dispatch: tokenName,
+                     payload: nextValue
+                  },
                })
                value(nextValue)
             }),
