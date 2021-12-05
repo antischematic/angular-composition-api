@@ -1,5 +1,5 @@
-import {Emitter, ValueToken, use} from "@mmuscat/angular-composition-api";
-import {StoreEvent} from "./interfaces";
+import { Emitter, use, ValueToken } from "@mmuscat/angular-composition-api"
+import { StoreEvent } from "./interfaces"
 
 function defaultAction<T>(action: Emitter<T>): Emitter<T> {
    return action
@@ -16,5 +16,5 @@ export function getTokenName(token: ValueToken<any>) {
 export const Events = new ValueToken("Events", {
    factory() {
       return use<StoreEvent>(Function)
-   }
+   },
 })

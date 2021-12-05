@@ -1,16 +1,17 @@
 import {
+   Accessor,
    Emitter,
    inject,
    isEmitter,
    isValue,
+   select,
    Service,
    use,
+   UseOptions,
    ValueToken,
-   Accessor,
-   UseOptions, select,
 } from "@mmuscat/angular-composition-api"
-import {Observable, Subject} from "rxjs"
-import {Action} from "./interfaces";
+import { Observable, Subject } from "rxjs"
+import { Action } from "./interfaces"
 
 const tokens = new WeakSet()
 
@@ -27,9 +28,9 @@ export function action(
    options?: UseOptions<any>,
 ): unknown {
    const emitter = select(source, {
-         ...options,
-         subject: options?.subject ?? new Subject(),
-      })
+      ...options,
+      subject: options?.subject ?? new Subject(),
+   })
    ;(<any>emitter).__ng_emitter = true
    delete (<any>emitter).__check_phase
    return emitter

@@ -1,14 +1,14 @@
 import { HttpClient } from "@angular/common/http"
-import {share, timer} from "rxjs"
+import { share, timer } from "rxjs"
 import { map } from "rxjs/operators"
 import {
-   use,
    inject,
    Service,
    subscribe,
+   use,
 } from "@mmuscat/angular-composition-api"
 import { Todo } from "./todo.component"
-import {ErrorHandler} from "@angular/core";
+import { ErrorHandler } from "@angular/core"
 
 let database = [
    {
@@ -34,7 +34,10 @@ function loadTodosById() {
    return function (userId: string) {
       console.log("Loading from fake server. userId:", userId)
       // http.get() for real application
-      const result = timer(1000).pipe(map(() => database.sort(() => Math.random())), share())
+      const result = timer(1000).pipe(
+         map(() => database.sort(() => Math.random())),
+         share(),
+      )
       boundary.handleError(result)
       return result
    }

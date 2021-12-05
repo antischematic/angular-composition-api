@@ -1,5 +1,5 @@
-import { isQueryToken, Query } from "./query"
-import { Command, isCommandToken } from "./command"
+import { isQueryToken } from "./query"
+import { isCommandToken } from "./command"
 import {
    AccessorValue,
    combine,
@@ -8,15 +8,13 @@ import {
    onError,
    Service,
    subscribe,
-   Value,
    ValueToken,
 } from "@mmuscat/angular-composition-api"
-import {ErrorHandler, InjectFlags, InjectionToken, Injector, INJECTOR} from "@angular/core"
-import {Effect, isEffectToken} from "./effect"
+import { ErrorHandler, InjectFlags, Injector, INJECTOR } from "@angular/core"
+import { isEffectToken } from "./effect"
 import { StoreConfig, StoreEvent } from "./interfaces"
-import {EMPTY, merge, Observable, of, switchMap} from "rxjs"
-import {action, Events, getTokenName} from "./utils"
-import {use} from "../../core/src/common";
+import { of } from "rxjs"
+import { Events, getTokenName } from "./utils"
 
 class EventObserver {
    previousValue?: any
@@ -136,21 +134,30 @@ function createStore<TName extends string>(
 }
 
 type Snapshot<T> = {
-   [key in keyof T as T[key] extends ValueToken<infer R> ? "__query" extends keyof R ? R["__query"] : never : never]: T[key] extends ValueToken<{ value: infer R }> ? R : never
+   [key in keyof T as T[key] extends ValueToken<infer R>
+      ? "__query" extends keyof R
+         ? R["__query"]
+         : never
+      : never]: T[key] extends ValueToken<{ value: infer R }> ? R : never
 }
 
 type Queries<T> = {
-   [key in keyof T as T[key] extends ValueToken<infer R> ? "__query" extends keyof R ? R["__query"] : never : never]: T[key] extends ValueToken<infer R> ? R : never
+   [key in keyof T as T[key] extends ValueToken<infer R>
+      ? "__query" extends keyof R
+         ? R["__query"]
+         : never
+      : never]: T[key] extends ValueToken<infer R> ? R : never
 }
 
 type Commands<T> = {
-   [key in keyof T as T[key] extends ValueToken<infer R> ? "__command" extends keyof R ? R["__command"] : never : never]: T[key] extends ValueToken<infer R> ? R : never
+   [key in keyof T as T[key] extends ValueToken<infer R>
+      ? "__command" extends keyof R
+         ? R["__command"]
+         : never
+      : never]: T[key] extends ValueToken<infer R> ? R : never
 }
 
-export interface Store<
-   TName extends string,
-   TTokens extends readonly any[],
-> {
+export interface Store<TName extends string, TTokens extends readonly any[]> {
    name: TName
    query: Queries<TTokens>
    command: Commands<TTokens>

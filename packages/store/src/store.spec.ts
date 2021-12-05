@@ -18,7 +18,7 @@ import {
 } from "@mmuscat/angular-composition-api"
 import { Query } from "./query"
 import { Command } from "./command"
-import {bufferCount, EMPTY, interval, map, merge, of, switchMap} from "rxjs"
+import { bufferCount, interval, map, merge, of, switchMap } from "rxjs"
 import { Store } from "./store"
 import { Effect } from "./effect"
 import { action } from "./utils"
@@ -223,9 +223,7 @@ describe("Store", () => {
       const command = new Command("command", action<string>())
       const effect = new Effect("effect", ({ event, dispatch }) => {
          return event(query).pipe(
-            switchMap(() => merge(
-               of("BOGUS").pipe(dispatch(command)),
-            ))
+            switchMap(() => merge(of("BOGUS").pipe(dispatch(command)))),
          )
       })
       const AppStore = new Store("app", {
@@ -234,7 +232,9 @@ describe("Store", () => {
       addProvider(AppStore.Provider)
       subscribe(TestBed.inject(query), spy)
       subscribe(TestBed.inject(command), spy2)
-      const { query: { query: send }} = TestBed.inject(AppStore.Token)
+      const {
+         query: { query: send },
+      } = TestBed.inject(AppStore.Token)
       send(20)
       expect(spy2).toHaveBeenCalledOnceWith("BOGUS")
    })

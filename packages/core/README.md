@@ -58,7 +58,7 @@ yarn add @mmuscat/angular-composition-api
 
 ### Setup
 
-Provide `ZonelessEventManager` in your root module. This is required 
+Provide `ZonelessEventManager` in your root module. This is required
 for proper change detection in event handlers.
 
 ```ts

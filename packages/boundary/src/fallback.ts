@@ -1,4 +1,4 @@
-import {Directive} from "@angular/core";
+import { Directive } from "@angular/core"
 
-@Directive({ selector: "fallback, [fallback]"})
+@Directive({ selector: "fallback, [fallback]" })
 export class Fallback {}

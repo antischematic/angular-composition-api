@@ -1,16 +1,16 @@
 import {
+   AfterViewInit,
    ChangeDetectorRef,
    Component,
    ContentChildren,
    DoCheck,
    ErrorHandler,
+   EventEmitter,
    Injectable,
    Output,
    QueryList,
    SkipSelf,
    TemplateRef,
-   EventEmitter,
-   AfterViewInit,
 } from "@angular/core"
 import { NgIfContext } from "@angular/common"
 

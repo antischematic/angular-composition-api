@@ -1,8 +1,8 @@
 import { NgModule } from "@angular/core"
-import {NgCloak, NgCloakList} from "./cloak"
-import {CommonModule} from "@angular/common";
-import {ErrorBoundary} from "./error-boundary";
-import {Fallback} from "./fallback";
+import { NgCloak, NgCloakList } from "./cloak"
+import { CommonModule } from "@angular/common"
+import { ErrorBoundary } from "./error-boundary"
+import { Fallback } from "./fallback"
 
 @NgModule({
    imports: [CommonModule],

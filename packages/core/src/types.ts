@@ -110,9 +110,9 @@ export class Value<T> implements NextObserver<T> {
       trigger(this)
    }
    asObservable(): Observable<T> {
-      return (<any>new Observable((subscriber) => {
+      return <any>new Observable((subscriber) => {
          return this.subscribe(subscriber)
-      }))
+      })
    }
    forEach(
       next: (value: any) => void,

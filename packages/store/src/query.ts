@@ -1,5 +1,11 @@
-import { inject, isValue, Service, use, ValueToken } from "@mmuscat/angular-composition-api"
-import {ToValue} from "./interfaces";
+import {
+   inject,
+   isValue,
+   Service,
+   use,
+   ValueToken,
+} from "@mmuscat/angular-composition-api"
+import { ToValue } from "./interfaces"
 
 const tokens = new WeakSet()
 
@@ -27,7 +33,9 @@ function createQuery<TName extends string, TValue>(
    return token
 }
 
-export type Query<TName extends string, TValue> = TValue & { readonly __query: TName }
+export type Query<TName extends string, TValue> = TValue & {
+   readonly __query: TName
+}
 
 export interface QueryStatic {
    new <TName extends string, TValue>(

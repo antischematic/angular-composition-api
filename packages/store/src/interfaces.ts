@@ -1,11 +1,11 @@
 import {
+   DeferredValue,
    Emitter,
+   ReadonlyValue,
    Value,
    ValueToken,
-   DeferredValue,
-   ReadonlyValue
 } from "@mmuscat/angular-composition-api"
-import {Observable} from "rxjs";
+import { Observable } from "rxjs"
 
 export interface NextEvent<T = unknown> {
    name: string
@@ -53,4 +53,6 @@ export interface Action<T, U> extends Observable<T> {
    emit(value: U): void
 }
 
-export type ToValue<TValue> = TValue extends ReadonlyValue<any> ? TValue : DeferredValue<TValue extends Observable<infer R> ? R : never>
+export type ToValue<TValue> = TValue extends ReadonlyValue<any>
+   ? TValue
+   : DeferredValue<TValue extends Observable<infer R> ? R : never>

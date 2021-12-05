@@ -47,6 +47,6 @@ describe("StoreCache", () => {
             tokens: [Count],
             plugins: [StoreCache.create({ key: "test" })],
          })
-      }).toThrowError("A store cache with key \"test\" already exists.")
+      }).toThrowError('A store cache with key "test" already exists.')
    })
 })

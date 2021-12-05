@@ -1,17 +1,15 @@
 import {
+   Emitter,
    inject,
    isValue,
    Service,
    use,
-   ValueToken,
-   Emitter,
    Value,
-   DeferredValue,
-   ReadonlyValue
+   ValueToken,
 } from "@mmuscat/angular-composition-api"
-import {NextEvent, StoreEvent, ToValue} from "./interfaces"
+import { NextEvent, StoreEvent, ToValue } from "./interfaces"
 import { Events, getTokenName } from "./utils"
-import {filter, map, MonoTypeOperatorFunction, Observable, tap} from "rxjs"
+import { filter, map, MonoTypeOperatorFunction, Observable, tap } from "rxjs"
 import { Injector, INJECTOR } from "@angular/core"
 
 const tokens = new WeakSet()
@@ -20,13 +18,14 @@ export class EffectParams {
    event = (token: ValueToken<any>) => {
       const tokenName = getTokenName(token)
       return this.events.pipe(
-         filter((event): event is NextEvent => event.kind === "N" && event.name === tokenName),
-         map(event => event.current)
+         filter(
+            (event): event is NextEvent =>
+               event.kind === "N" && event.name === tokenName,
+         ),
+         map((event) => event.current),
       )
    }
-   dispatch = <T>(
-      token: ValueToken<Value<T>>
-   ): MonoTypeOperatorFunction<T> => {
+   dispatch = <T>(token: ValueToken<Value<T>>): MonoTypeOperatorFunction<T> => {
       const value = this.injector.get(token.Token)
       return (source: Observable<T>) => {
          return source.pipe(
