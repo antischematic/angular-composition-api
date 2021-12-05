@@ -68,7 +68,7 @@ function createCommand<TName extends string, TArgs, TValue>(
 }
 
 export type Command<TName, TEmitter> = TEmitter & {
-   __command: TName
+   readonly __command: TName
 }
 
 export interface CommandStatic {

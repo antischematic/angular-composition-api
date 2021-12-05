@@ -1,19 +1,64 @@
-import { inject, Service, ValueToken } from "@mmuscat/angular-composition-api"
-import { StoreLike } from "./interfaces"
+import {
+   inject,
+   isValue,
+   Service,
+   use,
+   ValueToken,
+   Emitter,
+   Value,
+   DeferredValue,
+   ReadonlyValue
+} from "@mmuscat/angular-composition-api"
+import {NextEvent, StoreEvent, ToValue} from "./interfaces"
+import { Events, getTokenName } from "./utils"
+import {filter, map, MonoTypeOperatorFunction, Observable, tap} from "rxjs"
+import { Injector, INJECTOR } from "@angular/core"
 
 const tokens = new WeakSet()
+
+export class EffectParams {
+   event = (token: ValueToken<any>) => {
+      const tokenName = getTokenName(token)
+      return this.events.pipe(
+         filter((event): event is NextEvent => event.kind === "N" && event.name === tokenName),
+         map(event => event.current)
+      )
+   }
+   dispatch = <T>(
+      token: ValueToken<Value<T>>
+   ): MonoTypeOperatorFunction<T> => {
+      const value = this.injector.get(token.Token)
+      return (source: Observable<T>) => {
+         return source.pipe(
+            tap((nextValue) => {
+               this.events.next({
+                  kind: "N",
+                  name: this.name,
+                  current: nextValue,
+               })
+               value(nextValue)
+            }),
+         )
+      }
+   }
+   constructor(
+      private name: string,
+      private events: Emitter<StoreEvent>,
+      private injector: Injector,
+   ) {}
+}
 
 export function isEffectToken(token: any) {
    return tokens.has(token)
 }
 
-function effect(name: string, factory: (store: StoreLike) => any) {
-   return (store: StoreLike) => factory(store)
+function effect(name: string, factory: (store: EffectParams) => any) {
+   return factory(new EffectParams(name, inject(Events), inject(INJECTOR)))
 }
 
 function createEffect<TName extends string, TValue>(
    name: TName,
-   factory: (store: StoreLike) => TValue,
+   factory: (store: EffectParams) => TValue,
 ): ValueToken<TValue> {
    const service = new Service(effect, {
       providedIn: null,
@@ -22,7 +67,8 @@ function createEffect<TName extends string, TValue>(
    })
    const token = new ValueToken(name, {
       factory() {
-         return inject(service)
+         const result = inject(service)
+         return isValue(result) ? result : use<unknown>(result)
       },
    })
    token.Provider.push(service)
@@ -30,11 +76,13 @@ function createEffect<TName extends string, TValue>(
    return token
 }
 
+export type Effect<TValue> = ToValue<TValue>
+
 export interface EffectStatic {
    new <TName extends string, TValue>(
       name: TName,
-      factory: (store: StoreLike) => TValue,
-   ): ValueToken<TValue>
+      factory: (params: EffectParams) => TValue,
+   ): ValueToken<Effect<TValue>>
 }
 
 export const Effect: EffectStatic = createEffect as any

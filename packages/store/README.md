@@ -37,8 +37,20 @@ const Retry = new Command("retry", (action) => {
 Create Effects
 
 ```ts
-const TodosLogger = new Effect("todosLogger", () => {
-   return pipe(inject(Todos), tap(console.log), ignoreElements())
+const TodosEffect = new Effect("todosEffect", ({ event, dispatch }) => {
+   return pipe(event(Todos), pairwise(), dispatch(LogTodos))
+})
+
+const LogTodos = new Command("logTodos", (action) => {
+   return pipe(
+      action,
+      tap(([previous, current]) =>
+         console.log("todos", {
+            previous,
+            current,
+         }),
+      ),
+   )
 })
 ```
 
@@ -46,7 +58,7 @@ Create Stores
 
 ```ts
 const TodosStore = new Store("todos", {
-   tokens: [UserId, Todos, TodosError, Retry, TodosLogger],
+   tokens: [UserId, Todos, TodosError, Retry, LogTodos, TodosEffect],
    plugins: [StoreLog],
 })
 ```

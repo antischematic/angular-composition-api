@@ -1,17 +1,17 @@
 import {
    Emitter,
-   use,
    Value,
    ValueToken,
+   DeferredValue,
+   ReadonlyValue
 } from "@mmuscat/angular-composition-api"
-import { InjectFlags } from "@angular/core"
 import {Observable} from "rxjs";
 
 export interface NextEvent<T = unknown> {
    name: string
    kind: "N"
    current: T
-   previous: T | undefined
+   previous?: T
 }
 
 export interface ErrorEvent {
@@ -46,15 +46,11 @@ export interface StoreConfig<T extends ValueToken<any>[]> {
    plugins?: StorePlugin[]
 }
 
-export const Events = new ValueToken<Emitter<StoreEvent>>("Events", {
-   factory() {
-      return use(Function)
-   },
-})
-
 export interface Action<T, U> extends Observable<T> {
    readonly __ng_emitter: true
    (value: U): void
    next(value: U): void
    emit(value: U): void
 }
+
+export type ToValue<TValue> = TValue extends ReadonlyValue<any> ? TValue : DeferredValue<TValue extends Observable<infer R> ? R : never>

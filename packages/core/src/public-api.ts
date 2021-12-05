@@ -22,7 +22,6 @@ export {
    ReadonlyValue,
    Emitter,
    EmitterWithParams,
-   AsyncEmitter,
    Accessor,
    AccessorValue,
    ExpandValue,

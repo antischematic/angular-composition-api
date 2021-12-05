@@ -5,14 +5,18 @@ import {
    combine,
    Emitter,
    inject,
+   onError,
    Service,
    subscribe,
    Value,
    ValueToken,
 } from "@mmuscat/angular-composition-api"
-import { ErrorHandler, InjectFlags, Injector, INJECTOR } from "@angular/core"
-import { isEffectToken } from "./effect"
-import { Events, StoreConfig, StoreEvent } from "./interfaces"
+import {ErrorHandler, InjectFlags, InjectionToken, Injector, INJECTOR} from "@angular/core"
+import {Effect, isEffectToken} from "./effect"
+import { StoreConfig, StoreEvent } from "./interfaces"
+import {EMPTY, merge, Observable, of, switchMap} from "rxjs"
+import {action, Events, getTokenName} from "./utils"
+import {use} from "../../core/src/common";
 
 class EventObserver {
    previousValue?: any
@@ -23,7 +27,7 @@ class EventObserver {
          kind: "N",
          name: this.name,
          current: value,
-         previous: previousValue
+         previous: previousValue,
       })
    }
    error(error: unknown) {
@@ -47,35 +51,6 @@ class EventObserver {
    ) {}
 }
 
-class EffectObserver extends EventObserver {
-   next(nextValue: any) {
-      const { query, command } = this
-      super.next(nextValue)
-      if (typeof nextValue === "object" && nextValue !== null) {
-         for (const [key, value] of Object.entries(nextValue)) {
-            if (key in query) {
-               query[key](value)
-               continue
-            }
-            if (key in command) {
-               command[key](value)
-               continue
-            }
-            throw new Error(`Invalid dispatch target "${key}"`)
-         }
-      }
-   }
-   constructor(
-      errorHandler: ErrorHandler,
-      name: string,
-      events: Emitter<StoreEvent>,
-      private query: any,
-      private command: any,
-   ) {
-      super(errorHandler, name, events)
-   }
-}
-
 function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
    const parent = inject(Store, null, InjectFlags.SkipSelf)
    const { tokens, plugins = [] } = config
@@ -89,8 +64,7 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
    }
    for (const token of tokens) {
       const value = get(token)
-      const tokenName = token.toString().replace(/^InjectionToken /, "")
-      // noinspection SuspiciousTypeOfGuard
+      const tokenName = getTokenName(token)
       const type = isQueryToken(token) ? 0 : isCommandToken(token) ? 1 : 2
       if (type < 2) {
          subscribe(value, new EventObserver(errorHandler, tokenName, event))
@@ -114,12 +88,17 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
    }
    for (const token of tokens) {
       if (isEffectToken(token)) {
-         const value = get(token)(store)
-         const tokenName = token.toString().replace(/^InjectionToken /, "")
-         subscribe(
-            value,
-            new EffectObserver(errorHandler, tokenName, event, query, command),
-         )
+         const tokenName = getTokenName(token)
+         const value = get(token)
+         onError(value, (error) => {
+            event.next({
+               name: tokenName,
+               kind: "E",
+               error: error,
+            })
+            return of(true)
+         })
+         subscribe(value)
       }
    }
    for (const plugin of plugins) {
@@ -157,44 +136,20 @@ function createStore<TName extends string>(
 }
 
 type Snapshot<T> = {
-   [key in keyof T as T[key] extends ValueToken<infer K>
-      ? K extends Query<infer S, any>
-         ? "__query" extends keyof K
-            ? K["__query"]
-            : never
-         : never
-      : never]: T[key] extends ValueToken<Value<infer R>> ? R : never
+   [key in keyof T as T[key] extends ValueToken<infer R> ? "__query" extends keyof R ? R["__query"] : never : never]: T[key] extends ValueToken<{ value: infer R }> ? R : never
 }
 
-type Queries<T> = Exclude<
-   {
-      [key in keyof T as T[key] extends ValueToken<infer K>
-         ? K extends Query<infer S, any>
-            ? "__query" extends keyof K
-               ? K["__query"]
-               : never
-            : never
-         : never]: T[key] extends ValueToken<infer R> ? R : never
-   },
-   any[]
->
+type Queries<T> = {
+   [key in keyof T as T[key] extends ValueToken<infer R> ? "__query" extends keyof R ? R["__query"] : never : never]: T[key] extends ValueToken<infer R> ? R : never
+}
 
-type Commands<T> = Exclude<
-   {
-      [key in keyof T as T[key] extends ValueToken<infer K>
-         ? K extends Command<infer S, any>
-            ? "__command" extends keyof K
-               ? K["__command"]
-               : never
-            : never
-         : never]: T[key] extends ValueToken<infer R> ? R : never
-   },
-   any[]
->
+type Commands<T> = {
+   [key in keyof T as T[key] extends ValueToken<infer R> ? "__command" extends keyof R ? R["__command"] : never : never]: T[key] extends ValueToken<infer R> ? R : never
+}
 
 export interface Store<
    TName extends string,
-   TTokens extends [ValueToken<any>, ...ValueToken<any>[]],
+   TTokens extends readonly any[],
 > {
    name: TName
    query: Queries<TTokens>
