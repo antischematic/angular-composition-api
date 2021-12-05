@@ -50,7 +50,7 @@ export class StoreLog {
                "@",
                getTimestamp(),
             )
-            if (event.kind === "N") {
+            if (event.kind === "N" && "previous" in event) {
                log.log("%cprevious", "color: #9E9E9E", event.previous)
             }
             if (event.kind === "E") {

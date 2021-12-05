@@ -2,7 +2,7 @@ import { Query } from "../query"
 import { use } from "@mmuscat/angular-composition-api"
 import { Store } from "../store"
 import { Provider } from "@angular/core"
-import { TestBed } from "@angular/core/testing"
+import {fakeAsync, TestBed, tick} from "@angular/core/testing"
 import { keyCache, StoreCache } from "./store-cache"
 
 function addProvider(provider: Provider) {
@@ -15,7 +15,7 @@ describe("StoreCache", () => {
    beforeEach(() => {
       keyCache.clear()
    })
-   it("should save state to localstorage", () => {
+   it("should save state to localstorage", fakeAsync(() => {
       const Count = new Query("count", () => use(0))
       const TestStore = new Store("test", {
          tokens: [Count],
@@ -23,8 +23,9 @@ describe("StoreCache", () => {
       })
       addProvider(TestStore.Provider)
       TestBed.inject(TestStore.Token)
+      tick()
       expect(localStorage.getItem("test")).toBe(JSON.stringify({ count: 0 }))
-   })
+   }))
    it("should set state from localstorage", () => {
       const Count = new Query("count", () => use(0))
       const TestStore = new Store("test", {

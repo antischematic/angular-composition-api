@@ -18,8 +18,8 @@ describe("StoreLog", () => {
          tokens: [Count],
          plugins: [StoreLog.create()],
       })
-      const spy = spyOn(console, "log").and.callThrough()
-      const spy2 = spyOn(console, "groupCollapsed").and.callThrough()
+      const spy = spyOn(console, "log")
+      const spy2 = spyOn(console, "groupCollapsed")
       addProvider(TestStore.Provider)
       TestBed.inject(TestStore)
       const count = TestBed.inject(Count) as any
