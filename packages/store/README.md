@@ -7,7 +7,6 @@ Atomic states for Angular Composition API.
 Create Queries
 
 ```ts
-// queries
 const UserId = new Query("userId", () => use(EMPTY))
 const Todos = new Query("todos", () => {
    const http = inject(HttpClient)
