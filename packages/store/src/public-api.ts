@@ -1,6 +1,6 @@
 export { Command } from "./command"
 export { Query } from "./query"
-export { Effect} from "./effect"
+export { Effect } from "./effect"
 export { Store } from "./store"
 export {
    StoreLike,

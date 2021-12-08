@@ -49,7 +49,9 @@ describe("Store", () => {
       addProvider({
          provide: Service,
          useFactory() {
-            const { query: { count } } = inject(AppStore)
+            const {
+               query: { count },
+            } = inject(AppStore)
             expect(count.value).toBe(0)
          },
       })
@@ -72,7 +74,9 @@ describe("Store", () => {
       addProvider({
          provide: Service,
          useFactory() {
-            const { query: { count, double } } = inject(AppStore)
+            const {
+               query: { count, double },
+            } = inject(AppStore)
             subscribe(double, spy)
             count(20)
          },
@@ -91,7 +95,9 @@ describe("Store", () => {
       addProvider({
          provide: Service,
          useFactory() {
-            const { command: { log }} = inject(AppStore)
+            const {
+               command: { log },
+            } = inject(AppStore)
             expect(log).toBeInstanceOf(EventEmitter)
          },
       })
@@ -113,7 +119,9 @@ describe("Store", () => {
       addProvider({
          provide: Service,
          useFactory() {
-            const { command: { double } } = inject(AppStore)
+            const {
+               command: { double },
+            } = inject(AppStore)
             subscribe(double, spy)
             double(10)
          },

@@ -37,7 +37,9 @@ export function action(
    return emitter
 }
 
-function command(factory: (emitter: Emitter<any>, context: StoreContext) => any) {
+function command(
+   factory: (emitter: Emitter<any>, context: StoreContext) => any,
+) {
    const emitter = use(Function)
    const result = factory(emitter, inject(StoreContext))
    if (isEmitter(result)) {
@@ -76,7 +78,10 @@ export type Command<TName, TEmitter> = TEmitter & {
 export interface CommandStatic {
    new <TName extends string, TArgs, TValue>(
       name: TName,
-      factory: (emitter: Emitter<TArgs>, context: StoreContext) => Observable<TValue>,
+      factory: (
+         emitter: Emitter<TArgs>,
+         context: StoreContext,
+      ) => Observable<TValue>,
    ): ValueToken<Command<TName, Action<TValue, TArgs>>>
 }
 

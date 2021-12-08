@@ -60,17 +60,23 @@ export type InferValue<TValue> = TValue extends ReadonlyValue<any>
    ? TValue
    : DeferredValue<TValue extends Observable<infer R> ? R : never>
 
-
-export type Dispatch<T> = T extends Observable<infer R> ? R extends void ? {
-   type: ValueToken<T>,
-   payload?: void
-} : {
-   type: ValueToken<T>,
-   payload: R
-} : never
+export type Dispatch<T> = T extends Observable<infer R>
+   ? R extends void
+      ? {
+           type: ValueToken<T>
+           payload?: void
+        }
+      : {
+           type: ValueToken<T>
+           payload: R
+        }
+   : never
 
 export interface Dispatcher {
    <T>(token: Dispatch<T>): void
    <T>(token: ValueToken<Value<T>>): MonoTypeOperatorFunction<T>
-   <T, U>(token: ValueToken<Value<U>>, selector: (value: T) => U): MonoTypeOperatorFunction<T>
+   <T, U>(
+      token: ValueToken<Value<U>>,
+      selector: (value: T) => U,
+   ): MonoTypeOperatorFunction<T>
 }

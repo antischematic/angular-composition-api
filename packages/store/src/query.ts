@@ -25,7 +25,7 @@ function createQuery<TName extends string, TValue>(
    const service = new Service(query, {
       providedIn: null,
       name,
-      arguments: [factory]
+      arguments: [factory],
    })
    const token = new ValueToken(name, {
       providedIn: null,

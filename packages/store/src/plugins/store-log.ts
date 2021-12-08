@@ -2,7 +2,7 @@ import { StoreLike, StorePlugin } from "../interfaces"
 import { inject, subscribe } from "@mmuscat/angular-composition-api"
 import { Injectable, InjectionToken, ProviderToken } from "@angular/core"
 import { StoreContext } from "../providers"
-import { groupBy, map, mergeMap, pairwise } from "rxjs"
+import { groupBy, mergeMap, pairwise } from "rxjs"
 
 function getTimestamp() {
    const now = new Date()
@@ -40,11 +40,14 @@ const colors = {
    C: "#9E9E9E",
 }
 
-export const StoreLogOptions = new InjectionToken<StoreLogOptions>("StoreLogOptions", {
-   factory() {
-      return {}
-   }
-})
+export const StoreLogOptions = new InjectionToken<StoreLogOptions>(
+   "StoreLogOptions",
+   {
+      factory() {
+         return {}
+      },
+   },
+)
 
 @Injectable({ providedIn: "root" })
 export class StoreLog implements StorePlugin {
@@ -54,7 +57,7 @@ export class StoreLog implements StorePlugin {
 
       const events = store.events.pipe(
          groupBy((event) => event.name),
-         mergeMap((group) => group.pipe(pairwise()))
+         mergeMap((group) => group.pipe(pairwise())),
       )
 
       subscribe(events, ([previous, event]) => {

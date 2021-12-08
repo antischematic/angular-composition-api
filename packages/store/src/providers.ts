@@ -1,8 +1,15 @@
-import { Emitter, use, Value, ValueToken } from "@mmuscat/angular-composition-api"
+import { Emitter, Value, ValueToken } from "@mmuscat/angular-composition-api"
 import { Dispatch, NextEvent, StoreEvent, StoreLike } from "./interfaces"
 import { getTokenName } from "./utils"
 import { filter, map, MonoTypeOperatorFunction, Observable, tap } from "rxjs"
-import { Inject, Injectable, InjectionToken, Injector, Optional, SkipSelf } from "@angular/core"
+import {
+   Inject,
+   Injectable,
+   InjectionToken,
+   Injector,
+   Optional,
+   SkipSelf,
+} from "@angular/core"
 
 @Injectable()
 export class StoreContext {
@@ -21,8 +28,14 @@ export class StoreContext {
 
    dispatch<T>(token: Dispatch<T>): void
    dispatch<T>(token: ValueToken<Value<T>>): MonoTypeOperatorFunction<T>
-   dispatch<T, U>(token: ValueToken<Value<U>>, selector: (value: T) => U): MonoTypeOperatorFunction<T>
-   dispatch<T, U>(token: ValueToken<Value<T>> | Dispatch<T>, selector?: (value: T) => U): MonoTypeOperatorFunction<T> | void {
+   dispatch<T, U>(
+      token: ValueToken<Value<U>>,
+      selector: (value: T) => U,
+   ): MonoTypeOperatorFunction<T>
+   dispatch<T, U>(
+      token: ValueToken<Value<T>> | Dispatch<T>,
+      selector?: (value: T) => U,
+   ): MonoTypeOperatorFunction<T> | void {
       if ("__ng_value_token" in token) {
          const valueToken = token as ValueToken<any>
          const value = this.injector.get(valueToken.Token)
@@ -54,7 +67,10 @@ export class StoreContext {
    }
 
    constructor(
-      @Inject(ParentStore) @SkipSelf() @Optional() public parent: StoreLike | null,
+      @Inject(ParentStore)
+      @SkipSelf()
+      @Optional()
+      public parent: StoreLike | null,
       private injector: Injector,
    ) {
       this.dispatch = this.dispatch.bind(this)

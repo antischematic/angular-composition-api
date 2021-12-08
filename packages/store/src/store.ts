@@ -24,7 +24,7 @@ class EventObserver {
       this.events.emit({
          kind: "N",
          name: this.name,
-         data: value
+         data: value,
       })
    }
    error(error: unknown) {
@@ -84,7 +84,7 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
       state,
       config,
       dispatch: context.dispatch,
-      parent: context.parent
+      parent: context.parent,
    }
    for (const token of tokens) {
       if (isEffectToken(token)) {
