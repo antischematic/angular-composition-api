@@ -16,7 +16,7 @@ describe("StoreLog", () => {
       const Count = new Query("count", () => use(0))
       const TestStore = new Store("test", {
          tokens: [Count],
-         plugins: [StoreLog.create()],
+         plugins: [StoreLog],
       })
       const spy = spyOn(console, "log")
       const spy2 = spyOn(console, "groupCollapsed")

@@ -1,4 +1,4 @@
-import { StoreLike } from "../interfaces"
+import { StoreLike, StorePlugin } from "../interfaces"
 import { inject, subscribe } from "@mmuscat/angular-composition-api"
 import { InjectionToken, ProviderToken } from "@angular/core"
 
@@ -38,29 +38,34 @@ const colors = {
    C: "#9E9E9E",
 }
 
-export class StoreLog {
-   static create({ logger = DefaultLogger }: StoreLogOptions = {}) {
-      return function (store: StoreLike) {
-         const log = inject(logger)
-         subscribe(store.event, (event) => {
-            const color = `color: ${colors[event.kind]}`
-            log.groupCollapsed(
-               `%c${getPath(store.name, store.parent)}.${event.name}`,
-               color,
-               "@",
-               getTimestamp(),
-            )
-            if (event.kind === "N" && "previous" in event) {
-               log.log("%cprevious", "color: #9E9E9E", event.previous)
-            }
-            if (event.kind === "E") {
-               log.log("%cerror", color, event.error)
-            }
-            if (event.kind === "N") {
-               log.log("%ccurrent", color, event.current)
-            }
-            log.groupEnd()
-         })
-      }
+export const StoreLogOptions = new InjectionToken<StoreLogOptions>("StoreLogOptions", {
+   factory() {
+      return {}
+   }
+})
+
+export class StoreLog implements StorePlugin {
+   create(store: StoreLike) {
+      const { logger = DefaultLogger } = inject(StoreLogOptions)
+      const log = inject(logger)
+      subscribe(store.events, (event) => {
+         const color = `color: ${colors[event.kind]}`
+         log.groupCollapsed(
+            `%c${getPath(store.name, store.parent)}.${event.name}`,
+            color,
+            "@",
+            getTimestamp(),
+         )
+         if (event.kind === "N" && "previous" in event) {
+            log.log("%cprevious", "color: #9E9E9E", event.previous)
+         }
+         if (event.kind === "E") {
+            log.log("%cerror", color, event.error)
+         }
+         if (event.kind === "N") {
+            log.log("%ccurrent", color, event.current)
+         }
+         log.groupEnd()
+      })
    }
 }

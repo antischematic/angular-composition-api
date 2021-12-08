@@ -19,7 +19,7 @@ describe("StoreCache", () => {
       const Count = new Query("count", () => use(0))
       const TestStore = new Store("test", {
          tokens: [Count],
-         plugins: [StoreCache.create({ key: "test" })],
+         plugins: [StoreCache],
       })
       addProvider(TestStore.Provider)
       TestBed.inject(TestStore.Token)
@@ -30,7 +30,7 @@ describe("StoreCache", () => {
       const Count = new Query("count", () => use(0))
       const TestStore = new Store("test", {
          tokens: [Count],
-         plugins: [StoreCache.create({ key: "test2" })],
+         plugins: [StoreCache],
       })
       addProvider(TestStore.Provider)
       localStorage.setItem("test2", JSON.stringify({ count: 0 }))
@@ -41,12 +41,12 @@ describe("StoreCache", () => {
       const Count = new Query("count", () => use(0))
       new Store("test", {
          tokens: [Count],
-         plugins: [StoreCache.create({ key: "test" })],
+         plugins: [StoreCache],
       })
       expect(() => {
          new Store("test", {
             tokens: [Count],
-            plugins: [StoreCache.create({ key: "test" })],
+            plugins: [StoreCache],
          })
       }).toThrowError('A store cache with key "test" already exists.')
    })

@@ -5,7 +5,8 @@ import {
    Value,
    ValueToken,
 } from "@mmuscat/angular-composition-api"
-import { Observable } from "rxjs"
+import { MonoTypeOperatorFunction, Observable } from "rxjs"
+import { ProviderToken } from "@angular/core"
 
 export interface NextEvent<T = unknown> {
    name: string
@@ -30,20 +31,21 @@ export type StoreEvent<T = unknown> = NextEvent<T> | ErrorEvent | CompleteEvent
 export interface StoreLike {
    name: string
    parent: StoreLike | null
-   event: Emitter<StoreEvent>
+   events: Emitter<StoreEvent>
    command: Record<string, Emitter<any>>
    query: Record<string, Value<any>>
    state: Value<any>
    config: StoreConfig<any>
+   dispatch: Dispatcher
 }
 
 export interface StorePlugin {
-   (store: StoreLike): any
+   create(store: StoreLike): any
 }
 
 export interface StoreConfig<T extends ValueToken<any>[]> {
    tokens: T
-   plugins?: StorePlugin[]
+   plugins?: ProviderToken<StorePlugin>[]
 }
 
 export interface Action<T, U> extends Observable<T> {
@@ -53,6 +55,21 @@ export interface Action<T, U> extends Observable<T> {
    emit(value: U): void
 }
 
-export type ToValue<TValue> = TValue extends ReadonlyValue<any>
+export type InferValue<TValue> = TValue extends ReadonlyValue<any>
    ? TValue
    : DeferredValue<TValue extends Observable<infer R> ? R : never>
+
+
+export type Dispatch<T> = T extends Observable<infer R> ? R extends void ? {
+   type: ValueToken<T>,
+   payload?: void
+} : {
+   type: ValueToken<T>,
+   payload: R
+} : never
+
+export interface Dispatcher {
+   <T>(token: Dispatch<T>): void
+   <T>(token: ValueToken<Value<T>>): MonoTypeOperatorFunction<T>
+   <T, U>(token: ValueToken<Value<U>>, selector: (value: T) => U): MonoTypeOperatorFunction<T>
+}

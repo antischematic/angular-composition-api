@@ -5,7 +5,8 @@ import {
    use,
    ValueToken,
 } from "@mmuscat/angular-composition-api"
-import { ToValue } from "./interfaces"
+import { InferValue } from "./interfaces"
+import { StoreContext } from "./providers"
 
 const tokens = new WeakSet()
 
@@ -13,13 +14,18 @@ export function isQueryToken(token: any) {
    return tokens.has(token)
 }
 
+function query(factory: (context: StoreContext) => any) {
+   return factory(inject(StoreContext))
+}
+
 function createQuery<TName extends string, TValue>(
    name: TName,
-   factory: () => TValue,
+   factory: (context: StoreContext) => TValue,
 ): ValueToken<TValue> {
-   const service = new Service(factory, {
+   const service = new Service(query, {
       providedIn: null,
       name,
+      arguments: [factory]
    })
    const token = new ValueToken(name, {
       providedIn: null,
@@ -40,8 +46,8 @@ export type Query<TName extends string, TValue> = TValue & {
 export interface QueryStatic {
    new <TName extends string, TValue>(
       name: TName,
-      factory: () => TValue,
-   ): ValueToken<Query<TName, ToValue<TValue>>>
+      factory: (context: StoreContext) => TValue,
+   ): ValueToken<Query<TName, InferValue<TValue>>>
 }
 
 export const Query: QueryStatic = createQuery as any

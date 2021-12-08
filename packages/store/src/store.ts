@@ -5,16 +5,19 @@ import {
    combine,
    Emitter,
    inject,
+   isValue,
    onError,
    Service,
    subscribe,
+   use,
    ValueToken,
 } from "@mmuscat/angular-composition-api"
-import { ErrorHandler, InjectFlags, Injector, INJECTOR } from "@angular/core"
+import { ErrorHandler, InjectFlags, INJECTOR } from "@angular/core"
 import { isEffectToken } from "./effect"
 import { StoreConfig, StoreEvent } from "./interfaces"
-import { of } from "rxjs"
-import { Events, getTokenName } from "./utils"
+import { isObservable, of } from "rxjs"
+import { getTokenName } from "./utils"
+import { StoreContext } from "./providers"
 
 class EventObserver {
    previousValue?: any
@@ -52,20 +55,20 @@ class EventObserver {
 function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
    const parent = inject(Store, null, InjectFlags.SkipSelf)
    const { tokens, plugins = [] } = config
-   const event = inject(Events)
+   const context = inject(StoreContext)
+   const events = use<StoreEvent>(Function)
    const errorHandler = inject(ErrorHandler)
    const injector = inject(INJECTOR)
    const query = {} as any
    const command = {} as any
-   function get<T>(token: ValueToken<T>, flags?: InjectFlags): T {
-      return injector.get(token, Injector.THROW_IF_NOT_FOUND as any, flags)
-   }
+   context.name = name
+   context.events = events
    for (const token of tokens) {
-      const value = get(token)
+      const value = injector.get(token.Token)
       const tokenName = getTokenName(token)
       const type = isQueryToken(token) ? 0 : isCommandToken(token) ? 1 : 2
       if (type < 2) {
-         subscribe(value, new EventObserver(errorHandler, tokenName, event))
+         subscribe(value, new EventObserver(errorHandler, tokenName, events))
       }
       if (type === 0) {
          query[tokenName] = value
@@ -78,31 +81,35 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
    const store = {
       name,
       parent,
-      event,
+      events,
       command,
       query,
       state,
       config,
+      dispatch: context.dispatch
    }
    for (const token of tokens) {
       if (isEffectToken(token)) {
          const tokenName = getTokenName(token)
-         const value = get(token)
-         onError(value, (error) => {
-            event.next({
-               name: tokenName,
-               kind: "E",
-               error: error,
+         let value = injector.get(token.Token)
+         if (isObservable(value)) {
+            value = isValue(value) ? value : use(value)
+            onError(value, (error) => {
+               events.next({
+                  name: tokenName,
+                  kind: "E",
+                  error: error,
+               })
+               return of(true)
             })
-            return of(true)
-         })
-         subscribe(value)
+            subscribe(value)
+         }
       }
    }
    for (const plugin of plugins) {
-      plugin(store)
+      injector.get(plugin).create(store)
    }
-   return Object.setPrototypeOf(get, store)
+   return store
 }
 
 function createStore<TName extends string>(
@@ -127,7 +134,7 @@ function createStore<TName extends string>(
    Token.Provider = [
       StoreService,
       storeProvider,
-      Events.Provider,
+      StoreContext,
       config.tokens.map((Token) => Token.Provider),
    ]
    return Token

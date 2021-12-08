@@ -12,6 +12,7 @@ import {
 } from "@mmuscat/angular-composition-api"
 import { Observable, Subject } from "rxjs"
 import { Action } from "./interfaces"
+import { StoreContext } from "./providers"
 
 const tokens = new WeakSet()
 
@@ -36,9 +37,9 @@ export function action(
    return emitter
 }
 
-function command(name: string, factory: (emitter: Emitter<any>) => any) {
+function command(factory: (emitter: Emitter<any>, context: StoreContext) => any) {
    const emitter = use(Function)
-   const result = factory(emitter)
+   const result = factory(emitter, inject(StoreContext))
    if (isEmitter(result)) {
       return result
    }
@@ -50,12 +51,12 @@ function command(name: string, factory: (emitter: Emitter<any>) => any) {
 
 function createCommand<TName extends string, TArgs, TValue>(
    name: TName,
-   factory?: (emitter: Emitter<TArgs>) => TValue,
+   factory?: (emitter: Emitter<TArgs>, context: StoreContext) => TValue,
 ): ValueToken<Command<TName, Action<TValue, TArgs>>> {
    const service = new Service(command, {
       providedIn: null,
       name,
-      arguments: [name, factory],
+      arguments: [factory],
    })
    const token = new ValueToken(name, {
       providedIn: null,
@@ -75,7 +76,7 @@ export type Command<TName, TEmitter> = TEmitter & {
 export interface CommandStatic {
    new <TName extends string, TArgs, TValue>(
       name: TName,
-      factory: (emitter: Emitter<TArgs>) => Observable<TValue>,
+      factory: (emitter: Emitter<TArgs>, context: StoreContext) => Observable<TValue>,
    ): ValueToken<Command<TName, Action<TValue, TArgs>>>
 }
 

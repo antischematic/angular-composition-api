@@ -49,9 +49,7 @@ describe("Store", () => {
       addProvider({
          provide: Service,
          useFactory() {
-            const get = inject(AppStore)
-            const count = get(Count)
-
+            const { query: { count } } = inject(AppStore)
             expect(count.value).toBe(0)
          },
       })
@@ -74,9 +72,7 @@ describe("Store", () => {
       addProvider({
          provide: Service,
          useFactory() {
-            const get = inject(AppStore)
-            const count = get(Count)
-            const double = get(Double)
+            const { query: { count, double } } = inject(AppStore)
             subscribe(double, spy)
             count(20)
          },
@@ -95,8 +91,7 @@ describe("Store", () => {
       addProvider({
          provide: Service,
          useFactory() {
-            const get = inject(AppStore)
-            const log = get(Log)
+            const { command: { log }} = inject(AppStore)
             expect(log).toBeInstanceOf(EventEmitter)
          },
       })
@@ -105,7 +100,7 @@ describe("Store", () => {
 
    it("should observe command", () => {
       const spy = jasmine.createSpy()
-      const Double = new Command("log", (emitter: Emitter<number>) => {
+      const Double = new Command("double", (emitter: Emitter<number>) => {
          return pipe(
             emitter,
             map((value) => value * 2),
@@ -118,8 +113,7 @@ describe("Store", () => {
       addProvider({
          provide: Service,
          useFactory() {
-            const get = inject(AppStore)
-            const double = get(Double)
+            const { command: { double } } = inject(AppStore)
             subscribe(double, spy)
             double(10)
          },

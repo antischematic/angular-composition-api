@@ -1,6 +1,6 @@
 export { Command } from "./command"
 export { Query } from "./query"
-export { Effect, EffectParams } from "./effect"
+export { Effect} from "./effect"
 export { Store } from "./store"
 export {
    StoreLike,
@@ -14,3 +14,4 @@ export {
 } from "./interfaces"
 export { StoreLog, StoreLogOptions } from "./plugins/store-log"
 export { StoreCache, StoreCacheOptions } from "./plugins/store-cache"
+export { StoreContext } from "./providers"
