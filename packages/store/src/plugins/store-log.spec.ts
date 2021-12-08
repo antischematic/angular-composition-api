@@ -34,4 +34,24 @@ describe("StoreLog", () => {
       expect(spy).toHaveBeenCalledWith("%cprevious", "color: #9E9E9E", 0)
       expect(spy).toHaveBeenCalledWith("%ccurrent", "color: #4CAF50", 20)
    })
+   it("should exclude events", () => {
+      const Count = new Query("count", () => use(0))
+      const TestStore = new Store("test", {
+         tokens: [Count],
+         plugins: [StoreLog],
+      })
+      const spy = spyOn(console, "log")
+      const spy2 = spyOn(console, "groupCollapsed")
+      addProvider(
+         StoreLog.config({
+            exclude: [Count],
+         }),
+      )
+      addProvider(TestStore.Provider)
+      TestBed.inject(TestStore)
+      const count = TestBed.inject(Count) as any
+      count(20)
+      expect(spy).not.toHaveBeenCalled()
+      expect(spy2).not.toHaveBeenCalled()
+   })
 })

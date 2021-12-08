@@ -41,8 +41,15 @@ export const StoreCacheOptions = new InjectionToken<StoreCacheOptions>(
 
 @Injectable({ providedIn: "root" })
 export class StoreCache implements StorePlugin {
-   onStoreInit({ state, name }: StoreLike) {
-      if (isPlatformServer(inject(PLATFORM_ID))) return
+   static config(options: StoreCacheOptions) {
+      return {
+         provide: StoreCacheOptions,
+         useValue: options,
+      }
+   }
+
+   onStoreInit({ state, name, injector }: StoreLike) {
+      if (isPlatformServer(injector.get(PLATFORM_ID))) return
       const {
          key,
          storage = DefaultStorage,

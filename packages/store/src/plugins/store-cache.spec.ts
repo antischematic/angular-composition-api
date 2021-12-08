@@ -21,30 +21,27 @@ describe("StoreCache", () => {
       addProvider(TestStore.Provider)
       TestBed.inject(TestStore.Token)
       tick()
-      expect(localStorage.getItem("test")).toBe(JSON.stringify({ count: 0 }))
+      expect(localStorage.getItem("phalanx.test")).toBe(
+         JSON.stringify({ count: 0 }),
+      )
    }))
    it("should set state from localstorage", () => {
       const Count = new Query("count", () => use(0))
-      const TestStore = new Store("test", {
+      const TestStore = new Store("test2", {
          tokens: [Count],
          plugins: [StoreCache],
       })
       addProvider(TestStore.Provider)
-      localStorage.setItem("test2", JSON.stringify({ count: 0 }))
+      localStorage.setItem("phalanx.test2", JSON.stringify({ count: 20 }))
       const store = TestBed.inject(TestStore.Token)
-      expect(store.state()).toEqual({ count: 0 })
+      expect(store.state()).toEqual({ count: 20 })
    })
    it("should throw error if same key used more than once", () => {
-      const Count = new Query("count", () => use(0))
-      new Store("test", {
-         tokens: [Count],
-         plugins: [StoreCache],
-      })
+      class StoreCache2 {}
+      addProvider({ provide: StoreCache2, useClass: StoreCache })
+      TestBed.inject(StoreCache)
       expect(() => {
-         new Store("test", {
-            tokens: [Count],
-            plugins: [StoreCache],
-         })
-      }).toThrowError('A store cache with key "test" already exists.')
+         TestBed.inject(StoreCache2)
+      }).toThrowError('A store cache with key "phalanx" already exists.')
    })
 })

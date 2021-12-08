@@ -83,6 +83,7 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
       query,
       state,
       config,
+      injector,
       dispatch: context.dispatch,
       parent: context.parent,
    }

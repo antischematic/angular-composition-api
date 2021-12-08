@@ -1,8 +1,9 @@
 import { StoreLike, StorePlugin } from "../interfaces"
-import { inject, subscribe } from "@mmuscat/angular-composition-api"
+import { ValueToken } from "@mmuscat/angular-composition-api"
 import { Injectable, InjectionToken, ProviderToken } from "@angular/core"
 import { StoreContext } from "../providers"
-import { groupBy, mergeMap, pairwise } from "rxjs"
+import { filter, groupBy, mergeMap, pairwise } from "rxjs"
+import { getTokenName } from "../utils"
 
 function getTimestamp() {
    const now = new Date()
@@ -23,6 +24,7 @@ function getPath(name: string, parent: StoreLike | null, path: string[] = []) {
 
 export interface StoreLogOptions {
    logger?: ProviderToken<typeof console>
+   exclude?: ValueToken<any>[]
 }
 
 export const DefaultLogger = new InjectionToken<typeof console>(
@@ -51,20 +53,29 @@ export const StoreLogOptions = new InjectionToken<StoreLogOptions>(
 
 @Injectable({ providedIn: "root" })
 export class StoreLog implements StorePlugin {
-   create(store: StoreContext) {
-      const { logger = DefaultLogger } = inject(StoreLogOptions)
-      const log = inject(logger)
+   static config(options: StoreLogOptions) {
+      return {
+         provide: StoreLogOptions,
+         useValue: options,
+      }
+   }
 
-      const events = store.events.pipe(
+   create({ name, event, events, injector, parent }: StoreContext) {
+      const { exclude = [], logger = DefaultLogger } =
+         injector.get(StoreLogOptions)
+      const log = injector.get(logger)
+      const exclusions = exclude.map(getTokenName)
+
+      const storeEvents = events.pipe(
+         filter((event) => !exclusions.some((name) => event.name === name)),
          groupBy((event) => event.name),
          mergeMap((group) => group.pipe(pairwise())),
       )
 
-      subscribe(events, ([previous, event]) => {
+      storeEvents.subscribe(([previous, event]) => {
          const color = `color: ${colors[event.kind]}`
-
          log.groupCollapsed(
-            `%c${getPath(store.name, store.parent)}.${event.name}`,
+            `%c${getPath(name, parent)}.${event.name}`,
             color,
             "@",
             getTimestamp(),

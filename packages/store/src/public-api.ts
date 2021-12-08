@@ -11,7 +11,10 @@ export {
    StorePlugin,
    StoreConfig,
    Action,
+   Dispatcher,
+   Dispatch,
 } from "./interfaces"
 export { StoreLog, StoreLogOptions } from "./plugins/store-log"
 export { StoreCache, StoreCacheOptions } from "./plugins/store-cache"
-export { StoreContext } from "./providers"
+export { StoreContext, ParentStore } from "./providers"
+export { action } from "./utils"

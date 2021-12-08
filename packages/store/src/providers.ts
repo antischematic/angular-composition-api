@@ -44,24 +44,23 @@ export class StoreContext {
             return source.pipe(
                tap((val) => {
                   const nextValue = selector ? selector(val) : val
-                  this.sendEvent(tokenName, nextValue)
+                  this.sendEvent(tokenName)
                   value(nextValue)
                }),
             )
          }
       } else {
          const dispatch = token as Dispatch<T>
-         this.sendEvent(getTokenName(dispatch.type), dispatch.payload)
+         this.sendEvent(getTokenName(dispatch.type))
       }
    }
 
-   private sendEvent(dispatch: string, payload: any) {
+   private sendEvent(dispatch: string) {
       this.events.next({
          kind: "N",
          name: this.name,
          data: {
             dispatch,
-            payload,
          },
       })
    }
@@ -71,7 +70,7 @@ export class StoreContext {
       @SkipSelf()
       @Optional()
       public parent: StoreLike | null,
-      private injector: Injector,
+      public injector: Injector,
    ) {
       this.dispatch = this.dispatch.bind(this)
       this.event = this.event.bind(this)
