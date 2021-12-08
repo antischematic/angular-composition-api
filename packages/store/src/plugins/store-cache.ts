@@ -10,7 +10,11 @@ export interface StoreCacheOptions {
    key: string
 }
 
-export const keyCache = new Set<string>()
+export const KeyCache = new InjectionToken("KeyCache", {
+   factory() {
+      return new Set<string>()
+   }
+})
 
 const DefaultStorage = new InjectionToken("DefaultStorage", {
    factory() {
@@ -49,12 +53,12 @@ export class StoreCache implements StorePlugin {
          }
       })
    }
-   constructor(@Inject(StoreCacheOptions) private options: StoreCacheOptions) {
-      if (keyCache.has(options.key)) {
+   constructor(@Inject(StoreCacheOptions) private options: StoreCacheOptions, @Inject(KeyCache) cache: Set<string>) {
+      if (cache.has(options.key)) {
          throw new Error(
             `A store cache with key "${options.key}" already exists.`,
          )
       }
-      keyCache.add(options.key)
+      cache.add(options.key)
    }
 }
