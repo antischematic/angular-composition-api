@@ -18,10 +18,13 @@ describe("StoreCache", () => {
          tokens: [Count],
          plugins: [StoreCache],
       })
+      addProvider(StoreCache.config({
+         key: "test"
+      }))
       addProvider(TestStore.Provider)
       TestBed.inject(TestStore.Token)
       tick()
-      expect(localStorage.getItem("phalanx.test")).toBe(
+      expect(localStorage.getItem("test.test")).toBe(
          JSON.stringify({ count: 0 }),
       )
    }))
@@ -32,7 +35,10 @@ describe("StoreCache", () => {
          plugins: [StoreCache],
       })
       addProvider(TestStore.Provider)
-      localStorage.setItem("phalanx.test2", JSON.stringify({ count: 20 }))
+      addProvider(StoreCache.config({
+         key: "test2"
+      }))
+      localStorage.setItem("test2.test2", JSON.stringify({ count: 20 }))
       const store = TestBed.inject(TestStore.Token)
       expect(store.state()).toEqual({ count: 20 })
    })

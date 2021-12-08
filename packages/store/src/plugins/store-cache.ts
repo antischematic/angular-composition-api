@@ -17,6 +17,7 @@ export interface StoreCacheOptions {
 }
 
 export const KeyCache = new InjectionToken("KeyCache", {
+   providedIn: "platform",
    factory() {
       return new Set<string>()
    },
