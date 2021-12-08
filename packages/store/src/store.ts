@@ -14,21 +14,17 @@ import {
 } from "@mmuscat/angular-composition-api"
 import { ErrorHandler, InjectFlags, INJECTOR } from "@angular/core"
 import { isEffectToken } from "./effect"
-import { StoreConfig, StoreEvent } from "./interfaces"
+import { StoreConfig, StoreEvent, StoreLike } from "./interfaces"
 import { isObservable, of } from "rxjs"
 import { getTokenName } from "./utils"
-import { StoreContext } from "./providers"
+import { ParentStore, StoreContext } from "./providers"
 
 class EventObserver {
-   previousValue?: any
    next(value: any) {
-      const { previousValue } = this
-      this.previousValue = value
       this.events.emit({
          kind: "N",
          name: this.name,
-         current: value,
-         previous: previousValue,
+         data: value
       })
    }
    error(error: unknown) {
@@ -53,7 +49,6 @@ class EventObserver {
 }
 
 function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
-   const parent = inject(Store, null, InjectFlags.SkipSelf)
    const { tokens, plugins = [] } = config
    const context = inject(StoreContext)
    const events = use<StoreEvent>(Function)
@@ -63,6 +58,9 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
    const command = {} as any
    context.name = name
    context.events = events
+   for (const plugin of plugins) {
+      injector.get(plugin).create?.(context)
+   }
    for (const token of tokens) {
       const value = injector.get(token.Token)
       const tokenName = getTokenName(token)
@@ -78,15 +76,15 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
       }
    }
    const state = combine(query)
-   const store = {
+   const store: StoreLike = {
       name,
-      parent,
       events,
       command,
       query,
       state,
       config,
-      dispatch: context.dispatch
+      dispatch: context.dispatch,
+      parent: context.parent
    }
    for (const token of tokens) {
       if (isEffectToken(token)) {
@@ -107,7 +105,7 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
       }
    }
    for (const plugin of plugins) {
-      injector.get(plugin).create(store)
+      injector.get(plugin).onStoreInit?.(store)
    }
    return store
 }
@@ -128,7 +126,7 @@ function createStore<TName extends string>(
       },
    })
    const storeProvider = {
-      provide: Store,
+      provide: ParentStore,
       useExisting: Token,
    }
    Token.Provider = [

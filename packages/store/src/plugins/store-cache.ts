@@ -32,7 +32,7 @@ export const StoreCacheOptions = new InjectionToken<StoreCacheOptions>("StoreCac
 
 @Injectable({ providedIn: "root" })
 export class StoreCache implements StorePlugin {
-   create({ state, name }: StoreLike) {
+   onStoreInit({ state, name }: StoreLike) {
       if (isPlatformServer(inject(PLATFORM_ID))) return
       const {
          key,

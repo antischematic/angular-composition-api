@@ -1,8 +1,8 @@
 import { Emitter, use, Value, ValueToken } from "@mmuscat/angular-composition-api"
-import { Dispatch, NextEvent, StoreEvent } from "./interfaces"
+import { Dispatch, NextEvent, StoreEvent, StoreLike } from "./interfaces"
 import { getTokenName } from "./utils"
 import { filter, map, MonoTypeOperatorFunction, Observable, tap } from "rxjs"
-import { Injectable, Injector } from "@angular/core"
+import { Inject, Injectable, InjectionToken, Injector, Optional, SkipSelf } from "@angular/core"
 
 @Injectable()
 export class StoreContext {
@@ -15,7 +15,7 @@ export class StoreContext {
             (event): event is NextEvent =>
                event.kind === "N" && event.name === tokenName,
          ),
-         map((event) => event.current),
+         map((event) => event.data),
       )
    }
 
@@ -46,7 +46,7 @@ export class StoreContext {
       this.events.next({
          kind: "N",
          name: this.name,
-         current: {
+         data: {
             dispatch,
             payload,
          },
@@ -54,9 +54,12 @@ export class StoreContext {
    }
 
    constructor(
+      @Inject(ParentStore) @SkipSelf() @Optional() public parent: StoreLike | null,
       private injector: Injector,
    ) {
       this.dispatch = this.dispatch.bind(this)
       this.event = this.event.bind(this)
    }
 }
+
+export const ParentStore = new InjectionToken<StoreLike>("ParentStore")

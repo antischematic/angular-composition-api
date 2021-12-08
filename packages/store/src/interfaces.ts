@@ -7,12 +7,12 @@ import {
 } from "@mmuscat/angular-composition-api"
 import { MonoTypeOperatorFunction, Observable } from "rxjs"
 import { ProviderToken } from "@angular/core"
+import { StoreContext } from "./providers"
 
-export interface NextEvent<T = unknown> {
+export interface NextEvent {
    name: string
    kind: "N"
-   current: T
-   previous?: T
+   data: unknown
 }
 
 export interface ErrorEvent {
@@ -26,7 +26,7 @@ export interface CompleteEvent {
    kind: "C"
 }
 
-export type StoreEvent<T = unknown> = NextEvent<T> | ErrorEvent | CompleteEvent
+export type StoreEvent = NextEvent | ErrorEvent | CompleteEvent
 
 export interface StoreLike {
    name: string
@@ -40,7 +40,8 @@ export interface StoreLike {
 }
 
 export interface StorePlugin {
-   create(store: StoreLike): any
+   create?(store: StoreContext): any
+   onStoreInit?(store: StoreLike): any
 }
 
 export interface StoreConfig<T extends ValueToken<any>[]> {

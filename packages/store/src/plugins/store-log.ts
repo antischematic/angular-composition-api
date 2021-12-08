@@ -1,6 +1,8 @@
 import { StoreLike, StorePlugin } from "../interfaces"
 import { inject, subscribe } from "@mmuscat/angular-composition-api"
 import { Injectable, InjectionToken, ProviderToken } from "@angular/core"
+import { StoreContext } from "../providers"
+import { groupBy, map, mergeMap, pairwise } from "rxjs"
 
 function getTimestamp() {
    const now = new Date()
@@ -46,25 +48,35 @@ export const StoreLogOptions = new InjectionToken<StoreLogOptions>("StoreLogOpti
 
 @Injectable({ providedIn: "root" })
 export class StoreLog implements StorePlugin {
-   create(store: StoreLike) {
+   create(store: StoreContext) {
       const { logger = DefaultLogger } = inject(StoreLogOptions)
       const log = inject(logger)
-      subscribe(store.events, (event) => {
+
+      const events = store.events.pipe(
+         groupBy((event) => event.name),
+         mergeMap((group) => group.pipe(pairwise()))
+      )
+
+      subscribe(events, ([previous, event]) => {
          const color = `color: ${colors[event.kind]}`
+
          log.groupCollapsed(
             `%c${getPath(store.name, store.parent)}.${event.name}`,
             color,
             "@",
             getTimestamp(),
          )
-         if (event.kind === "N" && "previous" in event) {
-            log.log("%cprevious", "color: #9E9E9E", event.previous)
+         if (previous.kind === "N") {
+            log.log("%cprevious", "color: #9E9E9E", previous.data)
          }
          if (event.kind === "E") {
             log.log("%cerror", color, event.error)
          }
+         if (event.kind === "C") {
+            log.log("%ccomplete", color)
+         }
          if (event.kind === "N") {
-            log.log("%ccurrent", color, event.current)
+            log.log("%ccurrent", color, event.data)
          }
          log.groupEnd()
       })

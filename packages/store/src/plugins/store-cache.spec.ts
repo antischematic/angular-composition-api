@@ -3,7 +3,7 @@ import { use } from "@mmuscat/angular-composition-api"
 import { Store } from "../store"
 import { Provider } from "@angular/core"
 import {fakeAsync, TestBed, tick} from "@angular/core/testing"
-import { keyCache, StoreCache } from "./store-cache"
+import { StoreCache } from "./store-cache"
 
 function addProvider(provider: Provider) {
    TestBed.configureTestingModule({
@@ -12,9 +12,6 @@ function addProvider(provider: Provider) {
 }
 
 describe("StoreCache", () => {
-   beforeEach(() => {
-      keyCache.clear()
-   })
    it("should save state to localstorage", fakeAsync(() => {
       const Count = new Query("count", () => use(0))
       const TestStore = new Store("test", {
