@@ -1,7 +1,7 @@
 import { StoreLike, StorePlugin } from "../interfaces"
 import { isPlatformServer } from "@angular/common"
 import { inject, onDestroy, subscribe } from "@mmuscat/angular-composition-api"
-import { Inject, InjectionToken, PLATFORM_ID, ProviderToken } from "@angular/core"
+import { Inject, Injectable, InjectionToken, PLATFORM_ID, ProviderToken } from "@angular/core"
 import { debounceTime } from "rxjs/operators"
 
 export interface StoreCacheOptions {
@@ -30,6 +30,7 @@ export const StoreCacheOptions = new InjectionToken<StoreCacheOptions>("StoreCac
    }
 })
 
+@Injectable({ providedIn: "root" })
 export class StoreCache implements StorePlugin {
    create({ state, name }: StoreLike) {
       if (isPlatformServer(inject(PLATFORM_ID))) return

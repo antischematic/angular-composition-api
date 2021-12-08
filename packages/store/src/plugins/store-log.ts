@@ -1,6 +1,6 @@
 import { StoreLike, StorePlugin } from "../interfaces"
 import { inject, subscribe } from "@mmuscat/angular-composition-api"
-import { InjectionToken, ProviderToken } from "@angular/core"
+import { Injectable, InjectionToken, ProviderToken } from "@angular/core"
 
 function getTimestamp() {
    const now = new Date()
@@ -44,6 +44,7 @@ export const StoreLogOptions = new InjectionToken<StoreLogOptions>("StoreLogOpti
    }
 })
 
+@Injectable({ providedIn: "root" })
 export class StoreLog implements StorePlugin {
    create(store: StoreLike) {
       const { logger = DefaultLogger } = inject(StoreLogOptions)
