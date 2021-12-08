@@ -1,8 +1,8 @@
-import { StoreLike, StorePlugin } from "../interfaces"
+import { StoreEvent, StoreLike, StorePlugin } from "../interfaces"
 import { ValueToken } from "@mmuscat/angular-composition-api"
 import { Injectable, InjectionToken, ProviderToken } from "@angular/core"
 import { StoreContext } from "../providers"
-import { filter, groupBy, mergeMap, pairwise } from "rxjs"
+import { groupBy, map, mergeMap, pairwise, Subscription } from "rxjs"
 import { getTokenName } from "../utils"
 
 function getTimestamp() {
@@ -24,7 +24,7 @@ function getPath(name: string, parent: StoreLike | null, path: string[] = []) {
 
 export interface StoreLogOptions {
    logger?: ProviderToken<typeof console>
-   exclude?: ValueToken<any>[]
+   redacted?: ValueToken<any>[]
 }
 
 export const DefaultLogger = new InjectionToken<typeof console>(
@@ -51,6 +51,10 @@ export const StoreLogOptions = new InjectionToken<StoreLogOptions>(
    },
 )
 
+function isExcluded(exclusions: string[], event: StoreEvent) {
+   return exclusions.some((name) => event.name === name)
+}
+
 @Injectable({ providedIn: "root" })
 export class StoreLog implements StorePlugin {
    static config(options: StoreLogOptions) {
@@ -60,19 +64,29 @@ export class StoreLog implements StorePlugin {
       }
    }
 
-   create({ name, event, events, injector, parent }: StoreContext) {
-      const { exclude = [], logger = DefaultLogger } =
+   storeMap: Map<number, Subscription>
+
+   onStoreCreate({ id, name, event, events, injector, parent }: StoreContext) {
+      const { redacted = [], logger = DefaultLogger } =
          injector.get(StoreLogOptions)
       const log = injector.get(logger)
-      const exclusions = exclude.map(getTokenName)
+      const exclusions = redacted.map(getTokenName)
 
       const storeEvents = events.pipe(
-         filter((event) => !exclusions.some((name) => event.name === name)),
+         map((event) => {
+            if ("data" in event && isExcluded(exclusions, event)) {
+               return {
+                  ...event,
+                  data: "<<REDACTED>>",
+               }
+            }
+            return event
+         }),
          groupBy((event) => event.name),
          mergeMap((group) => group.pipe(pairwise())),
       )
 
-      storeEvents.subscribe(([previous, event]) => {
+      const subscription = storeEvents.subscribe(([previous, event]) => {
          const color = `color: ${colors[event.kind]}`
          log.groupCollapsed(
             `%c${getPath(name, parent)}.${event.name}`,
@@ -94,5 +108,14 @@ export class StoreLog implements StorePlugin {
          }
          log.groupEnd()
       })
+
+      this.storeMap.set(id, subscription)
+   }
+   onStoreDestroy({ id }: StoreLike) {
+      this.storeMap.get(id)!.unsubscribe()
+   }
+
+   constructor() {
+      this.storeMap = new Map()
    }
 }

@@ -29,6 +29,7 @@ export interface CompleteEvent {
 export type StoreEvent = NextEvent | ErrorEvent | CompleteEvent
 
 export interface StoreLike {
+   id: number
    name: string
    parent: StoreLike | null
    events: Emitter<StoreEvent>
@@ -41,8 +42,9 @@ export interface StoreLike {
 }
 
 export interface StorePlugin {
-   create?(store: StoreContext): any
-   onStoreInit?(store: StoreLike): any
+   onStoreCreate?(store: StoreContext): void
+   onStoreInit?(store: StoreLike): void
+   onStoreDestroy?(store: StoreLike): void
 }
 
 export interface StoreConfig<T extends ValueToken<any>[]> {

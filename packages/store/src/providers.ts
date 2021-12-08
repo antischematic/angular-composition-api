@@ -11,8 +11,11 @@ import {
    SkipSelf,
 } from "@angular/core"
 
+let uid = 0
+
 @Injectable()
 export class StoreContext {
+   id: number
    name!: string
    events!: Emitter<StoreEvent>
    event(token: ValueToken<any>) {
@@ -74,6 +77,7 @@ export class StoreContext {
    ) {
       this.dispatch = this.dispatch.bind(this)
       this.event = this.event.bind(this)
+      this.id = uid++
    }
 }
 

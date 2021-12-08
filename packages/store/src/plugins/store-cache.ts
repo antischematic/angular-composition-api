@@ -1,6 +1,5 @@
 import { StoreLike, StorePlugin } from "../interfaces"
 import { isPlatformServer } from "@angular/common"
-import { inject, onDestroy, subscribe } from "@mmuscat/angular-composition-api"
 import {
    Inject,
    Injectable,
@@ -9,6 +8,7 @@ import {
    ProviderToken,
 } from "@angular/core"
 import { debounceTime } from "rxjs/operators"
+import { Subscription } from "rxjs"
 
 export interface StoreCacheOptions {
    storage?: ProviderToken<Storage>
@@ -48,7 +48,9 @@ export class StoreCache implements StorePlugin {
       }
    }
 
-   onStoreInit({ state, name, injector }: StoreLike) {
+   storeMap: Map<number, Subscription>
+
+   onStoreInit({ id, state, name, injector }: StoreLike) {
       if (isPlatformServer(injector.get(PLATFORM_ID))) return
       const {
          key,
@@ -56,20 +58,26 @@ export class StoreCache implements StorePlugin {
          destroyStrategy = "discard",
       } = this.options
       const uniqueKey = `${key}.${name}`
-      const store = inject(storage)
+      const store = injector.get(storage)
       const initialState = store.getItem(uniqueKey)
       if (initialState !== null) {
          state(JSON.parse(initialState))
       }
-      subscribe(state.pipe(debounceTime(0)), (value) => {
+      const subscription = state.pipe(debounceTime(0)).subscribe((value) => {
          store.setItem(uniqueKey, JSON.stringify(value))
       })
-      onDestroy(() => {
+      subscription.add(() => {
          if (destroyStrategy === "discard") {
             store.removeItem(uniqueKey)
          }
       })
+      this.storeMap.set(id, subscription)
    }
+
+   onStoreDestroy({ id }: StoreLike) {
+      this.storeMap.get(id)!.unsubscribe()
+   }
+
    constructor(
       @Inject(StoreCacheOptions) private options: StoreCacheOptions,
       @Inject(KeyCache) cache: Set<string>,
@@ -80,5 +88,6 @@ export class StoreCache implements StorePlugin {
          )
       }
       cache.add(options.key)
+      this.storeMap = new Map()
    }
 }

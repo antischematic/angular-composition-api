@@ -44,14 +44,28 @@ describe("StoreLog", () => {
       const spy2 = spyOn(console, "groupCollapsed")
       addProvider(
          StoreLog.config({
-            exclude: [Count],
+            redacted: [Count],
          }),
       )
       addProvider(TestStore.Provider)
       TestBed.inject(TestStore)
       const count = TestBed.inject(Count) as any
       count(20)
-      expect(spy).not.toHaveBeenCalled()
-      expect(spy2).not.toHaveBeenCalled()
+      expect(spy2).toHaveBeenCalledOnceWith(
+         "%ctest.count",
+         "color: #4CAF50",
+         "@",
+         jasmine.any(String),
+      )
+      expect(spy).toHaveBeenCalledWith(
+         "%cprevious",
+         "color: #9E9E9E",
+         "<<REDACTED>>",
+      )
+      expect(spy).toHaveBeenCalledWith(
+         "%ccurrent",
+         "color: #4CAF50",
+         "<<REDACTED>>",
+      )
    })
 })

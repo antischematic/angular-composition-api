@@ -6,6 +6,7 @@ import {
    Emitter,
    inject,
    isValue,
+   onDestroy,
    onError,
    Service,
    subscribe,
@@ -48,7 +49,10 @@ class EventObserver {
    ) {}
 }
 
+let uid = 0
+
 function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
+   const id = uid++
    const { tokens, plugins = [] } = config
    const context = inject(StoreContext)
    const events = use<StoreEvent>(Function)
@@ -59,7 +63,7 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
    context.name = name
    context.events = events
    for (const plugin of plugins) {
-      injector.get(plugin).create?.(context)
+      injector.get(plugin).onStoreCreate?.(context)
    }
    for (const token of tokens) {
       const value = injector.get(token.Token)
@@ -77,6 +81,7 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
    }
    const state = combine(query)
    const store: StoreLike = {
+      ...context,
       name,
       events,
       command,
@@ -85,7 +90,6 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
       config,
       injector,
       dispatch: context.dispatch,
-      parent: context.parent,
    }
    for (const token of tokens) {
       if (isEffectToken(token)) {
@@ -108,6 +112,11 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
    for (const plugin of plugins) {
       injector.get(plugin).onStoreInit?.(store)
    }
+   onDestroy(() => {
+      for (const plugin of plugins) {
+         injector.get(plugin).onStoreDestroy?.(store)
+      }
+   })
    return store
 }
 
