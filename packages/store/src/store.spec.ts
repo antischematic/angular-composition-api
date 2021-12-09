@@ -22,7 +22,6 @@ import { bufferCount, interval, map, merge, of, switchMap } from "rxjs"
 import { Store } from "./store"
 import { Effect } from "./effect"
 import { action } from "./utils"
-import { StoreLog } from "./plugins/store-log"
 import createSpy = jasmine.createSpy
 
 abstract class Service {}
@@ -231,7 +230,6 @@ describe("Store", () => {
       })
       const AppStore = new Store("app", {
          tokens: [query, command, effect],
-         plugins: [StoreLog],
       })
       addProvider(AppStore.Provider)
       subscribe(TestBed.inject(query), spy)
