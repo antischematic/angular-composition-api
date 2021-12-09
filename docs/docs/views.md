@@ -103,39 +103,6 @@ function setup() {
 export class MyComponent extends ViewDef(setup) {}
 ```
 
-## Two-way Binding
-
-Two-way bindings be created with a `Value` and `Emitter` combination.
-
-```ts title="Example: Two-way binding"
-import { Component } from "@angular/core"
-import { use, ViewDef } from "@mmuscat/angular-composition-api"
-
-function setup() {
-   const count = use(0)
-   const countChange = use(count)
-
-   function increment() {
-      countChange(count() + 1)
-   }
-
-   return {
-      increment,
-      count,
-      countChange,
-   }
-}
-
-@Component({
-   inputs: ["count"],
-   outputs: ["countChange"],
-})
-export class MyComponent extends ViewDef(setup) {}
-```
-
-When `countChange` is invoked, this will also update the value of `count`. Conversely, updates to `count` via its input
-binding will not trigger `countChange`.
-
 ## Queries
 
 Content queries, view queries and query lists are configured the same way as inputs, using the `queries` component
@@ -327,3 +294,36 @@ export class ButtonComponent extends ViewDef(setup) {}
 ```html title="Example: Boolean attribute usage"
 <my-button disabled></button>
 ```
+
+## Two-way Binding
+
+Two-way bindings be created with a `Value` and `Emitter` combination.
+
+```ts title="Example: Two-way binding"
+import { Component } from "@angular/core"
+import { listen, use, ViewDef } from "@mmuscat/angular-composition-api"
+
+function setup() {
+   const count = use(0)
+   const countChange = listen(count)
+
+   function increment() {
+      countChange(count() + 1)
+   }
+
+   return {
+      increment,
+      count,
+      countChange,
+   }
+}
+
+@Component({
+   inputs: ["count"],
+   outputs: ["countChange"],
+})
+export class MyComponent extends ViewDef(setup) {}
+```
+
+When `countChange` is invoked, this will also update the value of `count`. Conversely, updates to `count` via its input
+binding will not trigger `countChange`.

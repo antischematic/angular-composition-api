@@ -55,14 +55,6 @@ const TodosError = new Query("todosError", () => {
 const Retry = new Command("retry", (action) => {
    return pipe(action, debounceTime(1000))
 })
-```
-
-## Effects
-
-```ts
-const TodosEffect = new Effect("todosEffect", ({ event, dispatch }) => {
-   return pipe(event(Todos), pairwise(), dispatch(LogTodos))
-})
 
 const LogTodos = new Command("logTodos", (action) => {
    return pipe(
@@ -74,6 +66,14 @@ const LogTodos = new Command("logTodos", (action) => {
          }),
       ),
    )
+})
+```
+
+## Effects
+
+```ts
+const TodosEffect = new Effect("todosEffect", ({ event, dispatch }) => {
+   return pipe(event(Todos), pairwise(), dispatch(LogTodos))
 })
 ```
 
@@ -137,7 +137,7 @@ Log store events to the console
 
 ```ts
 const AppStore = new Store("app", {
-   plugins: [StoreLog.create()],
+   plugins: [StoreLog],
 })
 ```
 
@@ -147,6 +147,6 @@ Persist store state in localstorage.
 
 ```ts
 const AppStore = new Store("app", {
-   plugins: [StoreCache.create({ key: "app" })],
+   plugins: [StoreCache],
 })
 ```
