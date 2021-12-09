@@ -2,7 +2,7 @@ import { StoreEvent, StoreLike, StorePlugin } from "../interfaces"
 import { ValueToken } from "@mmuscat/angular-composition-api"
 import { Injectable, InjectionToken, ProviderToken } from "@angular/core"
 import { StoreContext } from "../providers"
-import { groupBy, map, mergeMap, pairwise, Subscription } from "rxjs"
+import { groupBy, map, mergeMap, pairwise, startWith, Subscription } from "rxjs"
 import { getTokenName } from "../utils"
 
 function getTimestamp() {
@@ -83,7 +83,16 @@ export class StoreLog implements StorePlugin {
             return event
          }),
          groupBy((event) => event.name),
-         mergeMap((group) => group.pipe(pairwise())),
+         mergeMap((group) =>
+            group.pipe(
+               startWith({
+                  kind: "N" as const,
+                  name: group.key,
+                  data: undefined,
+               }),
+               pairwise(),
+            ),
+         ),
       )
 
       const subscription = storeEvents.subscribe(([previous, event]) => {
@@ -104,7 +113,7 @@ export class StoreLog implements StorePlugin {
             log.log("%ccomplete", color)
          }
          if (event.kind === "N") {
-            log.log("%ccurrent", color, event.data)
+            log.log("%cnext", color, event.data)
          }
          log.groupEnd()
       })

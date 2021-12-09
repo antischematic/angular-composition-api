@@ -7,6 +7,7 @@ import {
 } from "@mmuscat/angular-composition-api"
 import { InferValue } from "./interfaces"
 import { StoreContext } from "./providers"
+import { createDispatcher } from "./utils"
 
 const tokens = new WeakSet()
 
@@ -14,8 +15,10 @@ export function isQueryToken(token: any) {
    return tokens.has(token)
 }
 
-function query(factory: (context: StoreContext) => any) {
-   return factory(inject(StoreContext))
+function query(name: string, factory: (context: StoreContext) => any) {
+   const context = Object.create(inject(StoreContext))
+   context.dispatch = createDispatcher(name, context)
+   return factory(context)
 }
 
 function createQuery<TName extends string, TValue>(
@@ -25,7 +28,7 @@ function createQuery<TName extends string, TValue>(
    const service = new Service(query, {
       providedIn: null,
       name,
-      arguments: [factory],
+      arguments: [name, factory],
    })
    const token = new ValueToken(name, {
       providedIn: null,

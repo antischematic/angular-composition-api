@@ -13,6 +13,7 @@ import {
 import { Observable, Subject } from "rxjs"
 import { Action } from "./interfaces"
 import { StoreContext } from "./providers"
+import { createDispatcher } from "./utils"
 
 const tokens = new WeakSet()
 
@@ -38,10 +39,13 @@ export function action(
 }
 
 function command(
+   name: string,
    factory: (emitter: Emitter<any>, context: StoreContext) => any,
 ) {
+   const context = Object.create(inject(StoreContext))
+   context.dispatch = createDispatcher(name, context)
    const emitter = use(Function)
-   const result = factory(emitter, inject(StoreContext))
+   const result = factory(emitter, context)
    if (isEmitter(result)) {
       return result
    }
@@ -58,7 +62,7 @@ function createCommand<TName extends string, TArgs, TValue>(
    const service = new Service(command, {
       providedIn: null,
       name,
-      arguments: [factory],
+      arguments: [name, factory],
    })
    const token = new ValueToken(name, {
       providedIn: null,

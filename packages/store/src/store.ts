@@ -13,11 +13,11 @@ import {
    use,
    ValueToken,
 } from "@mmuscat/angular-composition-api"
-import { ErrorHandler, InjectFlags, INJECTOR } from "@angular/core"
+import { ErrorHandler, InjectFlags, INJECTOR, Type } from "@angular/core"
 import { isEffectToken } from "./effect"
 import { StoreConfig, StoreEvent, StoreLike } from "./interfaces"
 import { isObservable, of } from "rxjs"
-import { getTokenName } from "./utils"
+import { createDispatcher, getTokenName } from "./utils"
 import { ParentStore, StoreContext } from "./providers"
 
 class EventObserver {
@@ -48,13 +48,14 @@ class EventObserver {
       private events: Emitter<StoreEvent>,
    ) {}
 }
-
 let uid = 0
 
 function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
-   const id = uid++
    const { tokens, plugins = [] } = config
+   const id = uid++
+   const parent = inject(ParentStore, null, InjectFlags.SkipSelf)
    const context = inject(StoreContext)
+   const dispatch = createDispatcher(name, context)
    const events = use<StoreEvent>(Function)
    const errorHandler = inject(ErrorHandler)
    const injector = inject(INJECTOR)
@@ -62,6 +63,8 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
    const command = {} as any
    context.name = name
    context.events = events
+   context.dispatch = dispatch
+   context.id = id
    for (const plugin of plugins) {
       injector.get(plugin).onStoreCreate?.(context)
    }
@@ -81,7 +84,7 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
    }
    const state = combine(query)
    const store: StoreLike = {
-      ...context,
+      id,
       name,
       events,
       command,
@@ -89,7 +92,8 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
       state,
       config,
       injector,
-      dispatch: context.dispatch,
+      dispatch,
+      parent,
    }
    for (const token of tokens) {
       if (isEffectToken(token)) {
@@ -142,7 +146,7 @@ function createStore<TName extends string>(
    Token.Provider = [
       StoreService,
       storeProvider,
-      StoreContext,
+      StoreContext as Type<StoreContext>,
       config.tokens.map((Token) => Token.Provider),
    ]
    return Token
