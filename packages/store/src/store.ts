@@ -127,7 +127,7 @@ function store(name: string, tokens: ValueToken<any>[]) {
 
 function createStore<TName extends string>(
    name: TName,
-   { tokens }: StoreConfig<ValueToken<any>[]>,
+   { tokens, primary }: StoreConfig<ValueToken<any>[]>,
 ) {
    const StoreService = new Service(store, {
       providedIn: null,
@@ -140,10 +140,10 @@ function createStore<TName extends string>(
          return inject(StoreService)
       },
    })
-   const storeProvider = {
+   const storeProvider = primary ? {
       provide: ParentStore,
       useExisting: Token,
-   }
+   } : []
    Token.Provider.push(
       StoreService,
       storeProvider,

@@ -120,7 +120,7 @@ export class StoreLog implements StorePlugin {
       this.storeMap.set(id, subscription)
    }
    onStoreDestroy({ id }: StoreLike) {
-      this.storeMap.get(id)!.unsubscribe()
+      this.storeMap.get(id)?.unsubscribe()
    }
 
    constructor() {

@@ -59,6 +59,7 @@ export const StorePlugin = new InjectionToken<StorePluginOptions[]>(
 
 export interface StoreConfig<T extends ValueToken<any>[]> {
    tokens: T
+   primary?: boolean
 }
 
 export interface Action<T, U> extends Observable<T> {

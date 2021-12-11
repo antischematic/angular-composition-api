@@ -76,7 +76,7 @@ export class StoreCache implements StorePlugin {
    }
 
    onStoreDestroy({ id }: StoreLike) {
-      this.storeMap.get(id)!.unsubscribe()
+      this.storeMap.get(id)?.unsubscribe()
    }
 
    constructor(
