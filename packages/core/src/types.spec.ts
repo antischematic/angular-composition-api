@@ -2,7 +2,7 @@ import { ViewDef } from "./core"
 import { use } from "./common"
 import { isEmitter } from "./utils"
 import {
-   BehaviorSubject, filter,
+   BehaviorSubject,
    from,
    Observable,
    of,
@@ -46,10 +46,6 @@ describe("types", () => {
 
          // Special
          const type = use(classType)
-
-         of(true).pipe(
-            filter(boolean)
-         )
 
          // Overloads
          const emitter = use<void>(Function)

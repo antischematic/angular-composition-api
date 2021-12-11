@@ -45,7 +45,7 @@ export type Value<T> = CheckSubject<T> &
       readonly __ng_value: true
       (mutate: (value: T) => any): void
       (value: T): void
-      (): T
+      (value: void): T
       next(value: T): void
       onChanges(handler: (previous: T, current: T) => void): () => void
       onError(handler: (error: unknown) => Observable<any> | void): () => void
@@ -56,7 +56,7 @@ export type DeferredValue<T> = CheckSubject<T, undefined> &
       readonly __ng_value: true
       (mutate: (value: T) => any): void
       (value: T): T | undefined
-      (): T | undefined
+      (value: void): T | undefined
       next(value: T): void
       onChanges(handler: (previous: T, current: T) => void): () => void
       onError(handler: (error: unknown) => Observable<any> | void): () => void
@@ -64,7 +64,7 @@ export type DeferredValue<T> = CheckSubject<T, undefined> &
 
 export interface ReadonlyValue<T> extends CheckSubject<T> {
    readonly __ng_value: true
-   (): T
+   (value: void): T
    onChanges(handler: (previous: T, current: T) => void): () => void
    onError(handler: (error: unknown) => Observable<any> | void): () => void
 }
@@ -91,7 +91,7 @@ export interface AccessorValue<T, U> extends CheckSubject<T> {
    readonly value: T
    (mutate: (value: U) => any): void
    (value: U): void
-   (): T
+   (value: void): T
    next(value: U): void
    onChanges(handler: (previous: T, current: T) => void): () => void
    onError(handler: (error: unknown) => Observable<any> | void): () => void
