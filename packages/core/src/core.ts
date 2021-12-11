@@ -49,7 +49,7 @@ const enum Context {
    VIEW_CHECK,
 }
 
-export type CurrentContext = readonly [
+export type CurrentContext = [
    Subscription | undefined,
    EffectObserver[] | undefined,
    ErrorHandler | undefined,
@@ -377,7 +377,6 @@ export function detectChanges() {
 }
 
 export class EffectObserver extends Subscription {
-   context: this
    next(nextValue: unknown): void {
       this.call("N", nextValue)
    }
@@ -404,7 +403,7 @@ export class EffectObserver extends Subscription {
 
    call(kind: "N" | "E" | "C", value?: unknown, error?: unknown) {
       if (this.closed) return
-      runInContext(this.context, this.observe, this, kind, value, error)
+      runInContext(this, this.observe, this, kind, value, error)
    }
 
    observe(
@@ -416,7 +415,8 @@ export class EffectObserver extends Subscription {
       const previous = setPending(true)
       try {
          unsubscribe()
-         createContext(effect.context, effect.errorHandler, effect.injector)
+         const context = contextMap.get(currentContext)!
+         context[Context.SUBSCRIPTION] = new Subscription()
          if (effect.observer) {
             const teardown = accept(effect.observer, value, error, kind)
             addSignal(teardown, effect.signal)
@@ -439,7 +439,7 @@ export class EffectObserver extends Subscription {
          this.source.stop()
       }
       super.unsubscribe()
-      runInContext(this.context, unsubscribe)
+      runInContext(this, unsubscribe)
    }
 
    subscribe() {
@@ -463,8 +463,7 @@ export class EffectObserver extends Subscription {
       private injector?: Injector,
    ) {
       super()
-      this.context = this
-      createContext(this, errorHandler)
+      createContext(this, errorHandler, injector)
    }
 }
 
