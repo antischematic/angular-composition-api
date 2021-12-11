@@ -6,7 +6,7 @@ import {
    ValueToken,
 } from "@mmuscat/angular-composition-api"
 import { MonoTypeOperatorFunction, Observable } from "rxjs"
-import { InjectionToken, Injector } from "@angular/core"
+import {InjectionToken, Injector, ProviderToken} from "@angular/core"
 import { StoreContext } from "./providers"
 
 export interface NextEvent {
@@ -36,7 +36,7 @@ export interface StoreLike {
    command: Record<string, Emitter<any>>
    query: Record<string, Value<any>>
    state: Value<any>
-   plugins: StorePlugin[]
+   plugins: ProviderToken<StorePlugin>[]
    tokens: ValueToken<any>[]
    dispatch: Dispatcher
    injector: Injector
@@ -50,7 +50,7 @@ export interface StorePlugin {
 
 export interface StorePluginOptions {
    for: string
-   plugin: StorePlugin
+   plugin: ProviderToken<StorePlugin>
 }
 
 export const StorePlugin = new InjectionToken<StorePluginOptions[]>(
