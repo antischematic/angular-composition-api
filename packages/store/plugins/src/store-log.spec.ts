@@ -1,6 +1,5 @@
 import { use } from "@mmuscat/angular-composition-api"
-import { Query } from "../query"
-import { Store, withPlugins } from "../store"
+import { Store, withPlugins, Query } from "@mmuscat/angular-phalanx"
 import { StoreLog } from "./store-log"
 import { Provider } from "@angular/core"
 import { TestBed } from "@angular/core/testing"

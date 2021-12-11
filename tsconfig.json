@@ -14,7 +14,7 @@
       "paths": {
          "@mmuscat/angular-composition-api": ["./dist/angular-composition-api"],
          "@mmuscat/angular-error-boundary": ["./dist/boundary"],
-         "@mmuscat/angular-actions": ["./dist/store"],
+         "@mmuscat/angular-phalanx": ["./dist/store"],
          "@mmuscat/angular-resource": ["./dist/resource"]
       },
       "experimentalDecorators": true,

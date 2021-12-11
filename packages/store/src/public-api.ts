@@ -1,7 +1,7 @@
 export { Command } from "./command"
 export { Query } from "./query"
 export { Effect } from "./effect"
-export { Store } from "./store"
+export { Store, withPlugins } from "./store"
 export {
    StoreLike,
    StoreEvent,
@@ -14,7 +14,5 @@ export {
    Dispatcher,
    Dispatch,
 } from "./interfaces"
-export { StoreLog, StoreLogOptions } from "./plugins/store-log"
-export { StoreCache, StoreCacheOptions } from "./plugins/store-cache"
 export { StoreContext, ParentStore } from "./providers"
-export { action } from "./utils"
+export { action, getTokenName } from "./utils"

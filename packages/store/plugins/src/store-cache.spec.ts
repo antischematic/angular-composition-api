@@ -1,6 +1,5 @@
-import { Query } from "../query"
+import { Query, Store, withPlugins } from "@mmuscat/angular-phalanx"
 import { use } from "@mmuscat/angular-composition-api"
-import {Store, withPlugins} from "../store"
 import { Provider } from "@angular/core"
 import { fakeAsync, TestBed, tick } from "@angular/core/testing"
 import { StoreCache } from "./store-cache"

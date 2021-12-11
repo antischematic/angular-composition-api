@@ -1,6 +1,4 @@
-import { Store } from "../store"
-import { Command } from "../command"
-import { Query } from "../query"
+import { Store, Command, Query } from "@mmuscat/angular-phalanx"
 import {
    ActivatedRoute,
    NavigationExtras,

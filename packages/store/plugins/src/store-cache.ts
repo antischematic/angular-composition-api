@@ -1,4 +1,4 @@
-import { StoreLike, StorePlugin } from "../interfaces"
+import { StoreLike, StorePlugin } from "@mmuscat/angular-phalanx"
 import { isPlatformServer } from "@angular/common"
 import {
    Inject,
