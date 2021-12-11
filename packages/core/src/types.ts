@@ -140,17 +140,17 @@ export class Value<T> implements NextObserver<T> {
       const value: this = Object.setPrototypeOf(function Value(
          nextValue?: any,
       ): T | void {
-         if (arguments.length === 0) {
-            track(value)
-         } else {
+         if (arguments.length === 1) {
             if (typeof nextValue === "function") {
                nextValue(value.value)
                value.next(value.value)
             } else {
                value.next(nextValue)
             }
+         } else {
+            track(value)
+            return value.value
          }
-         return value.value
       },
       this)
       this.__ng_value = true

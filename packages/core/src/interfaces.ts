@@ -43,8 +43,8 @@ export type UnsubscribeSignal = Subscription | AbortSignal | null
 export type Value<T> = CheckSubject<T> &
    NextObserver<T> & {
       readonly __ng_value: true
-      (mutate: (value: T) => any): T
-      (value: T): T
+      (mutate: (value: T) => any): void
+      (value: T): void
       (): T
       next(value: T): void
       onChanges(handler: (previous: T, current: T) => void): () => void
@@ -54,7 +54,7 @@ export type Value<T> = CheckSubject<T> &
 export type DeferredValue<T> = CheckSubject<T, undefined> &
    NextObserver<T> & {
       readonly __ng_value: true
-      (mutate: (value: T) => any): T
+      (mutate: (value: T) => any): void
       (value: T): T | undefined
       (): T | undefined
       next(value: T): void
@@ -89,8 +89,8 @@ export interface AccessorValue<T, U> extends CheckSubject<T> {
    readonly __ng_value: true
    readonly __ng_accessor_value: true
    readonly value: T
-   (mutate: (value: U) => any): T
-   (value: U): T
+   (mutate: (value: U) => any): void
+   (value: U): void
    (): T
    next(value: U): void
    onChanges(handler: (previous: T, current: T) => void): () => void
