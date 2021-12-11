@@ -136,17 +136,24 @@ export class Todos extends ViewDef(setup) {}
 Log store events to the console
 
 ```ts
-const AppStore = new Store("app", {
-   plugins: [StoreLog],
+const APP_STORE = withPlugins(AppStore, [StoreLog])
+
+@NgModule({
+   providers: [APP_STORE]
 })
+export class AppModule {}
 ```
+
 
 ### Store Cache
 
 Persist store state in localstorage.
 
 ```ts
-const AppStore = new Store("app", {
-   plugins: [StoreCache],
+const APP_STORE = withPlugins(AppStore, [StoreCache])
+
+@NgModule({
+   providers: [APP_STORE]
 })
+export class AppModule {}
 ```
