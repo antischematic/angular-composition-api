@@ -3,7 +3,7 @@ import {
    AccessorValue,
    Emitter,
    ExpandValue,
-   UseOptions,
+   ValueOptions,
    Value,
 } from "./interfaces"
 import {
@@ -16,16 +16,16 @@ import { get, getPath, isEmitter, isObject, isValue, walk } from "./utils"
 
 export function select<T, U>(
    accessor: Accessor<T, U>,
-   options?: UseOptions<any>,
+   options?: ValueOptions<any>,
 ): AccessorValue<T, U>
 export function select<T extends Value<any> | Emitter<any>>(
    source: T,
-   options?: UseOptions<any>,
+   options?: ValueOptions<any>,
 ): unknown
-export function select<T>(source: () => T, options?: UseOptions<any>): Value<T>
+export function select<T>(source: () => T, options?: ValueOptions<any>): Value<T>
 export function select(
    source: (() => any) | Accessor<any, any> | Value<any> | Emitter<any>,
-   options?: UseOptions<any>,
+   options?: ValueOptions<any>,
 ): unknown {
    if (typeof source === "function" && !isValue(source) && !isEmitter(source)) {
       return new ComputedValue(source) as any

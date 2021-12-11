@@ -26,7 +26,8 @@ export {
    AccessorValue,
    ExpandValue,
    Change,
-   UseOptions,
+   DeferredValueOptions,
+   ValueOptions,
 } from "./interfaces"
 export { select, combine } from "./select"
 export { ValueToken, provide, EmptyValueError } from "./provider"

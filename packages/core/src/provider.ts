@@ -33,13 +33,12 @@ function keygen() {
 function createValueToken<T>(name: string): ValueToken<T>
 function createValueToken<T>(
    name: string,
-   options?: { factory: () => T; providedIn: ProvidedIn },
+   options?: { factory?: () => T; providedIn?: ProvidedIn },
 ): ValueToken<T>
 function createValueToken(
    name: string,
-   options?: { factory: () => any; providedIn: ProvidedIn },
+   { providedIn = "root", factory }: { factory?: () => any; providedIn?: ProvidedIn } = {},
 ): ValueToken<any> {
-   const providedIn = options?.providedIn ?? "root"
    const ValueToken = new InjectionToken(name, {
       factory: get,
       providedIn,
@@ -52,8 +51,8 @@ function createValueToken(
    function get() {
       const key = inject(Key)
       if (!valueMap.has(key)) {
-         if (options?.factory) {
-            provide(ValueToken, options.factory())
+         if (factory) {
+            provide(ValueToken, factory())
          } else {
             throw new EmptyValueError(name)
          }

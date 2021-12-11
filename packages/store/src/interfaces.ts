@@ -6,7 +6,7 @@ import {
    ValueToken,
 } from "@mmuscat/angular-composition-api"
 import { MonoTypeOperatorFunction, Observable } from "rxjs"
-import { Injector, ProviderToken } from "@angular/core"
+import { InjectionToken, Injector } from "@angular/core"
 import { StoreContext } from "./providers"
 
 export interface NextEvent {
@@ -36,7 +36,8 @@ export interface StoreLike {
    command: Record<string, Emitter<any>>
    query: Record<string, Value<any>>
    state: Value<any>
-   config: StoreConfig<any>
+   plugins: StorePlugin[]
+   tokens: ValueToken<any>[]
    dispatch: Dispatcher
    injector: Injector
 }
@@ -47,9 +48,17 @@ export interface StorePlugin {
    onStoreDestroy?(store: StoreLike): void
 }
 
+export interface StorePluginOptions {
+   for: string
+   plugin: StorePlugin
+}
+
+export const StorePlugin = new InjectionToken<StorePluginOptions[]>(
+   "StorePlugin",
+)
+
 export interface StoreConfig<T extends ValueToken<any>[]> {
    tokens: T
-   plugins?: ProviderToken<StorePlugin>[]
 }
 
 export interface Action<T, U> extends Observable<T> {

@@ -9,7 +9,7 @@ import {
    Subscription,
    Unsubscribable,
 } from "rxjs"
-import { CheckPhase, UseOptions } from "./interfaces"
+import {CheckPhase, DeferredValueOptions, ValueOptions} from "./interfaces"
 import { EventEmitter } from "@angular/core"
 import { isEmitter, isValue } from "./utils"
 
@@ -133,7 +133,7 @@ export class Value<T> implements NextObserver<T> {
    }
 
    constructor(
-      options?: UseOptions<T>,
+      options?: ValueOptions<T>,
       public _value?: T,
       public phase: CheckPhase = 5,
    ) {
@@ -250,7 +250,7 @@ export class DeferredValue<T> extends Value<T> implements Connectable {
    constructor(
       public subscribable: Subscribable<any>,
       phase: CheckPhase = 5,
-      options?: UseOptions<any>,
+      options?: ValueOptions<any> | DeferredValueOptions<any>,
    ) {
       super(options)
       this.refCount = 0
@@ -258,6 +258,9 @@ export class DeferredValue<T> extends Value<T> implements Connectable {
       this.phase = phase
       this.check = options?.distinct ?? Object.is
       this.subscription = Subscription.EMPTY
+      if (options && "initial" in options) {
+         this.source.next(options.initial)
+      }
    }
 }
 
@@ -287,7 +290,7 @@ export class ComputedValue extends Value<any> {
       return subscription
    }
 
-   constructor(public observer: any, public options?: UseOptions<any>) {
+   constructor(public observer: any, public options?: ValueOptions<any>) {
       super(options)
       this.dirty = true
       this.closed = false
@@ -373,7 +376,7 @@ export class AccessorValue<TValue, TNext>
 
    constructor(
       accessor: Accessor<TValue, TNext>,
-      options?: UseOptions<TValue>,
+      options?: ValueOptions<TValue>,
    ) {
       let { value } = accessor
       if (typeof value === "function" && !isValue(value) && !isEmitter(value)) {

@@ -1,6 +1,6 @@
 import { use } from "@mmuscat/angular-composition-api"
 import { Query } from "../query"
-import { Store } from "../store"
+import { Store, withPlugins } from "../store"
 import { StoreLog } from "./store-log"
 import { Provider } from "@angular/core"
 import { TestBed } from "@angular/core/testing"
@@ -16,11 +16,10 @@ describe("StoreLog", () => {
       const Count = new Query("count", () => use(0))
       const TestStore = new Store("test", {
          tokens: [Count],
-         plugins: [StoreLog],
       })
       const spy = spyOn(console, "log")
       const spy2 = spyOn(console, "groupCollapsed")
-      addProvider(TestStore.Provider)
+      addProvider(withPlugins(TestStore, [StoreLog]))
       TestBed.inject(TestStore)
       const count = TestBed.inject(Count) as any
       expect(spy).toHaveBeenCalledTimes(2)
@@ -40,7 +39,6 @@ describe("StoreLog", () => {
       const Count = new Query("count", () => use(0))
       const TestStore = new Store("test", {
          tokens: [Count],
-         plugins: [StoreLog],
       })
       const spy = spyOn(console, "log")
       const spy2 = spyOn(console, "groupCollapsed")
@@ -49,7 +47,7 @@ describe("StoreLog", () => {
             redacted: [Count],
          }),
       )
-      addProvider(TestStore.Provider)
+      addProvider(withPlugins(TestStore, [StoreLog]))
       TestBed.inject(TestStore)
       const count = TestBed.inject(Count) as any
       count(20)

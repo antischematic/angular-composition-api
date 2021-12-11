@@ -1,6 +1,6 @@
 import { Query } from "../query"
 import { use } from "@mmuscat/angular-composition-api"
-import { Store } from "../store"
+import {Store, withPlugins} from "../store"
 import { Provider } from "@angular/core"
 import { fakeAsync, TestBed, tick } from "@angular/core/testing"
 import { StoreCache } from "./store-cache"
@@ -16,14 +16,13 @@ describe("StoreCache", () => {
       const Count = new Query("count", () => use(0))
       const TestStore = new Store("test", {
          tokens: [Count],
-         plugins: [StoreCache],
       })
       addProvider(
          StoreCache.config({
             key: "test",
          }),
       )
-      addProvider(TestStore.Provider)
+      addProvider(withPlugins(TestStore, [StoreCache]))
       TestBed.inject(TestStore.Token)
       tick()
       expect(localStorage.getItem("test.test")).toBe(
@@ -34,9 +33,8 @@ describe("StoreCache", () => {
       const Count = new Query("count", () => use(0))
       const TestStore = new Store("test2", {
          tokens: [Count],
-         plugins: [StoreCache],
       })
-      addProvider(TestStore.Provider)
+      addProvider(withPlugins(TestStore, [StoreCache]))
       addProvider(
          StoreCache.config({
             key: "test2",

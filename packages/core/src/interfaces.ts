@@ -112,9 +112,13 @@ export type QueryType = typeof ContentChild | typeof ViewChild
 
 export type QueryListType = typeof ViewChildren | typeof ContentChildren
 
-export interface UseOptions<T> {
+export interface ValueOptions<T> {
    distinct?: (oldValue: T, newValue: T) => boolean
    subject?: Subject<T>
+}
+
+export interface DeferredValueOptions<T> extends ValueOptions<T> {
+   initial: T
 }
 
 export type ExpandValue<T, TPartial extends boolean = false> = T extends Value<

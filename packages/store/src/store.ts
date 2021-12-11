@@ -13,9 +13,9 @@ import {
    use,
    ValueToken,
 } from "@mmuscat/angular-composition-api"
-import { ErrorHandler, InjectFlags, INJECTOR, Type } from "@angular/core"
+import {ErrorHandler, InjectFlags, INJECTOR, ProviderToken, Type} from "@angular/core"
 import { isEffectToken } from "./effect"
-import { StoreConfig, StoreEvent, StoreLike } from "./interfaces"
+import { StoreConfig, StoreEvent, StoreLike, StorePlugin } from "./interfaces"
 import { isObservable, of } from "rxjs"
 import { createDispatcher, getTokenName } from "./utils"
 import { ParentStore, StoreContext } from "./providers"
@@ -50,9 +50,9 @@ class EventObserver {
 }
 let uid = 0
 
-function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
-   const { tokens, plugins = [] } = config
+function store(name: string, tokens: ValueToken<any>[]) {
    const id = uid++
+   const plugins = inject(StorePlugin, []).filter(option => option.for === name).map(option => option.plugin)
    const parent = inject(ParentStore, null, InjectFlags.SkipSelf)
    const context = inject(StoreContext)
    const dispatch = createDispatcher(name, context)
@@ -90,7 +90,8 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
       command,
       query,
       state,
-      config,
+      tokens,
+      plugins,
       injector,
       dispatch,
       parent,
@@ -126,12 +127,12 @@ function store(name: string, config: StoreConfig<ValueToken<any>[]>) {
 
 function createStore<TName extends string>(
    name: TName,
-   config: StoreConfig<ValueToken<any>[]>,
+   { tokens }: StoreConfig<ValueToken<any>[]>,
 ) {
    const StoreService = new Service(store, {
       providedIn: null,
       name,
-      arguments: [name, config],
+      arguments: [name, tokens],
    })
    const Token = new ValueToken(name, {
       providedIn: null,
@@ -143,12 +144,12 @@ function createStore<TName extends string>(
       provide: ParentStore,
       useExisting: Token,
    }
-   Token.Provider = [
+   Token.Provider.push(
       StoreService,
       storeProvider,
       StoreContext as Type<StoreContext>,
-      config.tokens.map((Token) => Token.Provider),
-   ]
+      tokens.map((Token) => Token.Provider),
+   )
    return Token
 }
 
@@ -197,3 +198,18 @@ export interface StoreStatic {
 }
 
 export const Store: StoreStatic = createStore as any
+
+export function withPlugins(store: ValueToken<StoreLike>, plugins: ProviderToken<StorePlugin>[]) {
+   const name = getTokenName(store)
+   return [
+      store.Provider,
+      plugins.map((plugin) => ({
+         provide: StorePlugin,
+         useValue: {
+            for: name,
+            plugin
+         },
+         multi: true
+      }))
+   ]
+}

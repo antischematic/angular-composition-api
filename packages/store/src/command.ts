@@ -7,7 +7,7 @@ import {
    select,
    Service,
    use,
-   UseOptions,
+   ValueOptions,
    ValueToken,
 } from "@mmuscat/angular-composition-api"
 import { Observable, Subject } from "rxjs"
@@ -23,11 +23,11 @@ export function isCommandToken(token: any) {
 
 export function action<T, U>(
    accessor: Accessor<T, U>,
-   options?: UseOptions<any>,
+   options?: ValueOptions<any>,
 ): Action<T, U>
 export function action(
    source: Accessor<any, any>,
-   options?: UseOptions<any>,
+   options?: ValueOptions<any>,
 ): unknown {
    const emitter = select(source, {
       ...options,

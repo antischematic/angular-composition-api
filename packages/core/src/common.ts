@@ -28,8 +28,8 @@ import {
    QueryType,
    ReadonlyValue,
    UnsubscribeSignal,
-   UseOptions,
-   Value,
+   ValueOptions,
+   Value, DeferredValueOptions,
 } from "./interfaces"
 import { isClass, isEmitter, isObserver, isSignal, isValue } from "./utils"
 import { addEffect, addTeardown, inject } from "./core"
@@ -76,21 +76,25 @@ export function use<T>(value: QueryType): DeferredValue<T>
 export function use<T>(value: typeof Function): Emitter<T>
 export function use<T, U>(
    value: AccessorValue<T, U>,
-   options?: UseOptions<T>,
+   options?: ValueOptions<T>,
 ): Emitter<T>
 export function use<T>(
    value: Observable<T>,
-   options?: UseOptions<T>,
+   options?: ValueOptions<T>,
 ): DeferredValue<T>
+export function use<T>(
+   value: Observable<T>,
+   options: DeferredValueOptions<T>,
+): Value<T>
 export function use<T extends (...args: any) => any>(
    value: EmitterWithParams<T>,
 ): Value<T>
 export function use<T extends (...args: any[]) => any>(
    value: T,
 ): EmitterWithParams<T>
-export function use<T>(value: T, options?: UseOptions<T>): Value<T>
-export function use<T>(value: T, options?: UseOptions<T>): Value<T>
-export function use(value?: any, options?: UseOptions<unknown>): unknown {
+export function use<T>(value: T, options?: ValueOptions<T>): Value<T>
+export function use<T>(value: T, options?: ValueOptions<T>): Value<T>
+export function use(value?: any, options?: ValueOptions<unknown>): unknown {
    if (isQuery(value)) {
       const phase = queryMap.get(value)!
       if (value === ContentChildren || value === ViewChildren) {
