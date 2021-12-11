@@ -7,7 +7,7 @@ import {
    Router,
    UrlTree,
 } from "@angular/router"
-import { switchMap } from "rxjs"
+import { switchMap } from "rxjs/operators"
 import { Emitter, inject, use } from "@mmuscat/angular-composition-api"
 
 export type NavigateParams = [commands: any[], extras?: NavigationExtras]

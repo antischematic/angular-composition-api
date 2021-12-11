@@ -140,16 +140,15 @@ export class Value<T> implements NextObserver<T> {
       const value: this = Object.setPrototypeOf(function Value(
          nextValue?: any,
       ): T | void {
-         if (arguments.length === 1) {
-            if (typeof nextValue === "function") {
-               nextValue(value.value)
-               value.next(value.value)
-            } else {
-               value.next(nextValue)
-            }
-         } else {
+         if (arguments.length === 0) {
             track(value)
             return value.value
+         }
+         else if (typeof nextValue === "function") {
+            nextValue(value.value)
+            value.next(value.value)
+         } else {
+            value.next(nextValue)
          }
       },
       this)
@@ -196,12 +195,11 @@ class Subscriber extends Subscription {
             try {
                const result = handler(error)
                if (isObservable(result)) {
-                  const subscription = new Reviver(
+                  new Reviver(
                      this.connectable,
                      this.destination,
                      result,
                   )
-                  this.add(subscription)
                }
                break
             } catch (e) {
@@ -404,6 +402,15 @@ export class Emitter extends EventEmitter {
    }
    emit(values: any) {
       this.next(values)
+   }
+   call(this: any, context: any, ...args: any[]) {
+      return this(...args)
+   }
+   apply(this: any, context: any, args: any[]) {
+      return this(...args)
+   }
+   bind() {
+      return this
    }
    constructor(fn: (...params: any[]) => any) {
       super()

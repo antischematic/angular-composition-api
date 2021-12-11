@@ -297,10 +297,10 @@ function isTeardown(value: any): value is TeardownLogic {
    )
 }
 
-export function addTeardown(teardown: TeardownLogic) {
+export function addTeardown(teardown: TeardownLogic): void {
    const subscription = getContext(Context.SUBSCRIPTION)!
    if (isTeardown(teardown)) {
-      return subscription.add(teardown)
+      subscription.add(teardown)
    }
 }
 

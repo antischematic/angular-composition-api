@@ -2,7 +2,8 @@ import { StoreEvent, StoreLike, StorePlugin } from "../interfaces"
 import { ValueToken } from "@mmuscat/angular-composition-api"
 import { Injectable, InjectionToken, ProviderToken } from "@angular/core"
 import { StoreContext } from "../providers"
-import { groupBy, map, mergeMap, pairwise, startWith, Subscription } from "rxjs"
+import { Subscription } from "rxjs"
+import { groupBy, map, mergeMap, pairwise, startWith } from "rxjs/operators"
 import { getTokenName } from "../utils"
 
 function getTimestamp() {

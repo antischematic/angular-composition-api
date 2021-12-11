@@ -1,7 +1,7 @@
 import { Emitter, ValueToken } from "@mmuscat/angular-composition-api"
 import { Dispatcher, NextEvent, StoreEvent, StoreLike } from "./interfaces"
 import { getTokenName } from "./utils"
-import { filter, map } from "rxjs"
+import { filter, map } from "rxjs/operators"
 import { Injectable, InjectionToken, Injector } from "@angular/core"
 
 @Injectable()

@@ -1,6 +1,7 @@
 import { Emitter, Value, ValueToken } from "@mmuscat/angular-composition-api"
 import {Dispatch, Dispatcher, StoreEvent, StoreLike} from "./interfaces"
-import { MonoTypeOperatorFunction, Observable, tap } from "rxjs"
+import { MonoTypeOperatorFunction, Observable } from "rxjs"
+import { tap } from "rxjs/operators"
 import { StoreContext } from "./providers"
 
 function defaultAction<T>(action: Emitter<T>): Emitter<T> {

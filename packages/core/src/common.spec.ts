@@ -882,7 +882,7 @@ describe("onError", () => {
    it("should intercept error notifications", () => {
       const spy = createSpy()
       function setup() {
-         const value = use(throwError(() => new Error("BOGUS")))
+         const value = use(throwError(new Error("BOGUS")))
          const error = onError(value, () => {})
          subscribe(value, {
             next() {},
@@ -912,7 +912,7 @@ describe("onError", () => {
          const value = pipe(
             of(true),
             switchMap(() =>
-               count === 0 ? throwError(() => new Error("BOGUS")) : of(true),
+               count === 0 ? throwError(new Error("BOGUS")) : of(true),
             ),
          )
          const retry = use<void>(Function)
@@ -944,7 +944,7 @@ describe("onError", () => {
    it("should chain error hooks", () => {
       const spy = createSpy()
       function setup() {
-         const value = use(throwError(() => new Error("BOGUS")))
+         const value = use(throwError(new Error("BOGUS")))
          const error = onError(value, (e) => {
             throw e
          })
@@ -980,7 +980,7 @@ describe("onError", () => {
          const value = pipe(
             of(true),
             switchMap(() =>
-               count < 3 ? throwError(() => new Error("BOGUS")) : of(true),
+               count < 3 ? throwError(new Error("BOGUS")) : of(true),
             ),
          )
          const retry = use<void>(Function)
