@@ -72,16 +72,9 @@ export interface ReadonlyValue<T> extends CheckSubject<T> {
 export interface Accessor<T, U> {
    next:
       | ((value: U) => void)
-      | Subject<U>
-      | Value<U>
-      | ReadonlyValue<U>
-      | Emitter<U>
-      | AccessorValue<any, U>
+      | NextObserver<U>
    value:
-      | Value<T>
-      | ReadonlyValue<T>
-      | AccessorValue<T, any>
-      | BehaviorSubject<T>
+      | Observable<T>
       | (() => T)
 }
 
@@ -113,6 +106,7 @@ export type QueryType = typeof ContentChild | typeof ViewChild
 export type QueryListType = typeof ViewChildren | typeof ContentChildren
 
 export interface ValueOptions<T> {
+   behavior?: boolean
    distinct?: (oldValue: T, newValue: T) => boolean
    subject?: Subject<T>
 }

@@ -9,7 +9,7 @@ import {
    Subscription,
    Unsubscribable,
 } from "rxjs"
-import {CheckPhase, DeferredValueOptions, ValueOptions} from "./interfaces"
+import { CheckPhase, DeferredValueOptions, ValueOptions } from "./interfaces"
 import { EventEmitter } from "@angular/core"
 import { isEmitter, isValue } from "./utils"
 
@@ -133,7 +133,11 @@ export class Value<T> implements NextObserver<T> {
    }
 
    constructor(
-      options?: ValueOptions<T>,
+      {
+         distinct = Object.is,
+         subject = new ReplaySubject(1),
+         behavior = true,
+      }: ValueOptions<T> = {},
       public _value?: T,
       public phase: CheckPhase = 5,
    ) {
@@ -143,8 +147,7 @@ export class Value<T> implements NextObserver<T> {
          if (arguments.length === 0) {
             track(value)
             return value.value
-         }
-         else if (typeof nextValue === "function") {
+         } else if (typeof nextValue === "function") {
             nextValue(value.value)
             value.next(value.value)
          } else {
@@ -156,9 +159,9 @@ export class Value<T> implements NextObserver<T> {
       this.__check_phase = phase
       this.errors = new Set()
       this.changes = new Set()
-      this.check = options?.distinct ?? Object.is
-      this.source = options?.subject ?? new ReplaySubject(1)
-      this.source.subscribe((value) => (this._value = value))
+      this.check = distinct
+      this.source = subject
+      if (behavior) this.source.subscribe((value) => (this._value = value))
       if (arguments.length > 1) this.source.next(_value!)
       return value
    }
@@ -195,11 +198,7 @@ class Subscriber extends Subscription {
             try {
                const result = handler(error)
                if (isObservable(result)) {
-                  new Reviver(
-                     this.connectable,
-                     this.destination,
-                     result,
-                  )
+                  new Reviver(this.connectable, this.destination, result)
                }
                break
             } catch (e) {
