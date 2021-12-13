@@ -18,11 +18,12 @@ import { isEffectToken } from "./effect"
 import { StoreConfig, StoreEvent, StoreLike, StorePlugin } from "./interfaces"
 import { isObservable, of } from "rxjs"
 import { createDispatcher, getTokenName } from "./utils"
-import { ParentStore, StoreContext } from "./providers"
+import { StoreEvents, StoreContext } from "./providers"
 
 class EventObserver {
    next(value: any) {
       this.events.emit({
+         target: this.id,
          kind: "N",
          name: this.name,
          data: value,
@@ -30,6 +31,7 @@ class EventObserver {
    }
    error(error: unknown) {
       this.events.emit({
+         target: this.id,
          kind: "E",
          name: this.name,
          error,
@@ -38,11 +40,13 @@ class EventObserver {
    }
    complete() {
       this.events.emit({
+         target: this.id,
          kind: "C",
          name: this.name,
       })
    }
    constructor(
+      private id: number,
       private errorHandler: ErrorHandler,
       private name: string,
       private events: Emitter<StoreEvent>,
@@ -53,16 +57,14 @@ let uid = 0
 function store(name: string, tokens: ValueToken<any>[]) {
    const id = uid++
    const plugins = inject(StorePlugin, []).filter(option => option.for === name).map(option => option.plugin)
-   const parent = inject(ParentStore, null, InjectFlags.SkipSelf)
+   const events = inject(StoreEvents, void 0, InjectFlags.Self)
    const context = inject(StoreContext)
    const dispatch = createDispatcher(name, context)
-   const events = use<StoreEvent>(Function)
    const errorHandler = inject(ErrorHandler)
    const injector = inject(INJECTOR)
    const query = {} as any
    const command = {} as any
    context.name = name
-   context.events = events
    context.dispatch = dispatch
    context.id = id
    for (const plugin of plugins) {
@@ -73,7 +75,7 @@ function store(name: string, tokens: ValueToken<any>[]) {
       const tokenName = getTokenName(token)
       const type = isQueryToken(token) ? 0 : isCommandToken(token) ? 1 : 2
       if (type < 2) {
-         subscribe(value, new EventObserver(errorHandler, tokenName, events))
+         subscribe(value, new EventObserver(id, errorHandler, tokenName, events))
       }
       if (type === 0) {
          query[tokenName] = value
@@ -94,7 +96,6 @@ function store(name: string, tokens: ValueToken<any>[]) {
       plugins,
       injector,
       dispatch,
-      parent,
    }
    for (const token of tokens) {
       if (isEffectToken(token)) {
@@ -104,6 +105,7 @@ function store(name: string, tokens: ValueToken<any>[]) {
             value = isValue(value) ? value : use(value)
             onError(value, (error) => {
                events.next({
+                  target: id,
                   name: tokenName,
                   kind: "E",
                   error: error,
@@ -127,7 +129,7 @@ function store(name: string, tokens: ValueToken<any>[]) {
 
 function createStore<TName extends string>(
    name: TName,
-   { tokens, primary }: StoreConfig<ValueToken<any>[]>,
+   { tokens }: StoreConfig<ValueToken<any>[]>,
 ) {
    const StoreService = new Service(store, {
       providedIn: null,
@@ -140,13 +142,9 @@ function createStore<TName extends string>(
          return inject(StoreService)
       },
    })
-   const storeProvider = primary ? {
-      provide: ParentStore,
-      useExisting: Token,
-   } : []
    Token.Provider.push(
       StoreService,
-      storeProvider,
+      StoreEvents.Provider,
       StoreContext as Type<StoreContext>,
       tokens.map((Token) => Token.Provider),
    )

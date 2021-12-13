@@ -17,11 +17,13 @@ export function getTokenName(token: ValueToken<any>) {
 }
 
 function sendEvent(
+   target: number,
    events: Emitter<StoreEvent>,
    name: string,
    dispatch: string,
 ) {
    events.next({
+      target,
       kind: "N",
       name,
       data: {
@@ -32,7 +34,7 @@ function sendEvent(
 
 export function createDispatcher(
    name: string,
-   { injector, events }: StoreContext,
+   { injector, events, id }: StoreContext,
 ): Dispatcher {
    return function dispatch<T, U>(
       token: ValueToken<Value<T>> | Dispatch<T>,
@@ -46,14 +48,14 @@ export function createDispatcher(
             return source.pipe(
                tap((val) => {
                   const nextValue = selector ? selector(val) : val
-                  sendEvent(events, name, tokenName)
+                  sendEvent(id, events, name, tokenName)
                   value(nextValue)
                }),
             )
          }
       } else {
          const dispatch = token as Dispatch<T>
-         sendEvent(events, name, getTokenName(dispatch.type))
+         sendEvent(id, events, name, getTokenName(dispatch.type))
       }
    } as Dispatcher
 }

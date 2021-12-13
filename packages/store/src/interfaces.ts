@@ -10,18 +10,21 @@ import {InjectionToken, Injector, ProviderToken} from "@angular/core"
 import { StoreContext } from "./providers"
 
 export interface NextEvent {
+   target: number
    name: string
    kind: "N"
    data: unknown
 }
 
 export interface ErrorEvent {
+   target: number
    name: string
    kind: "E"
    error: unknown
 }
 
 export interface CompleteEvent {
+   target: number
    name: string
    kind: "C"
 }
@@ -31,7 +34,6 @@ export type StoreEvent = NextEvent | ErrorEvent | CompleteEvent
 export interface StoreLike {
    id: number
    name: string
-   parent: StoreLike | null
    events: Emitter<StoreEvent>
    command: Record<string, Emitter<any>>
    query: Record<string, Value<any>>
@@ -59,7 +61,6 @@ export const StorePlugin = new InjectionToken<StorePluginOptions[]>(
 
 export interface StoreConfig<T extends ValueToken<any>[]> {
    tokens: T
-   primary?: boolean
 }
 
 export interface Action<T, U> extends Observable<T> {

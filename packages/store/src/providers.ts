@@ -1,16 +1,21 @@
-import { Emitter, ValueToken } from "@mmuscat/angular-composition-api"
-import { Dispatcher, NextEvent, StoreEvent, StoreLike } from "./interfaces"
+import {
+   Emitter,
+   inject,
+   select,
+   use,
+   ValueToken,
+} from "@mmuscat/angular-composition-api"
+import { Dispatcher, NextEvent, StoreEvent } from "./interfaces"
 import { getTokenName } from "./utils"
 import { filter, map } from "rxjs/operators"
-import { Injectable, InjectionToken, Injector } from "@angular/core"
+import { merge, Subject } from "rxjs"
+import { Inject, Injectable, InjectFlags, Injector } from "@angular/core"
 
 @Injectable()
 export abstract class StoreContext {
    abstract id: number
    abstract name: string
-   abstract events: Emitter<StoreEvent>
    abstract dispatch: Dispatcher
-   abstract parent: StoreLike | null
 
    event(token: ValueToken<any>) {
       const tokenName = getTokenName(token)
@@ -23,9 +28,27 @@ export abstract class StoreContext {
       )
    }
 
-   protected constructor(public injector: Injector) {
+   protected constructor(
+      public injector: Injector,
+      @Inject(StoreEvents) public events: Emitter<StoreEvent>,
+   ) {
       this.event = this.event.bind(this)
    }
 }
 
-export const ParentStore = new InjectionToken<StoreLike>("ParentStore")
+export const StoreEvents: ValueToken<Emitter<StoreEvent>> = new ValueToken(
+   "StoreEvents",
+   {
+      factory() {
+         const parent = inject(StoreEvents, null, InjectFlags.SkipSelf)
+         const emitter = use(Function)
+         if (parent) {
+            return select({
+               next: emitter,
+               value: merge(parent, emitter),
+            }, { behavior: false, subject: new Subject() })
+         }
+         return emitter
+      },
+   },
+)

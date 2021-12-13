@@ -2,23 +2,15 @@ import { StoreContext, StoreEvent, StoreLike, StorePlugin, getTokenName } from "
 import { ValueToken } from "@mmuscat/angular-composition-api"
 import { Injectable, InjectionToken, ProviderToken } from "@angular/core"
 import { Subscription } from "rxjs"
-import { groupBy, map, mergeMap, pairwise, startWith } from "rxjs/operators"
+import { filter, groupBy, map, mergeMap, pairwise, startWith } from "rxjs/operators"
 
-function getTimestamp() {
+function getTimestamp(id: number) {
    const now = new Date()
    const hours = now.getHours()
    const minutes = now.getMinutes()
    const seconds = now.getSeconds()
    const milliseconds = now.getMilliseconds()
-   return `${hours}:${minutes}:${seconds}.${milliseconds}`
-}
-
-function getPath(name: string, parent: StoreLike | null, path: string[] = []) {
-   path.push(name)
-   if (parent) {
-      getPath(parent.name, parent.parent, path)
-   }
-   return path.join(".")
+   return `[${id}] ${hours}:${minutes}:${seconds}.${milliseconds}`
 }
 
 export interface StoreLogOptions {
@@ -65,13 +57,14 @@ export class StoreLog implements StorePlugin {
 
    storeMap: Map<number, Subscription>
 
-   onStoreCreate({ id, name, event, events, injector, parent }: StoreContext) {
+   onStoreCreate({ id, name, events, injector }: StoreContext) {
       const { redacted = [], logger = DefaultLogger } =
          injector.get(StoreLogOptions)
       const log = injector.get(logger)
       const exclusions = redacted.map(getTokenName)
 
       const storeEvents = events.pipe(
+         filter((event) => event.target === id),
          map((event) => {
             if ("data" in event && isExcluded(exclusions, event)) {
                return {
@@ -97,10 +90,10 @@ export class StoreLog implements StorePlugin {
       const subscription = storeEvents.subscribe(([previous, event]) => {
          const color = `color: ${colors[event.kind]}`
          log.groupCollapsed(
-            `%c${getPath(name, parent)}.${event.name}`,
+            `%c${name}.${event.name}`,
             color,
             "@",
-            getTimestamp(),
+            getTimestamp(id),
          )
          if (previous.kind === "N") {
             log.log("%cprevious", "color: #9E9E9E", previous.data)

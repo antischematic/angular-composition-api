@@ -14,5 +14,5 @@ export {
    Dispatcher,
    Dispatch,
 } from "./interfaces"
-export { StoreContext, ParentStore } from "./providers"
+export { StoreContext, StoreEvents } from "./providers"
 export { action, getTokenName } from "./utils"
