@@ -68,6 +68,19 @@ function setObserver(value: any) {
    return previous
 }
 
+function ValueFn<T>(this: any, nextValue?: any): T | void {
+   const value = this.__ng_value
+   if (arguments.length === 0) {
+      track(value)
+      return value.value
+   } else if (typeof nextValue === "function") {
+      nextValue(value.value)
+      value.next(value.value)
+   } else {
+      value.next(nextValue)
+   }
+}
+
 export class Value<T> implements NextObserver<T> {
    readonly __ng_value: boolean
    readonly __check_phase: number;
@@ -141,21 +154,7 @@ export class Value<T> implements NextObserver<T> {
       public _value?: T,
       public phase: CheckPhase = 5,
    ) {
-      const value: this = Object.setPrototypeOf(function Value(
-         nextValue?: any,
-      ): T | void {
-         if (arguments.length === 0) {
-            track(value)
-            return value.value
-         } else if (typeof nextValue === "function") {
-            nextValue(value.value)
-            value.next(value.value)
-         } else {
-            value.next(nextValue)
-         }
-      },
-      this)
-      this.__ng_value = true
+      this.__ng_value = Object.setPrototypeOf(ValueFn.bind(this), this)
       this.__check_phase = phase
       this.errors = new Set()
       this.changes = new Set()
@@ -163,7 +162,7 @@ export class Value<T> implements NextObserver<T> {
       this.source = subject
       if (behavior) this.source.subscribe((value) => (this._value = value))
       if (arguments.length > 1) this.source.next(_value!)
-      return value
+      return this.__ng_value as any
    }
 }
 
@@ -392,6 +391,10 @@ export function defaultFn(value: any) {
    return value
 }
 
+function EmitterFn(this: any, ...params: any[]) {
+   this.__ng_emitter.next(params)
+}
+
 export class Emitter extends EventEmitter {
    readonly __ng_emitter: boolean
    modifier: (...params: any[]) => any
@@ -413,14 +416,8 @@ export class Emitter extends EventEmitter {
    }
    constructor(fn: (...params: any[]) => any) {
       super()
-      this.__ng_emitter = true
+      this.__ng_emitter = Object.setPrototypeOf(EmitterFn.bind(this), this)
       this.modifier = fn === Function ? defaultFn : fn
-      const emitter: this = Object.setPrototypeOf(function Emitter(
-         ...params: any[]
-      ) {
-         emitter.next(params)
-      },
-      this)
-      return emitter
+      return this.__ng_emitter as any
    }
 }
