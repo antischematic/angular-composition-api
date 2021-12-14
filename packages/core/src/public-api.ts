@@ -28,6 +28,8 @@ export {
    Change,
    DeferredValueOptions,
    ValueOptions,
+   NoCheck,
+   ErrorState
 } from "./interfaces"
 export { select, combine } from "./select"
 export { ValueToken, provide, EmptyValueError } from "./provider"

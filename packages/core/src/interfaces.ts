@@ -97,12 +97,6 @@ export type QueryType = typeof ContentChild | typeof ViewChild
 
 export type QueryListType = typeof ViewChildren | typeof ContentChildren
 
-export interface NoCheckValueOptions<T> {
-   immediate?: boolean
-   check: false
-   subject?: Subject<T>
-}
-
 export interface ValueOptions<T> {
    behavior?: boolean
    immediate?: boolean
@@ -110,9 +104,6 @@ export interface ValueOptions<T> {
    subject?: Subject<T>
 }
 
-export interface NoCheckDeferredValueOptions<T> extends NoCheckValueOptions<T> {
-   initial: T
-}
 export interface DeferredValueOptions<T> extends ValueOptions<T> {
    initial: T
 }
