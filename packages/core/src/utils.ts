@@ -1,5 +1,12 @@
 import { PartialObserver, Subscription } from "rxjs"
-import { Emitter, ExpandValue, UnsubscribeSignal, Value } from "./interfaces"
+import {
+   CheckSubject,
+   Emitter,
+   ExpandValue,
+   NoCheck,
+   UnsubscribeSignal,
+   Value,
+} from "./interfaces"
 
 export function isObject(value: unknown): value is {} {
    return typeof value === "object" && value !== null
@@ -103,4 +110,9 @@ const CLASS_REGEX = /^\s*class\s+/
 
 export function isClass(value: any) {
    return typeof value === "function" && CLASS_REGEX.test(value.toString())
+}
+
+export function noCheck<T extends CheckSubject<any>>(value: T): NoCheck<T> {
+   delete (<any>value).__check_phase
+   return value
 }

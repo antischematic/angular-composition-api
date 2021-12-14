@@ -37,7 +37,10 @@ function createValueToken<T>(
 ): ValueToken<T>
 function createValueToken(
    name: string,
-   { providedIn = "root", factory }: { factory?: () => any; providedIn?: ProvidedIn } = {},
+   {
+      providedIn = "root",
+      factory,
+   }: { factory?: () => any; providedIn?: ProvidedIn } = {},
 ): ValueToken<any> {
    const ValueToken = new InjectionToken(name, {
       factory: get,

@@ -81,24 +81,35 @@ function ValueFn<T>(this: any, nextValue?: any): T | void {
    }
 }
 
+class Source<T> extends ReplaySubject<T> {
+   next(nextValue: T) {
+      this.value = nextValue
+      super.next(nextValue)
+   }
+   constructor(public value: T, emit: boolean) {
+      super(1)
+      if (emit) this.next(value)
+   }
+}
+
 export class Value<T> implements NextObserver<T> {
    readonly __ng_value: boolean
-   readonly __check_phase: number;
+   declare readonly __check_phase: number;
    [observable]() {
       return this
    }
-   check: (oldValue: T, newValue: T) => boolean
+   check?: (oldValue: T, newValue: T) => boolean
    source: Subject<T>
    errors: Set<(error: unknown) => Observable<any> | void>
    changes: Set<(previous: T, current: T) => void>
    get value(): T {
-      return this._value!
+      return (<any>this.source).value
    }
    set value(nextValue: T) {
       this.next(nextValue)
    }
    isDirty(value: T) {
-      return !this.check(this.value, value)
+      return !this.check!(this.value, value)
    }
    call(this: any, context: any, ...args: any[]) {
       return this(...args)
@@ -146,22 +157,16 @@ export class Value<T> implements NextObserver<T> {
    }
 
    constructor(
-      {
-         distinct = Object.is,
-         subject = new ReplaySubject(1),
-         behavior = true,
-      }: ValueOptions<T> = {},
-      public _value?: T,
+      { check = Object.is, subject, immediate = true }: ValueOptions<T> = {},
+      value?: T,
       public phase: CheckPhase = 5,
    ) {
       this.__ng_value = Object.setPrototypeOf(ValueFn.bind(this), this)
-      this.__check_phase = phase
       this.errors = new Set()
       this.changes = new Set()
-      this.check = distinct
-      this.source = subject
-      if (behavior) this.source.subscribe((value) => (this._value = value))
-      if (arguments.length > 1) this.source.next(_value!)
+      this.source = subject ?? new Source<T>(value!, arguments.length > 1)
+      this.__check_phase = phase
+      this.check = check
       return this.__ng_value as any
    }
 }
@@ -240,19 +245,17 @@ export class DeferredValue<T> extends Value<T> implements Connectable {
    }
 
    subscribe(observer: any): Subscription {
-      return new ConnectedSubscriber(this, observer)
+      return new ConnectedSubscriber(this, observer, this.options?.immediate)
    }
 
    constructor(
       public subscribable: Subscribable<any>,
-      phase: CheckPhase = 5,
-      options?: ValueOptions<any> | DeferredValueOptions<any>,
+      public phase: CheckPhase = 5,
+      public options?: ValueOptions<any> | DeferredValueOptions<any>,
    ) {
       super(options)
       this.refCount = 0
       this.connected = false
-      this.phase = phase
-      this.check = options?.distinct ?? Object.is
       this.subscription = Subscription.EMPTY
       if (options && "initial" in options) {
          this.source.next(options.initial)
@@ -320,13 +323,16 @@ class ConnectedSubscriber extends Subscription {
       super.unsubscribe()
    }
 
-   constructor(private accessor: Connectable, observer: any) {
+   constructor(
+      private accessor: Connectable,
+      observer: any,
+      immediate: boolean = true,
+   ) {
       super()
       accessor.refCount++
+      if (accessor.refCount === 1 && !immediate) accessor.connect()
       this.add(accessor.source.subscribe(observer))
-      if (accessor.refCount === 1) {
-         accessor.connect()
-      }
+      if (accessor.refCount === 1 && immediate) accessor.connect()
    }
 }
 
@@ -339,6 +345,7 @@ export class AccessorValue<TValue, TNext>
    subscribable: Subscribable<TValue>
    accessor: Accessor<TValue, TNext>
    connected: boolean
+   options?: ValueOptions<TValue> | DeferredValueOptions<TValue>
 
    get value() {
       this.connect()
@@ -367,18 +374,19 @@ export class AccessorValue<TValue, TNext>
    }
 
    subscribe(observer: any): Subscription {
-      return new ConnectedSubscriber(this, observer)
+      return new ConnectedSubscriber(this, observer, this.options?.immediate)
    }
 
    constructor(
       accessor: Accessor<TValue, TNext>,
-      options?: ValueOptions<TValue>,
+      options?: ValueOptions<TValue> | DeferredValueOptions<TValue>,
    ) {
       let { value } = accessor
       if (typeof value === "function" && !isValue(value) && !isEmitter(value)) {
          value = new ComputedValue(value, options)
       }
       super(options)
+      this.options = options
       this.accessor = accessor
       this.refCount = 0
       this.subscription = Subscription.EMPTY

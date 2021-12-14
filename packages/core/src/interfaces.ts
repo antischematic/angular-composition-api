@@ -64,12 +64,8 @@ export interface ReadonlyValue<T> extends CheckSubject<T> {
 }
 
 export interface Accessor<T, U> {
-   next:
-      | ((value: U) => void)
-      | NextObserver<U>
-   value:
-      | Observable<T>
-      | (() => T)
+   next: ((value: U) => void) | NextObserver<U>
+   value: Observable<T> | (() => T)
 }
 
 export interface AccessorValue<T, U> extends CheckSubject<T> {
@@ -83,6 +79,8 @@ export interface AccessorValue<T, U> extends CheckSubject<T> {
    onChanges(handler: (previous: T, current: T) => void): () => void
    onError(handler: (error: unknown) => Observable<any> | void): () => void
 }
+
+export type NoCheck<T> = Omit<T, "__check_phase">
 
 export interface EmitterWithParams<T extends (...args: any[]) => any>
    extends EventEmitter<ReturnType<T>> {
@@ -99,12 +97,22 @@ export type QueryType = typeof ContentChild | typeof ViewChild
 
 export type QueryListType = typeof ViewChildren | typeof ContentChildren
 
-export interface ValueOptions<T> {
-   behavior?: boolean
-   distinct?: (oldValue: T, newValue: T) => boolean
+export interface NoCheckValueOptions<T> {
+   immediate?: boolean
+   check: false
    subject?: Subject<T>
 }
 
+export interface ValueOptions<T> {
+   behavior?: boolean
+   immediate?: boolean
+   check?: (oldValue: T, newValue: T) => boolean
+   subject?: Subject<T>
+}
+
+export interface NoCheckDeferredValueOptions<T> extends NoCheckValueOptions<T> {
+   initial: T
+}
 export interface DeferredValueOptions<T> extends ValueOptions<T> {
    initial: T
 }

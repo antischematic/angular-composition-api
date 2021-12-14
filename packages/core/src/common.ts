@@ -18,9 +18,9 @@ import {
    ViewChildren,
 } from "@angular/core"
 import {
-   AccessorValue,
    CheckPhase,
    DeferredValue,
+   DeferredValueOptions,
    Emitter,
    EmitterWithParams,
    ErrorState,
@@ -28,8 +28,8 @@ import {
    QueryType,
    ReadonlyValue,
    UnsubscribeSignal,
+   Value,
    ValueOptions,
-   Value, DeferredValueOptions,
 } from "./interfaces"
 import { isClass, isEmitter, isObserver, isSignal, isValue } from "./utils"
 import { addEffect, addTeardown, inject } from "./core"
@@ -72,10 +72,6 @@ function isQuery(value: any) {
 
 export function use<T>(): Value<T | undefined>
 export function use<T>(value: typeof Function): Emitter<T>
-export function use<T, U>(
-   value: AccessorValue<T, U>,
-   options?: ValueOptions<T>,
-): Emitter<T>
 export function use<T>(
    value: Observable<T>,
    options?: ValueOptions<T>,
@@ -141,7 +137,7 @@ export function subscribe<T>(
 ): Subscription
 export function subscribe<T>(
    source: Observable<T>,
-   observer: ((value: T) => TeardownLogic),
+   observer: (value: T) => TeardownLogic,
    signal: UnsubscribeSignal,
 ): Subscription
 export function subscribe<T>(

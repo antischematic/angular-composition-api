@@ -3,8 +3,8 @@ import {
    AccessorValue,
    Emitter,
    ExpandValue,
-   ValueOptions,
    Value,
+   ValueOptions,
 } from "./interfaces"
 import {
    AccessorValue as AccessorValueType,
@@ -22,7 +22,10 @@ export function select<T extends Value<any> | Emitter<any>>(
    source: T,
    options?: ValueOptions<any>,
 ): unknown
-export function select<T>(source: () => T, options?: ValueOptions<any>): Value<T>
+export function select<T>(
+   source: () => T,
+   options?: ValueOptions<any>,
+): Value<T>
 export function select(
    source: (() => any) | Accessor<any, any> | Value<any> | Emitter<any>,
    options?: ValueOptions<any>,

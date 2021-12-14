@@ -100,7 +100,7 @@ describe("use", () => {
          const value = use(
             { count: 0 },
             {
-               distinct: (prev, next) => prev.count === next.count,
+               check: (prev, next) => prev.count === next.count,
             },
          )
          expect((<any>value).isDirty({ count: 10 })).toBeTrue()
