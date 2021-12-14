@@ -16,7 +16,6 @@ import {
    ContentChild,
    ContentChildren,
    ElementRef,
-   QueryList,
    ViewChild,
    ViewChildren,
 } from "@angular/core"
@@ -238,12 +237,16 @@ describe("types", () => {
 
       // readonly
       // @ts-expect-error
+      // noinspection JSConstantReassignment
       instance.readonlyAccessor = 3
       // @ts-expect-error
+      // noinspection JSConstantReassignment
       instance.emitter = use(Function)
       // @ts-expect-error
+      // noinspection JSConstantReassignment
       instance.plainBoolean = true
       // @ts-expect-error
+      // noinspection JSConstantReassignment
       instance.plainFunction = () => {}
 
       // writable

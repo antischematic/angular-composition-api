@@ -566,24 +566,11 @@ type Readonly<T> = {
          : key
       : T[key] extends Value<any>
       ? never
-      : key]: T[key]
+      : key]: T[key] extends CheckSubject<infer R> ? R : T[key]
 }
 
 type Writable<T> = {
-   [key in keyof T as T[key] extends AccessorValue<infer A, infer B>
-      ? A extends B
-         ? key
-         : never
-      : T[key] extends Value<any>
-      ? key
-      : never]: T[key]
+   [key in keyof T]: T[key] extends CheckSubject<infer R> ? R : T[key]
 }
 
-export type ViewDef<T, U = Readonly<T> & Writable<T>> = Type<
-   {
-      [key in keyof T]: T[key] extends CheckSubject<infer R> ? R : T[key]
-   } &
-      {
-         [key in keyof U]: U[key] extends CheckSubject<infer R> ? R : U[key]
-      }
->
+export type ViewDef<T, U = Readonly<T> & Writable<T>> = Type<U>
