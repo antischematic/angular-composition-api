@@ -41,7 +41,9 @@ function todoList() {
 
    subscribe(userId, (value) => {
       subscribe(loadTodosById(value), {
-         next: todos,
+         next(d) {
+            todos(d)
+         },
          complete() {
             creating(null)
          },

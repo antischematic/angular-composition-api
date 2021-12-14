@@ -84,6 +84,8 @@ export function use<T>(
    value: Observable<T>,
    options: DeferredValueOptions<T>,
 ): Value<T>
+export function use<T>(value: QueryListType): Value<QueryList<T>>
+export function use<T>(value: QueryType): DeferredValue<T>
 export function use<T>(value: T, options?: ValueOptions<T>): Value<T>
 export function use<T extends (...args: any) => any>(
    value: EmitterWithParams<T>,
@@ -91,8 +93,6 @@ export function use<T extends (...args: any) => any>(
 export function use<T extends (...args: any[]) => any>(
    value: T,
 ): EmitterWithParams<T>
-export function use<T>(value: QueryListType): Value<QueryList<T>>
-export function use<T>(value: QueryType): DeferredValue<T>
 export function use(value?: any, options?: ValueOptions<unknown>): unknown {
    if (isQuery(value)) {
       const phase = queryMap.get(value)!

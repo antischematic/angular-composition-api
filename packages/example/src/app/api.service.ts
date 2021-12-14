@@ -1,6 +1,6 @@
 import { HttpClient } from "@angular/common/http"
-import { share, timer } from "rxjs"
-import { map } from "rxjs/operators"
+import { timer } from "rxjs"
+import { map, share } from "rxjs/operators"
 import {
    inject,
    Service,

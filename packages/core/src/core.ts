@@ -377,6 +377,8 @@ export function detectChanges() {
 }
 
 export class EffectObserver extends Subscription {
+   context
+
    next(nextValue: unknown): void {
       this.call("N", nextValue)
    }
@@ -403,7 +405,7 @@ export class EffectObserver extends Subscription {
 
    call(kind: "N" | "E" | "C", value?: unknown, error?: unknown) {
       if (this.closed) return
-      runInContext(this, this.observe, this, kind, value, error)
+      runInContext(this.context, this.observe, this, kind, value, error)
    }
 
    observe(
@@ -439,7 +441,7 @@ export class EffectObserver extends Subscription {
          this.source.stop()
       }
       super.unsubscribe()
-      runInContext(this, unsubscribe)
+      runInContext(this.context, unsubscribe)
    }
 
    subscribe() {
@@ -463,6 +465,7 @@ export class EffectObserver extends Subscription {
       private injector?: Injector,
    ) {
       super()
+      this.context = this
       createContext(this, errorHandler, injector)
    }
 }
