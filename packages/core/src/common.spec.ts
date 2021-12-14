@@ -134,7 +134,7 @@ describe("QueryList", () => {
       queryList.reset([1, 2, 3])
       subject.next(queryList)
       expect(spy).toHaveBeenCalledWith(subject.value)
-      expect(spy).toHaveBeenCalledTimes(1)
+      expect(spy).toHaveBeenCalledTimes(2)
    })
    it("should notify late subscribers", () => {
       const spy = createSpy()

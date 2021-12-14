@@ -16,6 +16,7 @@ import {
    ContentChild,
    ContentChildren,
    ElementRef,
+   QueryList,
    ViewChild,
    ViewChildren,
 } from "@angular/core"
@@ -230,8 +231,8 @@ describe("types", () => {
       expect(instance.plainBehavior).toEqual(jasmine.any(BehaviorSubject))
       expect(instance.contentQuery).toEqual(undefined)
       expect(instance.viewQuery).toEqual(undefined)
-      expect(instance.contentChildren).toEqual(undefined)
-      expect(instance.viewChildren).toEqual(undefined)
+      expect(instance.contentChildren.toArray()).toEqual([])
+      expect(instance.viewChildren.toArray()).toEqual([])
       expect(instance.plainNull).toEqual(null)
       expect(instance.plainUndefined).toBeUndefined()
 

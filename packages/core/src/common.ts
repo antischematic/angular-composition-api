@@ -71,7 +71,7 @@ function isQuery(value: any) {
 }
 
 export function use<T>(): Value<T | undefined>
-export function use<T>(value: QueryListType): DeferredValue<QueryList<T>>
+export function use<T>(value: QueryListType): Value<QueryList<T>>
 export function use<T>(value: QueryType): DeferredValue<T>
 export function use<T>(value: typeof Function): Emitter<T>
 export function use<T, U>(
@@ -98,7 +98,8 @@ export function use(value?: any, options?: ValueOptions<unknown>): unknown {
    if (isQuery(value)) {
       const phase = queryMap.get(value)!
       if (value === ContentChildren || value === ViewChildren) {
-         return new DeferredValueType(new QueryListValue(), phase, options)
+         const initial = new QueryListValue()
+         return new DeferredValueType(initial, phase, { initial })
       }
       return new ValueType(options, void 0, phase)
    }
@@ -136,7 +137,12 @@ export function subscribe<T>(
 ): Subscription
 export function subscribe<T>(
    source: Observable<T>,
-   observer: PartialObserver<T> | ((value: T) => TeardownLogic),
+   observer: PartialObserver<T>,
+   signal: UnsubscribeSignal,
+): Subscription
+export function subscribe<T>(
+   source: Observable<T>,
+   observer: ((value: T) => TeardownLogic),
    signal: UnsubscribeSignal,
 ): Subscription
 export function subscribe<T>(

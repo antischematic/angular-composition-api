@@ -6,13 +6,7 @@ import {
    ViewChild,
    ViewChildren,
 } from "@angular/core"
-import {
-   BehaviorSubject,
-   NextObserver,
-   Observable,
-   Subject,
-   Subscription,
-} from "rxjs"
+import { NextObserver, Observable, Subject, Subscription } from "rxjs"
 
 export interface Check {
    check(): void
@@ -43,9 +37,9 @@ export type UnsubscribeSignal = Subscription | AbortSignal | null
 export type Value<T> = CheckSubject<T> &
    NextObserver<T> & {
       readonly __ng_value: true
+      (value: void): T
       (mutate: (value: T) => any): void
       (value: T): void
-      (value: void): T
       next(value: T): void
       onChanges(handler: (previous: T, current: T) => void): () => void
       onError(handler: (error: unknown) => Observable<any> | void): () => void
@@ -54,9 +48,9 @@ export type Value<T> = CheckSubject<T> &
 export type DeferredValue<T> = CheckSubject<T, undefined> &
    NextObserver<T> & {
       readonly __ng_value: true
+      (value: void): T | undefined
       (mutate: (value: T) => any): void
       (value: T): T | undefined
-      (value: void): T | undefined
       next(value: T): void
       onChanges(handler: (previous: T, current: T) => void): () => void
       onError(handler: (error: unknown) => Observable<any> | void): () => void
@@ -82,9 +76,9 @@ export interface AccessorValue<T, U> extends CheckSubject<T> {
    readonly __ng_value: true
    readonly __ng_accessor_value: true
    readonly value: T
+   (value: void): T
    (mutate: (value: U) => any): void
    (value: U): void
-   (value: void): T
    next(value: U): void
    onChanges(handler: (previous: T, current: T) => void): () => void
    onError(handler: (error: unknown) => Observable<any> | void): () => void
