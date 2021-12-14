@@ -64,7 +64,7 @@ let uid = 0
 function extractTokens(acc: ValueToken<any>[], next: ValueToken<any>) {
    if (isStoreToken(next)) {
       const tokens = next.Provider[next.Provider.length - 1] as any[]
-      acc.push(...tokens)
+      tokens.reduce(extractTokens, acc)
    } else {
       acc.push(next)
    }
