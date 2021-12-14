@@ -112,7 +112,7 @@ export function isClass(value: any) {
    return typeof value === "function" && CLASS_REGEX.test(value.toString())
 }
 
-export function noCheck<T extends CheckSubject<any>>(value: T): NoCheck<T> {
-   delete (<any>value).__check_phase
+export function noCheck<T extends { __check_phase: any }>(value: T): NoCheck<T> {
+   delete value.__check_phase
    return value
 }

@@ -99,9 +99,9 @@ export class Value<T> implements NextObserver<T> {
       return this
    }
    check?: (oldValue: T, newValue: T) => boolean
-   source: Subject<T>
-   errors: Set<(error: unknown) => Observable<any> | void>
-   changes: Set<(previous: T, current: T) => void>
+   source!: Subject<T>
+   errors!: Set<(error: unknown) => Observable<any> | void>
+   changes!: Set<(previous: T, current: T) => void>
    get value(): T {
       return (<any>this.source).value
    }
@@ -159,15 +159,15 @@ export class Value<T> implements NextObserver<T> {
    constructor(
       { check = Object.is, subject, immediate = true }: ValueOptions<T> = {},
       value?: T,
-      public phase: CheckPhase = 5,
+      phase: CheckPhase = 5,
    ) {
-      this.__ng_value = Object.setPrototypeOf(ValueFn.bind(this), this)
-      this.errors = new Set()
-      this.changes = new Set()
-      this.source = subject ?? new Source<T>(value!, arguments.length > 1)
-      this.__check_phase = phase
-      this.check = check
-      return this.__ng_value as any
+      const self: any = this.__ng_value = Object.setPrototypeOf(ValueFn.bind(this), this)
+      self.errors = new Set()
+      self.changes = new Set()
+      self.source = subject ?? new Source<T>(value!, arguments.length > 1)
+      self.__check_phase = phase
+      self.check = check
+      return self
    }
 }
 
