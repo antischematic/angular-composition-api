@@ -6,7 +6,7 @@ import {
    ValueToken,
 } from "@mmuscat/angular-composition-api"
 import { MonoTypeOperatorFunction, Observable } from "rxjs"
-import {InjectionToken, Injector, ProviderToken} from "@angular/core"
+import { InjectionToken, Injector, ProviderToken } from "@angular/core"
 import { StoreContext } from "./providers"
 
 export interface NextEvent {
@@ -64,10 +64,8 @@ export interface StoreConfig<T extends ValueToken<any>[]> {
 }
 
 export interface Action<T, U> extends Observable<T> {
-   readonly __ng_emitter: true
    (value: U): void
    next(value: U): void
-   emit(value: U): void
 }
 
 export type InferValue<TValue> = TValue extends ReadonlyValue<any>

@@ -8,7 +8,6 @@ import { EventEmitter, Provider } from "@angular/core"
 import {
    Emitter,
    inject,
-   isEmitter,
    onDestroy,
    onError,
    pipe,
@@ -216,7 +215,7 @@ describe("Store", () => {
       const result = TestBed.inject(Service) as any
       expect(result.state.value.count).toBe(20)
       expect(result.count.value).toBe(20)
-      expect(isEmitter(result.double)).toBeTrue()
+      expect("__check_phase" in result.double).toBeFalse()
    })
 
    it("should dispatch from a effect", () => {

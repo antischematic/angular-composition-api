@@ -43,10 +43,13 @@ export const StoreEvents: ValueToken<Emitter<StoreEvent>> = new ValueToken(
          const parent = inject(StoreEvents, null, InjectFlags.SkipSelf)
          const emitter = use(Function)
          if (parent) {
-            return select({
-               next: emitter,
-               value: merge(parent, emitter),
-            }, { behavior: false, subject: new Subject() })
+            return select(
+               {
+                  next: emitter,
+                  value: merge(parent, emitter),
+               },
+               { behavior: false, subject: new Subject() },
+            )
          }
          return emitter
       },

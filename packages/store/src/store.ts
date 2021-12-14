@@ -71,6 +71,25 @@ function extractTokens(acc: ValueToken<any>[], next: ValueToken<any>) {
    return acc
 }
 
+function handleError(
+   value: any,
+   events: Emitter<StoreEvent>,
+   target: number,
+   name: string,
+) {
+   if (isValue(value)) {
+      onError(value, (error) => {
+         events.next({
+            target,
+            name,
+            kind: "E",
+            error: error,
+         })
+         return of(true)
+      })
+   }
+}
+
 function store(name: string, tokens: ValueToken<any>[]) {
    const id = uid++
    const plugins = inject(StorePlugin, [])
@@ -105,6 +124,7 @@ function store(name: string, tokens: ValueToken<any>[]) {
       }
       if (type === 1) {
          command[tokenName] = value
+         handleError(value, events, id, tokenName)
       }
    }
    const state = combine(query)
@@ -126,15 +146,7 @@ function store(name: string, tokens: ValueToken<any>[]) {
          let value = injector.get(token.Token)
          if (isObservable(value)) {
             value = isValue(value) ? value : use(value)
-            onError(value, (error) => {
-               events.next({
-                  target: id,
-                  name: tokenName,
-                  kind: "E",
-                  error: error,
-               })
-               return of(true)
-            })
+            handleError(value, events, id, tokenName)
             subscribe(value)
          }
       }

@@ -3,11 +3,10 @@ import {
    Emitter,
    inject,
    isEmitter,
-   isValue,
+   noCheck,
    select,
    Service,
    use,
-   ValueOptions,
    ValueToken,
 } from "@mmuscat/angular-composition-api"
 import { Observable, Subject } from "rxjs"
@@ -21,21 +20,13 @@ export function isCommandToken(token: any) {
    return tokens.has(token)
 }
 
-export function action<T, U>(
-   accessor: Accessor<T, U>,
-   options?: ValueOptions<any>,
-): Action<T, U>
-export function action(
-   source: Accessor<any, any>,
-   options?: ValueOptions<any>,
-): unknown {
+export function action<T, U>(accessor: Accessor<T, U>): Action<T, U>
+export function action(source: Accessor<any, any>): unknown {
    const emitter = select(source, {
-      ...options,
-      subject: options?.subject ?? new Subject(),
+      immediate: false,
+      subject: new Subject(),
    })
-   ;(<any>emitter).__ng_emitter = true
-   delete (<any>emitter).__check_phase
-   return emitter
+   return noCheck(emitter)
 }
 
 function command(
@@ -45,13 +36,13 @@ function command(
    const context = Object.create(inject(StoreContext))
    context.dispatch = createDispatcher(name, context)
    const emitter = use(Function)
-   const result = factory(emitter, context)
-   if (isEmitter(result)) {
-      return result
+   const value = factory(emitter, context)
+   if (isEmitter(value)) {
+      return value
    }
    return action({
       next: emitter,
-      value: isValue(result) ? result : use(result),
+      value,
    })
 }
 

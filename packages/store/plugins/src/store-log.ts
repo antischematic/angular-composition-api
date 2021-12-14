@@ -1,8 +1,21 @@
-import { StoreContext, StoreEvent, StoreLike, StorePlugin, getTokenName } from "@mmuscat/angular-phalanx"
+import {
+   getTokenName,
+   StoreContext,
+   StoreEvent,
+   StoreLike,
+   StorePlugin,
+} from "@mmuscat/angular-phalanx"
 import { ValueToken } from "@mmuscat/angular-composition-api"
 import { Injectable, InjectionToken, ProviderToken } from "@angular/core"
 import { Subscription } from "rxjs"
-import { filter, groupBy, map, mergeMap, pairwise, startWith } from "rxjs/operators"
+import {
+   filter,
+   groupBy,
+   map,
+   mergeMap,
+   pairwise,
+   startWith,
+} from "rxjs/operators"
 
 function getTimestamp(id: number) {
    const now = new Date()
