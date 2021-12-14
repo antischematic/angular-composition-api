@@ -1,5 +1,5 @@
 import { Emitter, Value, ValueToken } from "@mmuscat/angular-composition-api"
-import {Dispatch, Dispatcher, StoreEvent, StoreLike} from "./interfaces"
+import { Dispatch, Dispatcher, StoreEvent } from "./interfaces"
 import { MonoTypeOperatorFunction, Observable } from "rxjs"
 import { tap } from "rxjs/operators"
 import { StoreContext } from "./providers"

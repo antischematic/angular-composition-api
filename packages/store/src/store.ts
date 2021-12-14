@@ -1,4 +1,4 @@
-import { isQueryToken } from "./query"
+import { isQueryToken, Query } from "./query"
 import { isCommandToken } from "./command"
 import {
    AccessorValue,
@@ -8,17 +8,24 @@ import {
    isValue,
    onDestroy,
    onError,
+   ReadonlyValue,
    Service,
    subscribe,
    use,
    ValueToken,
 } from "@mmuscat/angular-composition-api"
-import {ErrorHandler, InjectFlags, INJECTOR, ProviderToken, Type} from "@angular/core"
+import {
+   ErrorHandler,
+   InjectFlags,
+   INJECTOR,
+   ProviderToken,
+   Type,
+} from "@angular/core"
 import { isEffectToken } from "./effect"
 import { StoreConfig, StoreEvent, StoreLike, StorePlugin } from "./interfaces"
 import { isObservable, of } from "rxjs"
 import { createDispatcher, getTokenName } from "./utils"
-import { StoreEvents, StoreContext } from "./providers"
+import { StoreContext, StoreEvents } from "./providers"
 
 class EventObserver {
    next(value: any) {
@@ -54,9 +61,21 @@ class EventObserver {
 }
 let uid = 0
 
+function extractTokens(acc: ValueToken<any>[], next: ValueToken<any>) {
+   if (isStoreToken(next)) {
+      const tokens = next.Provider[next.Provider.length - 1] as any[]
+      acc.push(...tokens)
+   } else {
+      acc.push(next)
+   }
+   return acc
+}
+
 function store(name: string, tokens: ValueToken<any>[]) {
    const id = uid++
-   const plugins = inject(StorePlugin, []).filter(option => option.for === name).map(option => option.plugin)
+   const plugins = inject(StorePlugin, [])
+      .filter((option) => option.for === name)
+      .map((option) => option.plugin)
    const events = inject(StoreEvents, void 0, InjectFlags.Self)
    const context = inject(StoreContext)
    const dispatch = createDispatcher(name, context)
@@ -64,6 +83,7 @@ function store(name: string, tokens: ValueToken<any>[]) {
    const injector = inject(INJECTOR)
    const query = {} as any
    const command = {} as any
+   tokens = tokens.reduce(extractTokens, [])
    context.name = name
    context.dispatch = dispatch
    context.id = id
@@ -75,7 +95,10 @@ function store(name: string, tokens: ValueToken<any>[]) {
       const tokenName = getTokenName(token)
       const type = isQueryToken(token) ? 0 : isCommandToken(token) ? 1 : 2
       if (type < 2) {
-         subscribe(value, new EventObserver(id, errorHandler, tokenName, events))
+         subscribe(
+            value,
+            new EventObserver(id, errorHandler, tokenName, events),
+         )
       }
       if (type === 0) {
          query[tokenName] = value
@@ -127,6 +150,12 @@ function store(name: string, tokens: ValueToken<any>[]) {
    return store
 }
 
+const storeTokens = new Set()
+
+function isStoreToken(token: any): token is ValueToken<StoreLike> {
+   return storeTokens.has(token)
+}
+
 function createStore<TName extends string>(
    name: TName,
    { tokens }: StoreConfig<ValueToken<any>[]>,
@@ -148,39 +177,73 @@ function createStore<TName extends string>(
       StoreContext as Type<StoreContext>,
       tokens.map((Token) => Token.Provider),
    )
+   storeTokens.add(Token)
    return Token
 }
 
 type Snapshot<T> = {
-   [key in keyof T as T[key] extends ValueToken<infer R>
-      ? "__query" extends keyof R
-         ? R["__query"]
-         : never
-      : never]: T[key] extends ValueToken<{ value: infer R }> ? R : never
+   [key in keyof T]: T[key] extends Query<any, ReadonlyValue<infer R>>
+      ? R
+      : never
 }
 
-type Queries<T> = {
-   [key in keyof T as T[key] extends ValueToken<infer R>
-      ? "__query" extends keyof R
-         ? R["__query"]
-         : never
-      : never]: T[key] extends ValueToken<infer R> ? R : never
-}
+type ExtractQueries<T> = Exclude<
+   {
+      [key in keyof T as T[key] extends ValueToken<infer R>
+         ? "__query" extends keyof R
+            ? R["__query"]
+            : never
+         : never]: T[key] extends ValueToken<infer R> ? R : never
+   },
+   any[]
+>
 
-type Commands<T> = {
-   [key in keyof T as T[key] extends ValueToken<infer R>
-      ? "__command" extends keyof R
-         ? R["__command"]
-         : never
-      : never]: T[key] extends ValueToken<infer R> ? R : never
-}
+type Union<T> = {
+   [key in keyof T]: T[key]
+}[keyof T]
+
+type ExtractStores<
+   T,
+   U extends string,
+   TResult = Union<
+      {
+         [key in keyof T as T[key] extends ValueToken<infer R>
+            ? U extends keyof R
+               ? key
+               : never
+            : never]: T[key] extends ValueToken<infer R>
+            ? U extends keyof R
+               ? R[U]
+               : never
+            : never
+      }
+   >,
+> = [TResult] extends [never] ? {} : TResult
+
+type Queries<T> = ExtractQueries<T>
+
+type ExtractCommands<T> = Exclude<
+   {
+      [key in keyof T as T[key] extends ValueToken<infer R>
+         ? "__command" extends keyof R
+            ? R["__command"]
+            : never
+         : never]: T[key] extends ValueToken<infer R> ? R : never
+   },
+   any[]
+>
+
+type Commands<T> = ExtractCommands<T> & ExtractStores<T, "command">
 
 export interface Store<TName extends string, TTokens extends readonly any[]> {
    name: TName
    query: Queries<TTokens>
    command: Commands<TTokens>
    event: Emitter<StoreEvent>
-   state: AccessorValue<Snapshot<TTokens>, Partial<Snapshot<TTokens>>>
+   state: AccessorValue<
+      Snapshot<Queries<TTokens>>,
+      Partial<Snapshot<Queries<TTokens>>>
+   >
    <T>(token: ValueToken<T>, injectFlags?: InjectFlags): T
    <T>(token: ValueToken<T>, injectFlags?: InjectFlags): T
 }
@@ -197,7 +260,10 @@ export interface StoreStatic {
 
 export const Store: StoreStatic = createStore as any
 
-export function withPlugins(store: ValueToken<StoreLike>, plugins: ProviderToken<StorePlugin>[]) {
+export function withPlugins(
+   store: ValueToken<StoreLike>,
+   plugins: ProviderToken<StorePlugin>[],
+) {
    const name = getTokenName(store)
    return [
       store.Provider,
@@ -205,9 +271,9 @@ export function withPlugins(store: ValueToken<StoreLike>, plugins: ProviderToken
          provide: StorePlugin,
          useValue: {
             for: name,
-            plugin
+            plugin,
          },
-         multi: true
-      }))
+         multi: true,
+      })),
    ]
 }
