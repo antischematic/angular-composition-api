@@ -104,7 +104,8 @@ console.log(disabled()) // true
 
 ## Pipe
 
-The `pipe` utility flattens a series of operations into a single `Value`.
+The `pipe` utility flattens a series of unary operations. Combine with `share` to 
+derive a new `Value`.
 
 ```ts title="Example"
 import { use, subscribe, pipe } from "@mmuscat/angular-composition-api"
@@ -129,4 +130,23 @@ function setup() {
       todos,
    }
 }
+```
+
+## Share
+
+When used with `pipe`, the `share` operator returns a `Value` or `DeferredValue` containing
+the result of the operations before it. Accepts an optional `ValueOptions` argument.
+
+```ts
+import { use, share } from "@mmuscat/angular-composition-api"
+import { map } from "rxjs/operators"
+
+const count = use(10)
+
+const doubled = count.pipe(
+   map(double),
+   share({ 
+      initial: 20 // returns a `Value` instead of `DeferredValue`
+   })
+)
 ```
