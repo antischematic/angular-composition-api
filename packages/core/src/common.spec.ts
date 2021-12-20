@@ -1,4 +1,12 @@
-import { attribute, listen, onError, pipe, subscribe, use } from "./common"
+import {
+   attribute,
+   listen,
+   onError,
+   pipe,
+   share,
+   subscribe,
+   use,
+} from "./common"
 import { map, switchMap, tap } from "rxjs/operators"
 import {
    Component,
@@ -914,6 +922,7 @@ describe("onError", () => {
             switchMap(() =>
                count === 0 ? throwError(new Error("BOGUS")) : of(true),
             ),
+            share(),
          )
          const retry = use<void>(Function)
          const error = onError(value, (e, state) => {
@@ -982,6 +991,7 @@ describe("onError", () => {
             switchMap(() =>
                count < 3 ? throwError(new Error("BOGUS")) : of(true),
             ),
+            share(),
          )
          const retry = use<void>(Function)
          const error = onError(value, (e, state) => {
@@ -1062,6 +1072,7 @@ describe("pipe", () => {
       const result = pipe(
          count,
          map((value) => value * 2),
+         share(),
       )
       const spy = jasmine.createSpy()
 
