@@ -108,7 +108,7 @@ The `pipe` utility flattens a series of unary operations. Combine with `share` t
 derive a new `Value`.
 
 ```ts title="Example"
-import { use, subscribe, pipe } from "@mmuscat/angular-composition-api"
+import { use, subscribe, pipe, share } from "@mmuscat/angular-composition-api"
 import { HttpClient } from "@angular/common/http"
 import { exhaustMap } from "rxjs/operators"
 import { environment } from "./environment.ts"
@@ -119,6 +119,7 @@ function setup() {
    const todos = pipe(
       userId,
       exhaustMap(() => http.get(environment.url, { params: { userId } })),
+      share()
    )
 
    subscribe(todos, (value) => {
