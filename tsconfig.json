@@ -15,7 +15,13 @@
          "@mmuscat/angular-composition-api": ["./dist/angular-composition-api"],
          "@mmuscat/angular-error-boundary": ["./dist/boundary"],
          "@mmuscat/angular-phalanx": ["./dist/store"],
-         "@mmuscat/angular-resource": ["./dist/resource"]
+        "@mmuscat/angular-resource": [
+          "./dist/resource"
+        ],
+        "forms": [
+          "dist/forms/forms",
+          "dist/forms"
+        ]
       },
       "experimentalDecorators": true,
       "moduleResolution": "node",
