@@ -3,5 +3,11 @@
    "tabWidth": 3,
    "semi": false,
    "trailingComma": "all",
-   "printWidth": 80
+   "printWidth": 80,
+   "overrides": [{
+      "files": "**/*.ng",
+      "options": {
+         "parser": "typescript"
+      }
+   }]
 }

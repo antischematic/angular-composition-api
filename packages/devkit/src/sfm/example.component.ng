@@ -1,0 +1,71 @@
+// noinspection BadExpressionStatementJS
+
+import {
+   use,
+   inject,
+   listen,
+   subscribe,
+   ValueToken,
+} from "@mmuscat/angular-composition-api"
+import { EMPTY } from "rxjs"
+import { Component, ViewChild } from "@angular/core"
+import MyCounter from "./example.component"
+
+export const Child = new ValueToken("Child")
+export const API = new ValueToken<any>("API", {
+   factory() {
+      return {
+         save() {},
+      }
+   },
+})
+
+export function ngTemplateContextGuard(dir: MyCounter) {
+   dir.save()
+}
+
+compile: Component
+selector: "my-counter"
+providers: [
+   {
+      provide: Child,
+      useExisting: MyCounter
+   }
+]
+inputs: ["count"]
+outputs: ["countChange"]
+host: ({
+   class: "count",
+})
+queries: ({
+   viewChild: new ViewChild("viewChild"),
+})
+
+const api = inject(API)
+
+export const count = use(0)
+export const countChange = listen(count)
+export const result = use(EMPTY)
+
+export function increment() {
+   countChange(count() + 1)
+}
+
+export function save() {
+   api.save(count()).subscribe(result)
+}
+
+subscribe(count, console.log)
+
+style: `
+   .button {
+      background-color: blue
+   }
+`
+
+template: `
+   <div>{{ count }}</div>
+   <button class="button" (click)="increment()">
+      Increment
+   </button>
+`
